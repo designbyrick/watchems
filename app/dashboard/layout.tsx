@@ -27,27 +27,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ? `${user.firstName}${user.lastName ? ' ' + user.lastName : ''}`
     : user.username || 'User'
 
-  const email = user.emailAddresses?.[0]?.emailAddress || ''
-
-  const initials = displayName
-    .split(' ')
-    .slice(0, 2)
-    .map((word: string) => word[0]?.toUpperCase())
-    .join('')
-
   const sidebarUser = {
     displayName,
-    email,
-    avatarUrl: user.imageUrl || null,
-    initials,
-    username: user.username,
-    userId,
+    initial: displayName[0]?.toUpperCase() || 'W',
+    memberSince: user.createdAt ? new Date(user.createdAt).getFullYear() : null,
   }
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-[calc(100vh-4rem)]">
+    <div className="max-w-[1320px] mx-auto flex flex-col lg:flex-row min-h-[calc(100vh-3.5rem)] lg:min-h-[calc(100vh-72px)]">
       <DashboardSidebar user={sidebarUser} />
-      <div className="flex-1 bg-gray-50">
+      <div className="flex-1 min-w-0">
         {children}
       </div>
     </div>

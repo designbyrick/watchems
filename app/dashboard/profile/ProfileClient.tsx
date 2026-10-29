@@ -93,15 +93,21 @@ export default function ProfileClient({
     .map((w) => w[0]?.toUpperCase())
     .join('')
 
-  return (
-    <div className="py-6 sm:py-8 px-4 sm:px-6">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">My Profile</h1>
+  const card = 'bg-surface border border-line rounded-[10px] p-5 sm:p-6'
+  const label = 'font-mono text-[11px] tracking-[1px] uppercase text-muted'
+  const input = 'w-full h-11 px-3 bg-surface border border-line rounded-md text-[15px] text-ink focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink'
+  const outlineBtn = 'inline-flex h-11 items-center gap-2 rounded-full border border-line-strong px-5 text-[15px] font-medium text-ink hover:bg-subtle transition-colors disabled:opacity-50'
 
+  return (
+    <div className="px-4 sm:px-8 lg:px-10 pt-6 lg:pt-8 pb-16">
+      <h1 className="text-[32px] sm:text-[40px] leading-tight font-semibold tracking-[-0.04em] text-ink">Profile</h1>
+      <p className="mt-2 text-[15px] text-muted">How you appear next to your wrist shots.</p>
+
+      <div className="mt-8 max-w-[720px] space-y-4">
         {/* Avatar section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Profile Photo</h2>
-          <div className="flex items-center gap-5">
+        <section className={card}>
+          <h2 className={label}>Profile photo</h2>
+          <div className="mt-4 flex items-center gap-5">
             <div className="relative shrink-0">
               {avatarUrl ? (
                 <Image
@@ -112,38 +118,38 @@ export default function ProfileClient({
                   className="w-20 h-20 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-xl font-semibold text-gray-500">
+                <div className="w-20 h-20 rounded-full bg-ink text-white flex items-center justify-center text-2xl font-semibold">
                   {initials}
                 </div>
               )}
               {uploading && (
-                <div className="absolute inset-0 bg-white/70 rounded-full flex items-center justify-center">
-                  <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <div className="absolute inset-0 bg-surface/70 rounded-full flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-ink border-t-transparent rounded-full animate-spin" />
                 </div>
               )}
             </div>
-            <div className="space-y-2">
-              <div className="flex gap-2">
+            <div className="space-y-2 min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading || !isLoaded}
-                  className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors disabled:opacity-50"
+                  className={outlineBtn}
                 >
-                  {avatarUrl ? 'Change Photo' : 'Upload Photo'}
+                  {avatarUrl ? 'Change photo' : 'Upload photo'}
                 </button>
                 {avatarUrl && (
                   <button
                     type="button"
                     onClick={handleRemoveAvatar}
                     disabled={uploading || !isLoaded}
-                    className="px-3 py-1.5 text-sm font-medium text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
+                    className="h-11 px-2 text-[15px] font-medium text-muted hover:text-mark transition-colors disabled:opacity-50"
                   >
                     Remove
                   </button>
                 )}
               </div>
-              <p className="text-xs text-gray-500">JPG, PNG, or WebP. Max 10MB.</p>
+              <p className="text-[13px] text-faint">JPG, PNG, or WebP. Max 10MB.</p>
               <input
                 ref={fileRef}
                 type="file"
@@ -153,79 +159,82 @@ export default function ProfileClient({
               />
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Name section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Display Name</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <section className={card}>
+          <h2 className={label}>Display name</h2>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">First name</label>
+              <label htmlFor="profile-first-name" className="block text-[13px] text-muted mb-1.5">First name</label>
               <input
+                id="profile-first-name"
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                className={input}
                 maxLength={50}
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Last name</label>
+              <label htmlFor="profile-last-name" className="block text-[13px] text-muted mb-1.5">Last name</label>
               <input
+                id="profile-last-name"
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                className={input}
                 maxLength={50}
               />
             </div>
           </div>
-          <div className="mt-3 flex items-center gap-3">
+          <div className="mt-4 flex items-center gap-3">
             <button
               type="button"
               onClick={handleSaveName}
               disabled={saving || !isLoaded}
-              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
+              className="inline-flex h-11 items-center rounded-full bg-ink px-5 text-[15px] font-semibold text-white hover:bg-ink-hover transition-colors disabled:opacity-50"
             >
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? 'Saving...' : 'Save changes'}
             </button>
-            {saved && <span className="text-sm text-green-600 font-medium">Saved</span>}
+            {saved && <span className="text-sm font-medium text-winner">Saved</span>}
           </div>
-        </div>
+        </section>
 
         {/* Info section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Account Info</h2>
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-500">Email</span>
-              <span className="text-gray-900">{email}</span>
+        <section className={card}>
+          <h2 className={label}>Account</h2>
+          <dl className="mt-4 divide-y divide-line text-[15px]">
+            <div className="flex items-center justify-between gap-4 pb-3">
+              <dt className="text-muted">Email</dt>
+              <dd className="text-ink truncate">{email}</dd>
             </div>
             {username && (
-              <div className="flex items-center justify-between">
-                <span className="text-gray-500">Username</span>
-                <span className="text-gray-900">@{username}</span>
+              <div className="flex items-center justify-between gap-4 py-3">
+                <dt className="text-muted">Username</dt>
+                <dd className="font-mono text-sm text-ink truncate">@{username}</dd>
               </div>
             )}
-          </div>
-        </div>
+          </dl>
+          <Link href="/dashboard/account" className={`${outlineBtn} mt-4`}>
+            Account settings
+          </Link>
+          <p className="mt-2 text-[13px] text-faint">Email, password and connected accounts.</p>
+        </section>
 
         {/* Public profile link */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-gray-900 mb-2">Public Profile</h2>
-          <p className="text-sm text-gray-500 mb-3">
-            Your public profile shows your approved photos and is visible to everyone.
+        <section className={card}>
+          <h2 className={label}>Public profile</h2>
+          <p className="mt-3 text-[15px] text-muted">
+            Your public profile shows your approved wrist shots and is visible to everyone.
           </p>
-          <Link
-            href={profileHref}
-            className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
-          >
+          <Link href={profileHref} className={`${outlineBtn} mt-4`}>
             View your public profile
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5H19.5V10.5M19.5 4.5L10.5 13.5M18 13.5V18a1.5 1.5 0 01-1.5 1.5H6A1.5 1.5 0 014.5 18V7.5A1.5 1.5 0 016 6h4.5" />
             </svg>
           </Link>
-        </div>
+        </section>
       </div>
     </div>
   )
