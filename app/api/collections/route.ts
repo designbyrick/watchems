@@ -20,7 +20,8 @@ export async function GET() {
         id: collections.id,
         name: collections.name,
         createdAt: collections.createdAt,
-        itemCount: sql<number>`cast(count(${collectionItems.id}) as int)`,
+        // Count joined photos, not items, so deleted/unapproved photos aren't counted
+        itemCount: sql<number>`cast(count(${photos.id}) as int)`,
         coverUrl: sql<string | null>`max(coalesce(${photos.thumbnailUrl}, ${photos.url}))`,
       })
       .from(collections)
