@@ -44,10 +44,8 @@ function validateMagicBytes(buf: Buffer): boolean {
 }
 
 /** GET /api/photos/[watchId] — fetch approved photos */
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { watchId: string } }
-) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ watchId: string }> }) {
+  const params = await props.params;
   if (!isValidSlug(params.watchId)) {
     return NextResponse.json([], { status: 400 })
   }
@@ -87,10 +85,8 @@ export async function GET(
 }
 
 /** POST /api/photos/[watchId] — upload a photo (requires auth) */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { watchId: string } }
-) {
+export async function POST(req: NextRequest, props: { params: Promise<{ watchId: string }> }) {
+  const params = await props.params;
   if (!isValidSlug(params.watchId)) {
     return NextResponse.json({ error: 'Invalid watch ID' }, { status: 400 })
   }

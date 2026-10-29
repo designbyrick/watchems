@@ -1,3 +1,6 @@
+// Static content: keep it prerendered (Next 15 no longer caches GET handlers by default)
+export const dynamic = 'force-static'
+
 export async function GET() {
   const content = `# Watchems
 

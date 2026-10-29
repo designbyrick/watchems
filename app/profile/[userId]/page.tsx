@@ -9,9 +9,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import PhotoGallery from '@/components/home/PhotoGallery'
 
-export async function generateMetadata(
-  { params }: { params: { userId: string } }
-): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ userId: string }> }): Promise<Metadata> {
+  const params = await props.params;
   try {
     const user = await (await clerkClient()).users.getUser(params.userId)
     const displayName = user.firstName
@@ -37,7 +36,8 @@ export async function generateMetadata(
   }
 }
 
-export default async function ProfilePage({ params }: { params: { userId: string } }) {
+export default async function ProfilePage(props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   // Fetch user from Clerk
   let user
   try {

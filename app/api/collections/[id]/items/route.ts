@@ -8,10 +8,8 @@ import { eq, and } from 'drizzle-orm'
 export const dynamic = 'force-dynamic'
 
 /** POST /api/collections/[id]/items — add a photo to a collection */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const collectionId = params.id
   const { userId } = await auth()
   if (!userId) {
@@ -56,10 +54,8 @@ export async function POST(
 }
 
 /** DELETE /api/collections/[id]/items?photoId=xxx — remove a photo from a collection */
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const collectionId = params.id
   const { userId } = await auth()
   if (!userId) {
