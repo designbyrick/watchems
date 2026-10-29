@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { photos } from '@/lib/db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { eq, and, ne, desc } from 'drizzle-orm'
 import Link from 'next/link'
 import PhotoGrid from './PhotoGrid'
 import EmptyState from '@/components/ui/EmptyState'
@@ -32,7 +32,7 @@ export default async function DashboardPage() {
   const sortedPhotos = await db
     .select()
     .from(photos)
-    .where(eq(photos.userId, userId))
+    .where(and(eq(photos.userId, userId), ne(photos.status, 'deleted')))
     .orderBy(desc(photos.createdAt))
 
   return (
