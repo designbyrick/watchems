@@ -2,16 +2,11 @@
 
 import React, { useState, useEffect, useRef, useCallback, Suspense, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Image from 'next/image'
+import Link from 'next/link'
 import { buildPhotoAltText } from '@/lib/photoAlt'
-import SocialActions from './SocialActions'
 import SaveToBoard from '@/components/SaveToBoard'
 import GalleryFilters from './GalleryFilters'
-import PhotoCountBadge from '@/components/ui/PhotoCountBadge'
-import PhotoCardOverlay from '@/components/ui/PhotoCardOverlay'
-import UserAttribution from '@/components/ui/UserAttribution'
 import Fuse from 'fuse.js'
-import SectionLabel from '@/components/ui/SectionLabel'
 import EmptyState from '@/components/ui/EmptyState'
 import { getWatchesCacheSync, getWatchesData } from '@/lib/watchesCache'
 import { trackEvent } from '@/lib/gtag'
@@ -61,8 +56,8 @@ const PAGE_SIZE = 20
 
 /**
  * Merge new photos into an existing list, skipping any whose id is already present.
- * This guards against races between the filter-change effect, IntersectionObserver
- * load-more, and the lightbox prefetch — all of which append to the same state.
+ * This guards against races between the filter-change effect
+ * and IntersectionObserver load-more, both of which append to the same state.
  */
 function mergePhotosDedupe(prev: PhotoItem[], next: PhotoItem[]): PhotoItem[] {
   if (next.length === 0) return prev
@@ -96,82 +91,6 @@ function getWatchLabel(group: WatchGroup) {
   const model = p.modelName || p.watchName || null
   const ref = p.referenceNumber || p.watchReference || null
   return { brand, model, ref }
-}
-
-// Group related photos by watchId+userId (same user's upload = one entry)
-interface RelatedGroup {
-  key: string
-  cover: PhotoItem
-  photos: PhotoItem[]
-  label: string
-}
-
-function groupByWatchUser(items: PhotoItem[]): RelatedGroup[] {
-  const map = new Map<string, PhotoItem[]>()
-  for (const p of items) {
-    const key = `${p.watchId}::${p.userId}`
-    if (!map.has(key)) map.set(key, [])
-    map.get(key)!.push(p)
-  }
-  return Array.from(map.entries()).map(([key, photos]) => {
-    // Pick best cover: lowest sortOrder first, then oldest (first uploaded)
-    const cover = [...photos].sort((a, b) => {
-      const orderDiff = (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
-      if (orderDiff !== 0) return orderDiff
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    })[0]
-    return {
-      key,
-      cover,
-      photos,
-      label: [photos[0].brandName || photos[0].watchBrand, photos[0].modelName || photos[0].watchName].filter(Boolean).join(' '),
-    }
-  })
-}
-
-function RelatedPhotoCard({ group, onClick, variant }: {
-  group: RelatedGroup
-  onClick: (cover: PhotoItem) => void
-  variant: 'grid' | 'masonry'
-}) {
-  if (variant === 'masonry') {
-    return (
-      <button
-        key={group.key}
-        type="button"
-        onClick={(e) => { e.stopPropagation(); onClick(group.cover) }}
-        className="block w-full mb-2.5 break-inside-avoid"
-      >
-        <div className="relative rounded-xl overflow-hidden bg-gray-100">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={group.cover.url}
-            alt={buildPhotoAltText(group.cover)}
-            className="w-full h-auto object-cover"
-            loading="lazy"
-          />
-          <PhotoCountBadge count={group.photos.length} />
-        </div>
-        {group.label && (
-          <p className="text-gray-700 text-xs font-medium mt-1.5 text-left truncate">{group.label}</p>
-        )}
-      </button>
-    )
-  }
-
-  return (
-    <button
-      key={group.key}
-      type="button"
-      onClick={(e) => { e.stopPropagation(); onClick(group.cover) }}
-      className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 hover:bg-gray-200 transition-colors"
-      aria-label={group.label || 'Related photo'}
-    >
-      <Image src={group.cover.thumbnailUrl || group.cover.url} alt={buildPhotoAltText(group.cover)} fill className="object-cover transition-transform duration-200 group-hover:scale-105" sizes="20vw" />
-      <PhotoCountBadge count={group.photos.length} />
-      <PhotoCardOverlay label={group.label} />
-    </button>
-  )
 }
 
 function TileGrid({ children }: { children: React.ReactNode }) {
@@ -304,7 +223,7 @@ function DidYouMean({ query, serverSuggestions, onSearch, onBrand }: {
   )
 }
 
-function PhotoGalleryContent({ initialPhotoSlug, userId }: { initialPhotoSlug?: string; userId?: string }) {
+function PhotoGalleryContent({ userId }: { userId?: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const activeWatchId = searchParams.get('watch')
@@ -331,54 +250,13 @@ function PhotoGalleryContent({ initialPhotoSlug, userId }: { initialPhotoSlug?: 
   const [loadingMore, setLoadingMore] = useState(false)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
-  // Lightbox state
-  const [lightbox, setLightbox] = useState<{ groupIdx: number; photoIdx: number } | null>(null)
-  const [lightboxImageLoading, setLightboxImageLoading] = useState(false)
   // Warm the shared watches cache — DidYouMean reads it for fuzzy suggestions
   useEffect(() => {
     if (!getWatchesCacheSync()) getWatchesData().catch(() => {})
   }, [])
 
-  // Zoom / pan state
-  const [zoom, setZoom] = useState(1)
-  const [panX, setPanX] = useState(0)
-  const [panY, setPanY] = useState(0)
-
-  // Touch refs
-  const touchStartXRef = useRef<number | null>(null)
-  const touchStartYRef = useRef<number | null>(null)
-  const lastTouchDistRef = useRef<number | null>(null)
-  const isPinchingRef = useRef(false)
-  const isDraggingRef = useRef(false)
-  const dragStartXRef = useRef(0)
-  const dragStartYRef = useRef(0)
-  const dragStartPanXRef = useRef(0)
-  const dragStartPanYRef = useRef(0)
-  const lastTapTimeRef = useRef(0)
-
-  // Related photos
-  const [relatedPhotos, setRelatedPhotos] = useState<PhotoItem[]>([])
-  const [relatedPhotosLoading, setRelatedPhotosLoading] = useState(false)
-  const [relatedNextCursor, setRelatedNextCursor] = useState<string | null>(null)
-  const [relatedLoadingMore, setRelatedLoadingMore] = useState(false)
-  const relatedPhotosCacheRef = useRef<
-    Map<string, { photos: PhotoItem[]; cursor: string | null }>
-  >(new Map())
-  const relatedSentinelRef = useRef<HTMLDivElement | null>(null)
-  const activeLightboxPhotoRef = useRef<PhotoItem | null>(null)
-
-  // Override: a related photo not yet in `groups`
-  const [photoOverride, setPhotoOverride] = useState<PhotoItem | null>(null)
-  const [showMobileSpecs, setShowMobileSpecs] = useState(false)
-
   // Abort controller for cancelling stale fetches
   const abortRef = useRef<AbortController | null>(null)
-
-  // Pinterest-style URL tracking
-  const galleryUrlRef = useRef<string>('/')
-  const lightboxOpenRef = useRef(false)
-  const initialPhotoOpenedRef = useRef(false)
-  const groupsRef = useRef<ReturnType<typeof groupByWatch>>([])
 
   const fetchPhotos = useCallback(async (cursor?: string, signal?: AbortSignal) => {
     const params = new URLSearchParams({ limit: String(PAGE_SIZE) })
@@ -401,143 +279,9 @@ function PhotoGalleryContent({ initialPhotoSlug, userId }: { initialPhotoSlug?: 
     return data
   }, [activeWatchId, activeQuery, activeBrand, activeMovement, activePriceMin, activePriceMax, activeCaseSizeMin, activeCaseSizeMax, activeDialColor, activeWatchStyle, activeCaseMaterial, activeStrapType, userId])
 
-  const fetchRelatedPhotos = useCallback(async (currentPhoto: PhotoItem) => {
-    const watchId = currentPhoto.watchId
-    const cached = relatedPhotosCacheRef.current.get(watchId)
-    if (cached) {
-      setRelatedPhotos(cached.photos)
-      setRelatedNextCursor(cached.cursor)
-      return
-    }
-    setRelatedPhotosLoading(true)
-    setRelatedNextCursor(null)
-    try {
-      const model = currentPhoto.modelName || currentPhoto.watchName || null
-      const brand = currentPhoto.watchBrand || currentPhoto.brandName || null
-
-      // Single batched request instead of 3-4 sequential calls
-      const params = new URLSearchParams({ watchId, excludeId: currentPhoto.id })
-      if (model) params.set('model', model)
-      if (brand) params.set('brand', brand)
-      const res = await fetch(`/api/photos/related?${params.toString()}`)
-      const data: {
-        sameWatch: PhotoItem[]
-        related: PhotoItem[]
-        nextCursor: string | null
-      } = await res.json()
-
-      // Inject same-watch photos not yet in the main feed so groupByWatch merges them into the carousel.
-      // Only inject photos from the same user — cross-user photos with the same watchId are a data anomaly
-      // (two users' submissions incorrectly merged) and must NOT be merged into the same carousel group.
-      setPhotos((prev) => {
-        const existingIds = new Set(prev.map((p) => p.id))
-        const missing = data.sameWatch.filter(
-          (p) => !existingIds.has(p.id) && p.userId === currentPhoto.userId
-        )
-        return missing.length > 0 ? [...prev, ...missing] : prev
-      })
-
-      const relatedList = [...data.sameWatch, ...data.related]
-      const nextCursor = data.nextCursor ?? null
-      relatedPhotosCacheRef.current.set(watchId, { photos: relatedList, cursor: nextCursor })
-      setRelatedPhotos(relatedList)
-      setRelatedNextCursor(nextCursor)
-    } catch (error) {
-      console.error('Failed to fetch related photos:', error)
-      setRelatedPhotos([])
-      setRelatedNextCursor(null)
-    } finally {
-      setRelatedPhotosLoading(false)
-    }
-  }, [])
-
-  const fetchMoreRelatedPhotos = useCallback(async () => {
-    const currentPhoto = activeLightboxPhotoRef.current
-    if (!currentPhoto) return
-    if (!relatedNextCursor) return
-    if (relatedLoadingMore) return
-
-    const watchId = currentPhoto.watchId
-    setRelatedLoadingMore(true)
-    try {
-      const params = new URLSearchParams({
-        watchId,
-        excludeId: currentPhoto.id,
-        loadMore: '1',
-        cursor: relatedNextCursor,
-      })
-      const res = await fetch(`/api/photos/related?${params.toString()}`)
-      const data: {
-        sameWatch: PhotoItem[]
-        related: PhotoItem[]
-        nextCursor: string | null
-      } = await res.json()
-
-      const newPhotos = data.related ?? []
-      const newCursor = data.nextCursor ?? null
-
-      setRelatedPhotos((prev) => {
-        const seen = new Set(prev.map((p) => p.id))
-        const additions = newPhotos.filter((p) => !seen.has(p.id))
-        const merged = additions.length > 0 ? [...prev, ...additions] : prev
-        // Update cache so reopening this watch later preserves the loaded pages.
-        relatedPhotosCacheRef.current.set(watchId, { photos: merged, cursor: newCursor })
-        return merged
-      })
-      setRelatedNextCursor(newCursor)
-    } catch (error) {
-      console.error('Failed to fetch more related photos:', error)
-    } finally {
-      setRelatedLoadingMore(false)
-    }
-  }, [relatedNextCursor, relatedLoadingMore])
-
-  const groups = useMemo(() => {
-    const g = groupByWatch(photos)
-    groupsRef.current = g
-    return g
-  }, [photos])
-
-  // Flat list of ALL photos across all groups (gallery-wide navigation)
-  const flatPhotos = useMemo(() => groups.flatMap((g) => g.photos), [groups])
-
-  // Auto-open lightbox when initialPhotoSlug is provided
-  useEffect(() => {
-    if (!initialPhotoSlug || initialPhotoOpenedRef.current || loading || groups.length === 0) return
-
-    for (let gi = 0; gi < groups.length; gi++) {
-      const pi = groups[gi].photos.findIndex(
-        (p) => (p.slug ?? p.id) === initialPhotoSlug
-      )
-      if (pi !== -1) {
-        initialPhotoOpenedRef.current = true
-        galleryUrlRef.current = '/'
-        lightboxOpenRef.current = true
-        window.history.replaceState({ lightbox: true }, '', window.location.pathname)
-        setLightbox({ groupIdx: gi, photoIdx: pi })
-        return
-      }
-    }
-
-    if (nextCursor && !loadingMore) {
-      setLoadingMore(true)
-      fetchPhotos(nextCursor).then((data) => {
-        setPhotos((prev) => mergePhotosDedupe(prev, data.photos))
-        setNextCursor(data.nextCursor)
-        setLoadingMore(false)
-      }).catch(() => setLoadingMore(false))
-    } else if (!nextCursor) {
-      initialPhotoOpenedRef.current = true
-    }
-  }, [initialPhotoSlug, groups, loading, nextCursor, loadingMore, fetchPhotos])
+  const groups = useMemo(() => groupByWatch(photos), [photos])
 
   useEffect(() => {
-    // When the lightbox is open it manipulates the URL via pushState, which causes
-    // Next.js App Router to update searchParams and change activeQuery/activeWatchId.
-    // Ignore those URL-driven re-runs while the lightbox is open — the user is just
-    // viewing a photo, not actually changing the search filter.
-    if (lightboxOpenRef.current) return
-
     // Debounce rapid filter changes (e.g. clicking multiple chips quickly)
     const timer = setTimeout(() => {
       // Abort any in-flight request before starting a new one
@@ -550,7 +294,6 @@ function PhotoGalleryContent({ initialPhotoSlug, userId }: { initialPhotoSlug?: 
       setNextCursor(null)
       setTotalCount(null)
       setSuggestions(undefined)
-      setLightbox(null)
 
       fetchPhotos(undefined, controller.signal).then((data) => {
         if (!controller.signal.aborted) {
@@ -607,366 +350,14 @@ function PhotoGalleryContent({ initialPhotoSlug, userId }: { initialPhotoSlug?: 
     return () => observer.disconnect()
   }, [nextCursor, loadingMore, fetchPhotos])
 
-  // Fetch more photos when navigating near the end of loaded groups
-  useEffect(() => {
-    if (!lightbox || !nextCursor || loadingMore) return
-    if (lightbox.groupIdx >= groups.length - 5) {
-      setLoadingMore(true)
-      fetchPhotos(nextCursor).then((data) => {
-        setPhotos((prev) => mergePhotosDedupe(prev, data.photos))
-        setNextCursor(data.nextCursor)
-        setLoadingMore(false)
-      }).catch(() => setLoadingMore(false))
-    }
-  }, [lightbox, groups.length, nextCursor, loadingMore, fetchPhotos])
 
-  // Show loading state when lightbox photo changes
-  useEffect(() => {
-    if (lightbox === null) return
-    setLightboxImageLoading(true)
-    setShowMobileSpecs(false)
-  }, [lightbox])
-
-  // Lock body scroll when lightbox is open
-  const savedScrollYRef = useRef(0)
-  useEffect(() => {
-    if (lightbox !== null) {
-      savedScrollYRef.current = window.scrollY
-      document.body.style.overflow = 'hidden'
-      document.body.style.position = 'fixed'
-      document.body.style.top = `-${savedScrollYRef.current}px`
-      document.body.style.width = '100%'
-    } else {
-      document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.width = ''
-      window.scrollTo(0, savedScrollYRef.current)
-    }
-    return () => {
-      document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.width = ''
-    }
-  }, [lightbox])
-
-  // Reset zoom/pan when photo changes
-  useEffect(() => {
-    setZoom(1)
-    setPanX(0)
-    setPanY(0)
-  }, [lightbox?.groupIdx, lightbox?.photoIdx, photoOverride?.id])
-
-  const openLightbox = useCallback((groupIdx: number, photoIdx: number = 0) => {
-    // Read from ref so this callback is never stale — avoids the race where groups
-    // empties during a search filter change and onClick fires before re-population
-    const photo = groupsRef.current[groupIdx]?.photos[photoIdx]
-    if (photo) {
-      galleryUrlRef.current = window.location.pathname + window.location.search
-      lightboxOpenRef.current = true
-      window.history.pushState({ lightbox: true }, '', `/photo/${photo.slug ?? photo.id}`)
-      setPhotoOverride(null)
-      setLightboxImageLoading(true)
-      setLightbox({ groupIdx, photoIdx })
-
-      trackEvent('photo_view', {
-        watch_id: photo.watchId,
-        brand: photo.brandName ?? photo.watchBrand ?? null,
-        model: photo.modelName ?? photo.watchName ?? null,
-        photo_id: photo.id,
-      })
-    }
-  }, [])
-
-  // Auto-open first photo when coming from a dropdown selection (?open=1)
+  // A dropdown selection (?open=1) goes straight to the first matching photo page
   useEffect(() => {
     if (!autoOpen || loading || groups.length === 0) return
-    // Strip open=1 from URL so back-navigation doesn't re-trigger
-    const params = new URLSearchParams(window.location.search)
-    params.delete('open')
-    const qs = params.toString()
-    window.history.replaceState({}, '', qs ? `/?${qs}` : '/')
-    openLightbox(0, 0)
-  }, [autoOpen, loading, groups.length, openLightbox])
+    const first = groups[0].photos[0]
+    router.replace(`/photo/${first.slug ?? first.id}`)
+  }, [autoOpen, loading, groups, router])
 
-  const navigateLightbox = useCallback((groupIdx: number, photoIdx: number = 0) => {
-    const photo = groups[groupIdx]?.photos[photoIdx]
-    if (photo) {
-      window.history.replaceState({ lightbox: true }, '', `/photo/${photo.slug ?? photo.id}`)
-    }
-    setPhotoOverride(null)
-    setLightboxImageLoading(true)
-    setLightbox({ groupIdx, photoIdx })
-  }, [groups])
-
-  // Navigate by flat index (through ALL gallery photos)
-  const navigateToFlat = useCallback((idx: number) => {
-    if (idx < 0 || idx >= flatPhotos.length) return
-    let sum = 0
-    for (let gi = 0; gi < groups.length; gi++) {
-      if (idx < sum + groups[gi].photos.length) {
-        navigateLightbox(gi, idx - sum)
-        return
-      }
-      sum += groups[gi].photos.length
-    }
-  }, [flatPhotos.length, groups, navigateLightbox])
-
-  const openRelatedPhoto = useCallback((photo: PhotoItem) => {
-    for (let gi = 0; gi < groups.length; gi++) {
-      const pi = groups[gi].photos.findIndex((p) => p.id === photo.id)
-      if (pi !== -1) {
-        navigateLightbox(gi, pi)
-        return
-      }
-    }
-    setPhotoOverride(photo)
-    window.history.replaceState({ lightbox: true }, '', `/photo/${photo.slug ?? photo.id}`)
-    setLightboxImageLoading(true)
-  }, [groups, navigateLightbox])
-
-  const closeLightbox = useCallback(() => {
-    lightboxOpenRef.current = false
-    setLightbox(null)
-    setPhotoOverride(null)
-    window.history.pushState({}, '', galleryUrlRef.current)
-  }, [])
-
-  // Current flat index of the active photo
-  const currentFlatIdx = useMemo(() => {
-    if (lightbox === null) return -1
-    if (photoOverride) return flatPhotos.findIndex((p) => p.id === photoOverride.id)
-    let sum = 0
-    for (let gi = 0; gi < lightbox.groupIdx; gi++) {
-      sum += groups[gi].photos.length
-    }
-    return sum + lightbox.photoIdx
-  }, [lightbox, photoOverride, flatPhotos, groups])
-
-  // Keyboard navigation — arrows navigate all photos (flat)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!lightbox) return
-      if (e.key === 'Escape') {
-        closeLightbox()
-      } else if (e.key === 'ArrowLeft') {
-        navigateToFlat(currentFlatIdx - 1)
-      } else if (e.key === 'ArrowRight') {
-        navigateToFlat(currentFlatIdx + 1)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [lightbox, currentFlatIdx, closeLightbox, navigateToFlat])
-
-  // Preload adjacent photos in flat list
-  useEffect(() => {
-    if (!lightbox) return
-    const urlsToPreload: string[] = []
-    if (currentFlatIdx < flatPhotos.length - 1) {
-      const next = flatPhotos[currentFlatIdx + 1]
-      if (next) urlsToPreload.push(next.url)
-    }
-    if (currentFlatIdx > 0) {
-      const prev = flatPhotos[currentFlatIdx - 1]
-      if (prev) urlsToPreload.push(prev.url)
-    }
-    // Preload via Next.js image optimizer URLs so the browser cache is reused
-    // by the <Image> component (which serves through /_next/image, not raw URLs).
-    // 1200w covers 60vw on up to ~2000px-wide screens; 828w covers mobile 100vw.
-    urlsToPreload.forEach((url) => {
-      const encoded = encodeURIComponent(url)
-      ;[1200, 828].forEach((w) => {
-        const link = document.createElement('link')
-        link.rel = 'prefetch'
-        link.as = 'image'
-        link.href = `/_next/image?url=${encoded}&w=${w}&q=75`
-        document.head.appendChild(link)
-      })
-    })
-  }, [lightbox, currentFlatIdx, flatPhotos])
-
-  // Handle browser back button
-  useEffect(() => {
-    const handlePopState = (e: PopStateEvent) => {
-      if (lightboxOpenRef.current) {
-        lightboxOpenRef.current = false
-        setLightbox(null)
-        setPhotoOverride(null)
-        e.preventDefault?.()
-      }
-    }
-    window.addEventListener('popstate', handlePopState)
-    return () => window.removeEventListener('popstate', handlePopState)
-  }, [])
-
-  const activeLightboxGroup = lightbox !== null ? groups[lightbox.groupIdx] : null
-  const activeLightboxPhotos = useMemo(
-    () => activeLightboxGroup?.photos ?? [],
-    [activeLightboxGroup]
-  )
-  const activeLightboxPhoto = photoOverride ?? (activeLightboxPhotos[lightbox?.photoIdx ?? 0] ?? null)
-
-  // Fetch related photos when lightbox photo changes
-  useEffect(() => {
-    activeLightboxPhotoRef.current = activeLightboxPhoto
-    if (!activeLightboxPhoto) return
-    fetchRelatedPhotos(activeLightboxPhoto)
-  }, [activeLightboxPhoto, fetchRelatedPhotos])
-
-  // Infinite scroll: load more fallback photos when sentinel enters viewport
-  useEffect(() => {
-    const node = relatedSentinelRef.current
-    if (!node) return
-    if (!relatedNextCursor) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          fetchMoreRelatedPhotos()
-        }
-      },
-      { rootMargin: '600px' }
-    )
-    observer.observe(node)
-    return () => observer.disconnect()
-  }, [relatedNextCursor, fetchMoreRelatedPhotos])
-
-  const otherWatchRelated = relatedPhotos.filter(
-    (p) => !(p.watchId === activeLightboxPhoto?.watchId && p.userId === activeLightboxPhoto?.userId)
-  )
-  const currentModelName = activeLightboxPhoto?.modelName || activeLightboxPhoto?.watchName || null
-
-  const sameModelRelated = currentModelName
-    ? otherWatchRelated.filter((p) => (p.modelName || p.watchName) === currentModelName)
-    : []
-  const otherModelRelated = currentModelName
-    ? otherWatchRelated.filter((p) => (p.modelName || p.watchName) !== currentModelName)
-    : otherWatchRelated
-  const sameModelGroups = groupByWatchUser(sameModelRelated)
-  const otherModelGroups = groupByWatchUser(otherModelRelated)
-
-  // Scroll-wheel zoom
-  const photoAreaRef = useRef<HTMLDivElement>(null)
-  const zoomRef = useRef(zoom)
-  useEffect(() => { zoomRef.current = zoom }, [zoom])
-
-  useEffect(() => {
-    const el = photoAreaRef.current
-    if (!el) return
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault()
-      const delta = e.deltaY < 0 ? 1.1 : 0.9
-      setZoom((z) => {
-        const next = Math.max(1, Math.min(4, z * delta))
-        if (next <= 1) { setPanX(0); setPanY(0) }
-        return next
-      })
-    }
-    el.addEventListener('wheel', handleWheel, { passive: false })
-    return () => el.removeEventListener('wheel', handleWheel)
-  }, [lightbox])
-
-  // Touch: swipe (horizontal) + pinch-to-zoom + double-tap + pan-when-zoomed
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      isPinchingRef.current = true
-      touchStartXRef.current = null
-      touchStartYRef.current = null
-      const dx = e.touches[0].clientX - e.touches[1].clientX
-      const dy = e.touches[0].clientY - e.touches[1].clientY
-      lastTouchDistRef.current = Math.sqrt(dx * dx + dy * dy)
-      return
-    }
-
-    if (e.touches.length === 1) {
-      const x = e.touches[0].clientX
-      const y = e.touches[0].clientY
-      touchStartXRef.current = x
-      touchStartYRef.current = y
-
-      // Double-tap: toggle zoom
-      const now = Date.now()
-      if (now - lastTapTimeRef.current < 300) {
-        lastTapTimeRef.current = 0
-        setZoom((z) => {
-          if (z > 1) { setPanX(0); setPanY(0); return 1 }
-          return 2.5
-        })
-        return
-      }
-      lastTapTimeRef.current = now
-
-      // Pan when zoomed
-      if (zoomRef.current > 1) {
-        isDraggingRef.current = true
-        dragStartXRef.current = x
-        dragStartYRef.current = y
-        dragStartPanXRef.current = panX
-        dragStartPanYRef.current = panY
-      }
-    }
-  }, [panX, panY])
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (isPinchingRef.current && e.touches.length === 2) {
-      e.preventDefault()
-      const dx = e.touches[0].clientX - e.touches[1].clientX
-      const dy = e.touches[0].clientY - e.touches[1].clientY
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      if (lastTouchDistRef.current) {
-        const ratio = dist / lastTouchDistRef.current
-        setZoom((z) => Math.max(1, Math.min(4, z * ratio)))
-      }
-      lastTouchDistRef.current = dist
-      return
-    }
-
-    if (isDraggingRef.current && zoomRef.current > 1 && e.touches.length === 1) {
-      e.preventDefault()
-      const dx = e.touches[0].clientX - dragStartXRef.current
-      const dy = e.touches[0].clientY - dragStartYRef.current
-      setPanX(dragStartPanXRef.current + dx)
-      setPanY(dragStartPanYRef.current + dy)
-    }
-  }, [])
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (isPinchingRef.current) {
-      isPinchingRef.current = false
-      lastTouchDistRef.current = null
-      setZoom((z) => {
-        if (z < 1.05) { setPanX(0); setPanY(0); return 1 }
-        return z
-      })
-      isDraggingRef.current = false
-      return
-    }
-
-    if (isDraggingRef.current) {
-      isDraggingRef.current = false
-      return
-    }
-
-    // Horizontal swipe — only when not zoomed
-    if (zoomRef.current <= 1 && touchStartXRef.current !== null && touchStartYRef.current !== null) {
-      const endX = e.changedTouches[0].clientX
-      const endY = e.changedTouches[0].clientY
-      const dx = touchStartXRef.current - endX
-      const dy = touchStartYRef.current - endY
-
-      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
-        if (dx > 0) {
-          navigateToFlat(currentFlatIdx + 1)
-        } else {
-          navigateToFlat(currentFlatIdx - 1)
-        }
-      }
-    }
-
-    touchStartXRef.current = null
-    touchStartYRef.current = null
-  }, [currentFlatIdx, navigateToFlat])
 
   const selectedWatchName = activeWatchId && photos.length > 0
     ? photos[0].watchBrand && photos[0].watchName
@@ -1014,14 +405,8 @@ function PhotoGalleryContent({ initialPhotoSlug, userId }: { initialPhotoSlug?: 
             const title = model || ref || unslugify(group.watchId)
             return (
               <article key={group.key} className="group relative min-w-0">
-                <a
+                <Link
                   href={`/photo/${primary.slug ?? primary.id}`}
-                  onClick={(e) => {
-                    // Let modified clicks open the photo page in a new tab
-                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
-                    e.preventDefault()
-                    openLightbox(groupIdx, 0)
-                  }}
                   className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-4 focus-visible:ring-offset-canvas rounded-md"
                 >
                   <div className="aspect-[4/5] overflow-hidden rounded-md bg-surface">
@@ -1041,7 +426,7 @@ function PhotoGalleryContent({ initialPhotoSlug, userId }: { initialPhotoSlug?: 
                   <p className={`${brand ? 'mt-[3px] sm:mt-1' : 'mt-2 sm:mt-3'} text-[15px] sm:text-[17px] leading-[1.25] font-semibold tracking-[-0.2px] text-ink`}>
                     {title}
                   </p>
-                </a>
+                </Link>
                 <div className="absolute top-2.5 right-2.5 z-10">
                   <SaveToBoard photoId={primary.id} variant="tile" />
                 </div>
@@ -1057,313 +442,11 @@ function PhotoGalleryContent({ initialPhotoSlug, userId }: { initialPhotoSlug?: 
           <div className="w-6 h-6 border-2 border-muted border-t-transparent rounded-full animate-spin" />
         </div>
       )}
-
-      {/* ─── Full-screen light lightbox ─── */}
-      {lightbox !== null && activeLightboxPhoto && (
-        <div
-          className="fixed inset-0 z-50 bg-white/95 backdrop-blur-sm flex overflow-hidden"
-          style={{ overscrollBehavior: 'contain' }}
-          onClick={closeLightbox}
-        >
-          {/* Close button — fixed top-left */}
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); closeLightbox() }}
-            className="fixed top-3 left-3 z-[60] text-gray-600 hover:text-gray-900 bg-white/80 hover:bg-gray-100 backdrop-blur-sm rounded-full w-9 h-9 flex items-center justify-center transition-all border border-gray-200"
-            aria-label="Close"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-          </button>
-
-          {/* Main content */}
-          <div
-            className="flex flex-1 flex-col md:flex-row min-h-0 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-y-auto md:overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* ── Left / main column ── */}
-            <div className={`flex flex-col min-h-0 min-w-0 w-full ${otherWatchRelated.length > 0 ? 'md:w-1/2' : ''} md:overflow-hidden`}>
-
-              {/* Photo area — sticky on mobile so it stays visible while scrolling */}
-              <div
-                ref={photoAreaRef}
-                className="relative min-h-[55vh] md:min-h-0 md:flex-1 flex items-center justify-center overflow-hidden p-4 pt-4 md:p-6"
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                style={{ cursor: zoom > 1 ? 'grab' : 'default', touchAction: 'none' }}
-              >
-                {/* Save / Like / Share — top-right of photo area */}
-                <div className="absolute top-2 right-2 z-30 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                  <SaveToBoard key={`save-${activeLightboxPhoto.id}`} photoId={activeLightboxPhoto.id} variant="button" />
-                  <SocialActions
-                    key={`social-${activeLightboxPhoto.id}`}
-                    photoId={activeLightboxPhoto.id}
-                    photoSlug={activeLightboxPhoto.slug ?? activeLightboxPhoto.id}
-                    variant="lightbox"
-                  />
-                </div>
-
-                {/* Loading spinner */}
-                {lightboxImageLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-                    <div className="w-10 h-10 border-2 border-gray-200 border-t-gray-500 rounded-full animate-spin" />
-                  </div>
-                )}
-
-                {/* Zoom level indicator */}
-                {zoom > 1 && (
-                  <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/90 text-gray-700 text-xs px-2.5 py-1 rounded-full z-10 pointer-events-none shadow-sm border border-gray-200">
-                    {Math.round(zoom * 10) / 10}×
-                  </div>
-                )}
-
-                {/* Photo with zoom/pan transform */}
-                <div
-                  className="relative w-full h-full"
-                  style={{
-                    transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
-                    transformOrigin: 'center center',
-                    willChange: 'transform',
-                  }}
-                >
-                  <Image
-                    src={activeLightboxPhoto.url}
-                    alt={buildPhotoAltText(activeLightboxPhoto)}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 60vw"
-                    className="object-contain"
-                    priority
-                    onLoad={() => setLightboxImageLoading(false)}
-                    draggable={false}
-                  />
-                </div>
-
-                {/* Gallery left arrow — navigates ALL photos */}
-                {currentFlatIdx > 0 && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); navigateToFlat(currentFlatIdx - 1) }}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 bg-white/90 hover:bg-white shadow-sm rounded-full w-12 h-12 flex items-center justify-center transition-all z-20 border border-gray-200 text-2xl leading-none"
-                    aria-label="Previous photo"
-                  >
-                    ‹
-                  </button>
-                )}
-
-                {/* Gallery right arrow — navigates ALL photos */}
-                {currentFlatIdx < flatPhotos.length - 1 && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); navigateToFlat(currentFlatIdx + 1) }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-700 bg-white/90 hover:bg-white shadow-sm rounded-full w-12 h-12 flex items-center justify-center transition-all z-20 border border-gray-200 text-2xl leading-none"
-                    aria-label="Next photo"
-                  >
-                    ›
-                  </button>
-                )}
-
-                {/* Dot indicators for multiple photos of the same watch */}
-                {activeLightboxPhotos.length > 1 && (
-                  <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10 pointer-events-none">
-                    {activeLightboxPhotos.map((_, i) => (
-                      <div
-                        key={i}
-                        className={`w-1.5 h-1.5 rounded-full transition-all ${
-                          i === (lightbox?.photoIdx ?? 0) ? 'bg-gray-700 scale-125' : 'bg-gray-400'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* ── Info bar ── */}
-              {(() => {
-                const p = activeLightboxPhoto
-                const brand = p.brandName || p.watchBrand || null
-                const model = p.modelName || p.watchName || null
-                const ref = p.referenceNumber || p.watchReference || null
-                const specs: { label: string; value: string }[] = []
-                if (ref) specs.push({ label: 'Reference', value: ref })
-                if (p.movement) specs.push({ label: 'Movement', value: p.movement })
-                if (p.caseSize) specs.push({ label: 'Case', value: p.caseSize })
-                if (p.waterResistance) specs.push({ label: 'Water Resistance', value: p.waterResistance })
-                if (p.lugToLug) specs.push({ label: 'Lug to Lug', value: p.lugToLug })
-                if (p.betweenLugs) specs.push({ label: 'Lug Width', value: p.betweenLugs })
-                if (p.thickness) specs.push({ label: 'Thickness', value: p.thickness })
-                if (p.wristSize) specs.push({ label: 'Wrist Size', value: p.wristSize })
-                if (p.estimatedPrice) specs.push({ label: 'Price', value: p.estimatedPrice })
-
-                return (
-                  <div className="flex-shrink-0 md:flex-shrink-0 px-4 py-3 max-h-[45vh] md:max-h-none overflow-y-auto">
-                    <div>
-                      <div className="min-w-0">
-                        {(brand || model) && (
-                          <p className="text-gray-900 font-semibold text-sm truncate">
-                            {brand ? (
-                              <span>{brand}</span>
-                            ) : null}
-                            {brand && model ? ' ' : null}
-                            {model ?? null}
-                          </p>
-                        )}
-                        <UserAttribution userName={p.userName} userId={p.userId} isOfficial={p.isOfficial} className="text-gray-400 text-xs mt-0.5" onClick={(e) => e.stopPropagation()} />
-                        {specs.length > 0 && (
-                          <>
-                            {/* Mobile: collapsible specs */}
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); setShowMobileSpecs(!showMobileSpecs) }}
-                              className="md:hidden mt-1.5 flex items-center gap-1 text-gray-400 text-[10px] uppercase tracking-wide font-semibold"
-                            >
-                              Specs
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className={`w-3 h-3 transition-transform ${showMobileSpecs ? 'rotate-180' : ''}`}
-                                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </button>
-                            {showMobileSpecs && (
-                              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 md:hidden">
-                                {specs.map((s) => (
-                                  <div key={s.label} className="flex items-baseline gap-1">
-                                    <span className="text-gray-400 text-[10px] uppercase tracking-wide">{s.label}</span>
-                                    <span className="text-gray-700 text-xs font-medium">{s.value}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            {/* Desktop: always visible */}
-                            <div className="hidden md:flex mt-1.5 flex-wrap gap-x-4 gap-y-1">
-                              {specs.map((s) => (
-                                <div key={s.label} className="flex items-baseline gap-1">
-                                  <span className="text-gray-400 text-[10px] uppercase tracking-wide">{s.label}</span>
-                                  <span className="text-gray-700 text-xs font-medium">{s.value}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Mobile: same-watch thumbnail strip */}
-                    {activeLightboxPhotos.length > 1 && (
-                      <div className="mt-3 flex gap-2 overflow-x-auto pb-1 md:hidden">
-                        {activeLightboxPhotos.map((thumb, thumbIdx) => (
-                          <button
-                            key={thumb.id}
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); navigateLightbox(lightbox.groupIdx, thumbIdx) }}
-                            className={`shrink-0 relative rounded-lg overflow-hidden w-14 h-14 border-2 transition-colors ${
-                              thumbIdx === (lightbox?.photoIdx ?? 0)
-                                ? 'border-amber-400'
-                                : 'border-transparent opacity-50 hover:opacity-80'
-                            }`}
-                            aria-label={`Photo ${thumbIdx + 1}`}
-                          >
-                            <Image src={thumb.thumbnailUrl || thumb.url} alt={buildPhotoAltText(thumb)} fill className="object-cover" sizes="56px" />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Mobile: Pinterest-style related photos grid (grouped by watch+user) */}
-                    {otherWatchRelated.length > 0 && (
-                      <div className="mt-4 md:hidden">
-                        <div className="flex items-center justify-between mb-3">
-                          <SectionLabel>More like this</SectionLabel>
-                        </div>
-                        <div className="columns-2 gap-2.5">
-                          {groupByWatchUser(otherWatchRelated).map((g) => (
-                            <RelatedPhotoCard key={g.key} group={g} onClick={openRelatedPhoto} variant="masonry" />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })()}
-            </div>
-
-            {/* ── Right panel: related photos (desktop only) ── */}
-            {otherWatchRelated.length > 0 && (
-              <div className="hidden md:flex flex-col w-1/2 overflow-hidden">
-                <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
-                  {relatedPhotosLoading ? (
-                    <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2">
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <div key={i} className="aspect-square rounded-xl bg-gray-200 animate-pulse" />
-                      ))}
-                    </div>
-                  ) : (
-                    <>
-                      {sameModelGroups.length > 0 && (
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <SectionLabel>
-                              More {currentModelName ?? 'like this'}
-                            </SectionLabel>
-                            {false && (
-                              <a
-                                href="#"
-                                className="text-xs text-gray-400 hover:text-gray-700 underline underline-offset-2 transition-colors"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                See all →
-                              </a>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-1.5">
-                            {sameModelGroups.map((g) => (
-                              <RelatedPhotoCard key={g.key} group={g} onClick={openRelatedPhoto} variant="grid" />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {otherModelGroups.length > 0 && (
-                        <div>
-                          {sameModelGroups.length > 0 && (
-                            <SectionLabel className="mb-2">Other watches</SectionLabel>
-                          )}
-                          <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-1.5">
-                            {otherModelGroups.map((g) => (
-                              <RelatedPhotoCard key={g.key} group={g} onClick={openRelatedPhoto} variant="grid" />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {/* Infinite-scroll sentinel + loading indicator */}
-                      {relatedNextCursor && (
-                        <div ref={relatedSentinelRef} className="py-3 flex justify-center">
-                          {relatedLoadingMore ? (
-                            <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-1.5 w-full">
-                              {Array.from({ length: 6 }).map((_, i) => (
-                                <div key={i} className="aspect-square rounded-xl bg-gray-200 animate-pulse" />
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="h-1" />
-                          )}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </section>
   )
 }
 
-export default function PhotoGallery({ initialPhotoSlug, userId }: { initialPhotoSlug?: string; userId?: string }) {
+export default function PhotoGallery({ userId }: { userId?: string }) {
   return (
     <Suspense fallback={
       <div className="max-w-[1320px] mx-auto px-4 sm:px-8 pb-16 pt-6">
@@ -1372,7 +455,7 @@ export default function PhotoGallery({ initialPhotoSlug, userId }: { initialPhot
         </TileGrid>
       </div>
     }>
-      <PhotoGalleryContent initialPhotoSlug={initialPhotoSlug} userId={userId} />
+      <PhotoGalleryContent userId={userId} />
     </Suspense>
   )
 }

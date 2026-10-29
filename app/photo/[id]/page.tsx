@@ -4,21 +4,98 @@ export const revalidate = 0
 import { notFound, redirect } from 'next/navigation'
 import { NextResponse } from 'next/server'
 import type { Metadata } from 'next'
-import { Suspense } from 'react'
 import Link from 'next/link'
 import { buildPhotoAltText } from '@/lib/photoAlt'
 import { db } from '@/lib/db'
 import { photos } from '@/lib/db/schema'
-import { or, and, ne, asc, desc, eq } from 'drizzle-orm'
-import HeroSearch from '@/components/home/HeroSearch'
-import PhotoGallery from '@/components/home/PhotoGallery'
+import { or, and, ne, asc, desc, eq, sql, count } from 'drizzle-orm'
+import { getStyleByDbValue } from '@/lib/styleData'
 import SaveToBoard from '@/components/SaveToBoard'
+import SocialActions from '@/components/home/SocialActions'
+import PhotoViewer from '@/components/photo/PhotoViewer'
 
 interface PhotoPageProps {
   params: { id: string }
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Swatch colours for the spec-sheet dial dot (keys are lowercase dialColor values)
+const DIAL_SWATCHES: Record<string, string> = {
+  black: '#111213',
+  blue: '#27466F',
+  white: '#ECEBE6',
+  gray: '#707376',
+  grey: '#707376',
+  silver: '#C4C6C8',
+  champagne: '#CDB48A',
+  cream: '#E9DFC6',
+  green: '#2F5D46',
+  brown: '#6B4A33',
+  gold: '#C9A43E',
+  red: '#9E2B25',
+  orange: '#D9662B',
+  yellow: '#E3C547',
+  purple: '#5B3F7A',
+  pink: '#D9A0AE',
+  salmon: '#E39C83',
+  skeleton: '#9B9B98',
+}
+
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
+/** Free-text measurement columns: append the unit when the uploader typed a bare number */
+function withUnit(value: string | null, unit: string) {
+  if (!value) return null
+  const v = value.trim()
+  return /^\d+(\.\d+)?$/.test(v) ? `${v} ${unit}` : v
+}
+
+const relatedSelect = {
+  id: photos.id,
+  slug: photos.slug,
+  url: photos.url,
+  thumbnailUrl: photos.thumbnailUrl,
+  userId: photos.userId,
+  userName: photos.userName,
+  watchId: photos.watchId,
+  brandName: photos.brandName,
+  modelName: photos.modelName,
+  referenceNumber: photos.referenceNumber,
+}
+
+type RelatedPhoto = {
+  id: string
+  slug: string | null
+  url: string
+  thumbnailUrl: string | null
+  userId: string
+  userName: string
+  watchId: string
+  brandName: string | null
+  modelName: string | null
+  referenceNumber: string | null
+}
+
+/** One card per upload (watchId + user), skipping the upload being viewed */
+function onePerUpload(rows: RelatedPhoto[], current: { watchId: string; userId: string }, limit: number) {
+  const seen = new Set([`${current.watchId}::${current.userId}`])
+  const out: RelatedPhoto[] = []
+  for (const row of rows) {
+    const key = `${row.watchId}::${row.userId}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(row)
+    if (out.length === limit) break
+  }
+  return out
+}
+
+function unslugify(slug: string) {
+  return slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+}
 
 // Generate dynamic metadata
 export async function generateMetadata({ params }: PhotoPageProps): Promise<Metadata> {
@@ -122,22 +199,94 @@ export default async function PhotoPage({ params }: PhotoPageProps) {
   const brandName = p.brandName || 'Watch'
   const modelName = p.modelName || 'on the wrist'
   const imageUrl = p.thumbnailUrl || p.url
+  const brandHref = `/brand/${encodeURIComponent(brandName.toLowerCase())}`
+  const displayModel = p.modelName || p.referenceNumber || unslugify(p.watchId)
+  const dialKey = p.dialColor?.trim().toLowerCase() || null
 
-  // Fetch related photos in parallel
-  const relatedByWatch = await db
-    .select({
-      id: photos.id,
-      slug: photos.slug,
-      url: photos.url,
-      thumbnailUrl: photos.thumbnailUrl,
-      userName: photos.userName,
-      brandName: photos.brandName,
-      modelName: photos.modelName,
+  const RELATED_LIMIT = 10
+  const RELATED_POOL = 60
+  const approvedOthers = and(eq(photos.status, 'approved'), ne(photos.userId, p.userId))
+
+  const [carousel, shotCountRows, byDial] = await Promise.all([
+    // The uploader's carousel for this watch (same order as the gallery)
+    db
+      .select({ id: photos.id, url: photos.url, thumbnailUrl: photos.thumbnailUrl })
+      .from(photos)
+      .where(and(eq(photos.watchId, p.watchId), eq(photos.userId, p.userId), eq(photos.status, 'approved')))
+      .orderBy(asc(photos.sortOrder), asc(photos.createdAt)),
+    db
+      .select({ n: count() })
+      .from(photos)
+      .where(and(eq(photos.userId, p.userId), eq(photos.status, 'approved'))),
+    dialKey
+      ? db
+          .select(relatedSelect)
+          .from(photos)
+          .where(and(eq(photos.status, 'approved'), sql`lower(${photos.dialColor}) = ${dialKey}`))
+          .orderBy(desc(photos.createdAt))
+          .limit(RELATED_POOL)
+      : Promise.resolve([] as RelatedPhoto[]),
+  ])
+
+  // "More <dial> dials", falling back to the same watch from other owners, then the brand
+  let related = onePerUpload(byDial, p, RELATED_LIMIT)
+  let relatedTitle = dialKey ? `More ${dialKey} dials` : ''
+  let relatedHref = dialKey ? `/?dialColor=${encodeURIComponent(dialKey)}` : '/'
+  if (related.length === 0) {
+    const sameWatch = await db
+      .select(relatedSelect)
+      .from(photos)
+      .where(and(eq(photos.watchId, p.watchId), approvedOthers))
+      .orderBy(asc(photos.sortOrder), desc(photos.createdAt))
+      .limit(RELATED_POOL)
+    related = onePerUpload(sameWatch, p, RELATED_LIMIT)
+    relatedTitle = `More ${[p.brandName, p.modelName].filter(Boolean).join(' ') || unslugify(p.watchId)}`
+    relatedHref = `/w/${p.watchId}`
+  }
+  if (related.length === 0 && p.brandName) {
+    const sameBrand = await db
+      .select(relatedSelect)
+      .from(photos)
+      .where(and(eq(photos.status, 'approved'), sql`lower(${photos.brandName}) = ${p.brandName.toLowerCase()}`))
+      .orderBy(desc(photos.createdAt))
+      .limit(RELATED_POOL)
+    related = onePerUpload(sameBrand, p, RELATED_LIMIT)
+    relatedTitle = `More ${p.brandName}`
+    relatedHref = brandHref
+  }
+
+  const viewerPhotos = (carousel.length > 0 ? carousel : [{ id: p.id, url: p.url, thumbnailUrl: p.thumbnailUrl }]).map(
+    (photo, i) => ({
+      ...photo,
+      alt: `${buildPhotoAltText(p)}${carousel.length > 1 ? `, photo ${i + 1}` : ''}`,
     })
-    .from(photos)
-    .where(and(eq(photos.watchId, p.watchId), eq(photos.status, 'approved'), ne(photos.id, p.id)))
-    .orderBy(asc(photos.sortOrder), desc(photos.createdAt))
-    .limit(6)
+  )
+  const initialIndex = Math.max(0, viewerPhotos.findIndex((photo) => photo.id === p.id))
+  const shotCount = Number(shotCountRows[0]?.n ?? 0)
+
+  // Spec sheet — rows without a value are hidden
+  const specs: { label: string; value: string; swatch?: string }[] = []
+  if (p.movement) specs.push({ label: 'Movement', value: p.movement })
+  const caseValue = [withUnit(p.caseSize, 'mm'), p.caseMaterial && capitalize(p.caseMaterial)].filter(Boolean).join(' · ')
+  if (caseValue) specs.push({ label: 'Case', value: caseValue })
+  if (p.dialColor) specs.push({ label: 'Dial', value: capitalize(p.dialColor.trim()), swatch: DIAL_SWATCHES[dialKey ?? ''] ?? '#9B9B98' })
+  if (p.strapType) specs.push({ label: 'Strap', value: capitalize(p.strapType.trim()) })
+  const wrist = withUnit(p.wristSize, 'mm')
+  if (wrist) specs.push({ label: 'Wrist', value: wrist })
+  if (p.estimatedPrice) specs.push({ label: 'Est. price', value: p.estimatedPrice })
+
+  // Tag chips — derived from the photo's own attributes
+  const style = p.watchStyle ? getStyleByDbValue(p.watchStyle) : undefined
+  const tags: { label: string; href?: string }[] = []
+  if (p.watchStyle) {
+    tags.push({
+      label: capitalize(p.watchStyle.trim()),
+      href: style ? `/style/${style.slug}` : `/?watchStyle=${encodeURIComponent(p.watchStyle.toLowerCase())}`,
+    })
+  }
+  if (dialKey) tags.push({ label: `${capitalize(dialKey)} dial`, href: `/?dialColor=${encodeURIComponent(dialKey)}` })
+  const caseSizeTag = withUnit(p.caseSize, 'mm')
+  if (caseSizeTag) tags.push({ label: caseSizeTag })
 
   // Structured data — ImageObject
   const imageJsonLd = {
@@ -225,115 +374,153 @@ export default async function PhotoPage({ params }: PhotoPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
-      <main className="min-h-screen">
-        <Suspense>
-          <HeroSearch />
-          <PhotoGallery initialPhotoSlug={slug} />
-        </Suspense>
+      <main className="max-w-[1320px] mx-auto px-4 sm:px-8 pt-5 sm:pt-9 pb-16 sm:pb-[72px]">
+        <nav aria-label="Breadcrumb" className="mb-4 sm:mb-6 flex items-center gap-2 font-mono text-[11px] sm:text-xs tracking-[1px] uppercase text-muted whitespace-nowrap overflow-hidden">
+          <Link href="/" className="hover:text-ink transition-colors">Gallery</Link>
+          <span aria-hidden="true">/</span>
+          {p.brandName && (
+            <>
+              <Link href={brandHref} className="hover:text-ink transition-colors">{p.brandName}</Link>
+              <span aria-hidden="true">/</span>
+            </>
+          )}
+          <span className="text-ink truncate">{[displayModel, p.modelName && p.referenceNumber].filter(Boolean).join(' ')}</span>
+        </nav>
 
-        {/* SEO content — server-rendered for Google indexing */}
-        <section className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-          <div className="bg-white rounded-xl border border-gray-100 p-6">
-            <h1 className="text-xl font-semibold text-gray-900 mb-2">
-              {brandName} {modelName} — Owner Photo
-            </h1>
-            <p className="text-gray-700 leading-relaxed">
-              Real owner photo of the {brandName} {modelName}
-              {p.referenceNumber ? ` (ref. ${p.referenceNumber})` : ''}
-              {p.watchStyle ? `, a ${p.watchStyle.toLowerCase()} watch` : ''}
-              {', worn on the wrist and shared by '}
-              {p.userName} on Watchems.
-              {p.caseMaterial ? ` The case is made of ${p.caseMaterial.toLowerCase()}` : ''}
-              {p.caseSize ? `${p.caseMaterial ? ` measuring ${p.caseSize}mm` : ` Case size: ${p.caseSize}mm`}.` : p.caseMaterial ? '.' : ''}
-              {p.dialColor ? ` ${p.dialColor.charAt(0).toUpperCase() + p.dialColor.slice(1)} dial.` : ''}
-              {p.strapType ? ` Worn on a ${p.strapType.toLowerCase()} strap.` : ''}
-              {p.movement ? ` Movement: ${p.movement}.` : ''}
-              {p.waterResistance ? ` Water resistance: ${p.waterResistance}.` : ''}
-              {p.wristSize ? ` Wrist size: ${p.wristSize}.` : ''}
-            </p>
-
-            {/* Specs table — all available fields */}
-            {(p.referenceNumber || p.movement || p.caseSize || p.caseMaterial || p.dialColor ||
-              p.strapType || p.waterResistance || p.lugToLug || p.betweenLugs || p.thickness ||
-              p.wristSize || p.estimatedPrice) && (
-              <dl className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-sm border-t border-gray-50 pt-4">
-                {p.referenceNumber && <><dt className="text-gray-400">Reference</dt><dd className="text-gray-700 font-medium">{p.referenceNumber}</dd></>}
-                {p.movement && <><dt className="text-gray-400">Movement</dt><dd className="text-gray-700 font-medium">{p.movement}</dd></>}
-                {p.caseSize && <><dt className="text-gray-400">Case diameter</dt><dd className="text-gray-700 font-medium">{p.caseSize}mm</dd></>}
-                {p.caseMaterial && <><dt className="text-gray-400">Case material</dt><dd className="text-gray-700 font-medium">{p.caseMaterial}</dd></>}
-                {p.dialColor && <><dt className="text-gray-400">Dial color</dt><dd className="text-gray-700 font-medium">{p.dialColor}</dd></>}
-                {p.strapType && <><dt className="text-gray-400">Strap type</dt><dd className="text-gray-700 font-medium">{p.strapType}</dd></>}
-                {p.waterResistance && <><dt className="text-gray-400">Water resistance</dt><dd className="text-gray-700 font-medium">{p.waterResistance}</dd></>}
-                {p.lugToLug && <><dt className="text-gray-400">Lug to lug</dt><dd className="text-gray-700 font-medium">{p.lugToLug}mm</dd></>}
-                {p.betweenLugs && <><dt className="text-gray-400">Lug width</dt><dd className="text-gray-700 font-medium">{p.betweenLugs}mm</dd></>}
-                {p.thickness && <><dt className="text-gray-400">Thickness</dt><dd className="text-gray-700 font-medium">{p.thickness}mm</dd></>}
-                {p.wristSize && <><dt className="text-gray-400">Wrist size</dt><dd className="text-gray-700 font-medium">{p.wristSize}mm</dd></>}
-                {p.estimatedPrice && <><dt className="text-gray-400">Est. price</dt><dd className="text-gray-700 font-medium">{p.estimatedPrice}</dd></>}
-              </dl>
-            )}
-
-            <div className="flex items-center justify-between mt-4">
-              <p className="text-sm text-gray-500">
-                Submitted by <span className="font-medium text-gray-700">{p.userName}</span>
-              </p>
-              <SaveToBoard photoId={p.id} variant="button" />
-            </div>
+        <div className="flex flex-wrap items-start gap-8 lg:gap-10">
+          <div className="flex-[3_1_520px] min-w-0 max-w-full">
+            <PhotoViewer
+              photos={viewerPhotos}
+              initialIndex={initialIndex}
+              track={{ watchId: p.watchId, brand: p.brandName, model: p.modelName }}
+            />
           </div>
 
-          {/* Related photos — same watch model */}
-          {relatedByWatch.length > 0 && (
-            <div className="mt-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  More {brandName} {modelName} photos
-                </h2>
-                {/* Link to hub page once there are enough photos (current + related >= 3) */}
-                {relatedByWatch.length >= 2 && p.brandName && p.modelName && (
-                  <Link
-                    href={`/w/${p.watchId}`}
-                    className="text-sm text-gray-500 hover:text-gray-800 underline underline-offset-2 transition-colors"
-                  >
-                    See all →
-                  </Link>
-                )}
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                {relatedByWatch.map((photo) => (
-                  <Link
-                    key={photo.id}
-                    href={`/photo/${photo.slug ?? photo.id}`}
-                    className="block rounded-lg overflow-hidden border border-gray-100 hover:border-gray-300 transition-colors"
-                  >
-                    <div className="aspect-square bg-gray-50">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={photo.thumbnailUrl || photo.url}
-                        alt={`${photo.brandName || 'Watch'} ${photo.modelName || ''} by ${photo.userName}`}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    </div>
-                  </Link>
-                ))}
-              </div>
+          <aside className="flex-[2_1_380px] min-w-0 max-w-full flex flex-col gap-[26px]">
+            <div>
+              {p.brandName && (
+                <Link href={brandHref} className="font-mono text-[13px] tracking-[1.2px] uppercase text-muted hover:text-ink transition-colors">
+                  {p.brandName}
+                </Link>
+              )}
+              <h1 className="mt-2 text-[36px] sm:text-[48px] leading-none font-semibold tracking-[-0.033em] text-ink">
+                {displayModel}
+              </h1>
+              {p.referenceNumber && (
+                <p className="mt-3 font-mono text-sm text-muted">Ref. {p.referenceNumber}</p>
+              )}
             </div>
-          )}
 
-          {/* Brand hub link — passes PageRank up the hierarchy */}
-          {p.brandName && (
-            <p className="mt-6 text-sm text-gray-500">
-              Browse all{' '}
+            <div className="flex flex-wrap gap-2.5">
+              <SaveToBoard photoId={p.id} variant="button" className="flex-[1_1_160px]" />
+              <SocialActions photoId={p.id} photoSlug={slug} variant="detail" />
+            </div>
+
+            {specs.length > 0 && (
+              <section aria-label="Specifications" className="rounded-[10px] border border-line bg-surface">
+                <div className="flex justify-between px-[18px] py-3.5 border-b border-line font-mono text-[11px] tracking-[1.4px] uppercase text-muted">
+                  <span>Spec sheet</span>
+                  <span>From the uploader</span>
+                </div>
+                <dl className="px-[18px]">
+                  {specs.map((spec, i) => (
+                    <div
+                      key={spec.label}
+                      className={`flex justify-between gap-4 py-[13px] ${i < specs.length - 1 ? 'border-b border-line' : ''}`}
+                    >
+                      <dt className="font-mono text-xs tracking-[1px] uppercase text-muted shrink-0">{spec.label}</dt>
+                      <dd className="text-[15px] font-medium text-right text-ink flex items-center gap-2 min-w-0">
+                        {spec.swatch && (
+                          <span
+                            aria-hidden="true"
+                            className="w-3.5 h-3.5 rounded-full shrink-0 shadow-[inset_0_0_0_1px_rgba(127,127,127,0.5)]"
+                            style={{ background: spec.swatch }}
+                          />
+                        )}
+                        <span className="break-words">{spec.value}</span>
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            )}
+
+            <div className="flex items-center gap-3 pt-1">
+              <span aria-hidden="true" className="w-11 h-11 rounded-full border border-line flex items-center justify-center font-semibold text-ink shrink-0">
+                {p.userName.trim().charAt(0).toUpperCase() || 'W'}
+              </span>
+              <div className="flex-grow min-w-0">
+                <p className="text-[15px] font-semibold text-ink truncate">Shot by {p.userName}</p>
+                <p className="font-mono text-xs text-muted">
+                  {shotCount} wrist shot{shotCount !== 1 ? 's' : ''}
+                </p>
+              </div>
               <Link
-                href={`/brand/${encodeURIComponent(brandName.toLowerCase())}`}
-                className="underline underline-offset-2 hover:text-gray-800 transition-colors"
+                href={`/profile/${p.userId}`}
+                className="text-[15px] font-semibold text-ink shadow-[inset_0_-1px_0_currentColor] hover:text-ink-hover shrink-0"
               >
-                {brandName} wrist photos
-              </Link>{' '}
-              on Watchems.
-            </p>
-          )}
+                View collection
+              </Link>
+            </div>
 
-        </section>
+            {tags.length > 0 && (
+              <ul className="flex flex-wrap gap-2" aria-label="Tags">
+                {tags.map((tag) => (
+                  <li key={tag.label}>
+                    {tag.href ? (
+                      <Link
+                        href={tag.href}
+                        className="h-9 rounded-full border border-line flex items-center px-3.5 text-sm text-ink hover:border-line-strong transition-colors"
+                      >
+                        {tag.label}
+                      </Link>
+                    ) : (
+                      <span className="h-9 rounded-full border border-line flex items-center px-3.5 text-sm text-muted">
+                        {tag.label}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </aside>
+        </div>
+
+        {related.length > 0 && (
+          <section aria-labelledby="related-heading">
+            <div className="flex justify-between items-baseline gap-4 mt-12 sm:mt-16 mb-5 pt-5 border-t border-line">
+              <h2 id="related-heading" className="text-[22px] sm:text-[26px] font-semibold tracking-[-0.6px] text-ink">
+                {relatedTitle}
+              </h2>
+              <Link href={relatedHref} className="font-mono text-xs tracking-[1px] uppercase text-muted hover:text-ink transition-colors shrink-0">
+                See all →
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(232px,1fr))] sm:gap-x-5 sm:gap-y-8">
+              {related.map((photo) => (
+                <Link key={photo.id} href={`/photo/${photo.slug ?? photo.id}`} className="group block min-w-0">
+                  <div className="aspect-[4/5] overflow-hidden rounded-md bg-surface">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={photo.thumbnailUrl || photo.url}
+                      alt={buildPhotoAltText(photo)}
+                      className="block w-full h-full object-cover transition-transform duration-[350ms] ease-out group-hover:scale-[1.035]"
+                      loading="lazy"
+                    />
+                  </div>
+                  {photo.brandName && (
+                    <p className="mt-2 sm:mt-3 font-mono text-[10.5px] sm:text-[11px] tracking-[0.8px] sm:tracking-[1px] uppercase text-muted truncate">
+                      {photo.brandName}
+                    </p>
+                  )}
+                  <p className="mt-[3px] sm:mt-1 text-[15px] sm:text-[17px] leading-[1.25] font-semibold tracking-[-0.2px] text-ink">
+                    {photo.modelName || photo.referenceNumber || unslugify(photo.watchId)}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </>
   )
