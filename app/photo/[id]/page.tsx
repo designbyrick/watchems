@@ -15,13 +15,14 @@ import PhotoGallery from '@/components/home/PhotoGallery'
 import SaveToBoard from '@/components/SaveToBoard'
 
 interface PhotoPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // Generate dynamic metadata
-export async function generateMetadata({ params }: PhotoPageProps): Promise<Metadata> {
+export async function generateMetadata(props: PhotoPageProps): Promise<Metadata> {
+  const params = await props.params;
   const param = params.id
   const isUUID = UUID_REGEX.test(param)
 
@@ -88,7 +89,8 @@ export async function generateMetadata({ params }: PhotoPageProps): Promise<Meta
   }
 }
 
-export default async function PhotoPage({ params }: PhotoPageProps) {
+export default async function PhotoPage(props: PhotoPageProps) {
+  const params = await props.params;
   const param = params.id
   const isUUID = UUID_REGEX.test(param)
 

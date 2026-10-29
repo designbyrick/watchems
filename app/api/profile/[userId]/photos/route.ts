@@ -10,10 +10,8 @@ import { and, eq } from 'drizzle-orm'
  * GET /api/profile/[userId]/photos
  * Fetch all approved photos for a specific user
  */
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { userId: string } }
-) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   try {
     // Query Postgres for all approved photos by user
     const userPhotos = await db

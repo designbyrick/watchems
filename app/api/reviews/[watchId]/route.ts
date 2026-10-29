@@ -30,10 +30,8 @@ export interface ApprovedReview {
   approved: true
 }
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { watchId: string } }
-) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ watchId: string }> }) {
+  const params = await props.params;
   if (!isValidSlug(params.watchId)) {
     return NextResponse.json([], { status: 400 })
   }
@@ -43,10 +41,8 @@ export async function GET(
   return NextResponse.json(reviews ?? [])
 }
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { watchId: string } }
-) {
+export async function POST(req: NextRequest, props: { params: Promise<{ watchId: string }> }) {
+  const params = await props.params;
   if (!isValidSlug(params.watchId)) {
     return NextResponse.json({ error: 'Invalid watch ID' }, { status: 400 })
   }

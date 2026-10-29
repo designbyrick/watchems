@@ -16,10 +16,11 @@ import { isValidSlug } from '@/lib/validation'
 const MIN_PHOTOS_FOR_HUB = 3
 
 interface WatchPageProps {
-  params: { watchId: string }
+  params: Promise<{ watchId: string }>
 }
 
-export async function generateMetadata({ params }: WatchPageProps): Promise<Metadata> {
+export async function generateMetadata(props: WatchPageProps): Promise<Metadata> {
+  const params = await props.params;
   if (!isValidSlug(params.watchId)) return { title: 'Watch Photos | Watchems' }
 
   const rows = await db
@@ -71,7 +72,8 @@ export async function generateMetadata({ params }: WatchPageProps): Promise<Meta
   }
 }
 
-export default async function WatchHubPage({ params }: WatchPageProps) {
+export default async function WatchHubPage(props: WatchPageProps) {
+  const params = await props.params;
   if (!isValidSlug(params.watchId)) notFound()
 
   const allPhotos = await db

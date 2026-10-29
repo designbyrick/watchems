@@ -18,14 +18,15 @@ import MdxContent from '@/app/components/mdx/MdxContent'
 import { t, l, c, i, tb } from '@/lib/styles'
 
 interface Props {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 export function generateStaticParams() {
   return getAllGuides().map((g) => ({ slug: g.slug }))
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
   const entry = getGuideBySlug(params.slug)
   if (!entry) return { title: 'Not Found | Watchems' }
 
@@ -41,7 +42,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default async function BuyingGuidePage({ params }: Props) {
+export default async function BuyingGuidePage(props: Props) {
+  const params = await props.params;
   const entry = getGuideBySlug(params.slug) as BuyingGuideData
   if (!entry) notFound()
 

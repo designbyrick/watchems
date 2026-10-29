@@ -14,10 +14,11 @@ import { getStyleBySlug } from '@/lib/styleData'
 const MIN_PHOTOS_FOR_HUB = 5
 
 interface StylePageProps {
-  params: { style: string }
+  params: Promise<{ style: string }>
 }
 
-export async function generateMetadata({ params }: StylePageProps): Promise<Metadata> {
+export async function generateMetadata(props: StylePageProps): Promise<Metadata> {
+  const params = await props.params;
   const styleEntry = getStyleBySlug(params.style)
   if (!styleEntry) return { title: 'Style Not Found | Watchems' }
 
@@ -65,7 +66,8 @@ export async function generateMetadata({ params }: StylePageProps): Promise<Meta
   }
 }
 
-export default async function StylePage({ params }: StylePageProps) {
+export default async function StylePage(props: StylePageProps) {
+  const params = await props.params;
   const styleEntry = getStyleBySlug(params.style)
   if (!styleEntry) notFound()
 

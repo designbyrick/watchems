@@ -7,10 +7,8 @@ import { eq, and, desc } from 'drizzle-orm'
 export const dynamic = 'force-dynamic'
 
 /** GET /api/collections/[id] — get collection details + all photos */
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const collectionId = params.id
   const { userId } = await auth()
   if (!userId) {
@@ -59,10 +57,8 @@ export async function GET(
 }
 
 /** PATCH /api/collections/[id] — rename a collection */
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const collectionId = params.id
   const { userId } = await auth()
   if (!userId) {
@@ -95,10 +91,8 @@ export async function PATCH(
 }
 
 /** DELETE /api/collections/[id] — delete a collection and all its items */
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const collectionId = params.id
   const { userId } = await auth()
   if (!userId) {

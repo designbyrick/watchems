@@ -10,10 +10,8 @@ import type { ApprovedPhoto } from '@/lib/photos'
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** GET /api/photo/[id] — fetch single approved photo by slug or UUID */
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const param = params.id
   const isUUID = UUID_REGEX.test(param)
 

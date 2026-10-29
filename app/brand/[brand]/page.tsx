@@ -12,10 +12,11 @@ import { brands as brandDataList } from '@/lib/brandData'
 import { toWatchSlug } from '@/lib/normalizeWatch'
 
 interface BrandPageProps {
-  params: { brand: string }
+  params: Promise<{ brand: string }>
 }
 
-export async function generateMetadata({ params }: BrandPageProps): Promise<Metadata> {
+export async function generateMetadata(props: BrandPageProps): Promise<Metadata> {
+  const params = await props.params;
   const brand = decodeURIComponent(params.brand)
 
   const stats = await db
@@ -77,7 +78,8 @@ export async function generateMetadata({ params }: BrandPageProps): Promise<Meta
   }
 }
 
-export default async function BrandPage({ params }: BrandPageProps) {
+export default async function BrandPage(props: BrandPageProps) {
+  const params = await props.params;
   const brand = decodeURIComponent(params.brand)
 
   // Stats + guard
