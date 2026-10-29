@@ -1,0 +1,48 @@
+# Dependabot version updates.
+#
+# Security updates are configured separately in GitHub → Settings → Code
+# security ("Dependabot security updates") and are NOT blocked by the
+# semver-major ignore below: `update-types` values are `version-update:*`,
+# which only filter version updates (the Dependabot options reference states
+# this explicitly for `allow.update-types`: "only affects version updates,
+# not security updates"). Groups also default to `applies-to: version-updates`,
+# so security fixes still arrive as their own PRs, majors included.
+#
+# Major versions are ignored on purpose — upgrade them manually (e.g. Next 15).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+    groups:
+      # A package goes into the first group it matches, so `framework` wins.
+      framework:
+        patterns:
+          - next
+          - eslint-config-next
+          - react
+          - react-dom
+          - '@types/react'
+          - '@types/react-dom'
+          - '@clerk/*'
+      production:
+        dependency-type: production
+        update-types: [minor, patch]
+      dev:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: chore(deps)
