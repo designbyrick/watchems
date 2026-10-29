@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1774720890767,
+      "tag": "0000_glossy_dreadnoughts",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774721403399,
+      "tag": "0001_chunky_shinobi_shaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774739226205,
+      "tag": "0002_narrow_jack_flag",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1775081290848,
+      "tag": "0003_minor_union_jack",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775081354742,
+      "tag": "0004_jittery_mac_gargan",
+      "breakpoints": true
+    }
+  ]
+}
