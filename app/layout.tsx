@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { DM_Sans } from 'next/font/google'
 import Script from 'next/script'
+import { headers } from 'next/headers'
 import { ClerkProvider } from '@clerk/nextjs'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Analytics } from '@vercel/analytics/next'
@@ -61,7 +62,7 @@ const organizationJsonLd = {
   sameAs: [],
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children, nonce }: { children: React.ReactNode; nonce?: string }) {
   return (
     <html lang="en" className={dmSans.variable}>
       <head>
@@ -76,6 +77,7 @@ function Shell({ children }: { children: React.ReactNode }) {
             Do NOT call gtag('config') here — the Script tag below handles that
             when the library loads, avoiding a duplicate page_view. */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());`,
           }}
@@ -83,14 +85,15 @@ function Shell({ children }: { children: React.ReactNode }) {
       </head>
       <body className="bg-surfaceAlt text-textPrimary antialiased min-h-screen flex flex-col">
         {/* Load Satoshi font non-blocking — was render-blocking in <head> */}
-        <Script id="satoshi-font" strategy="afterInteractive">
+        <Script id="satoshi-font" strategy="afterInteractive" nonce={nonce}>
           {`(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap';document.head.appendChild(l);})()`}
         </Script>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-T077JWH4E5"
           strategy="afterInteractive"
+          nonce={nonce}
         />
-        <Script id="ga4-config" strategy="afterInteractive">
+        <Script id="ga4-config" strategy="afterInteractive" nonce={nonce}>
           {`gtag('config','G-T077JWH4E5');`}
         </Script>
         <Navigation />
@@ -103,10 +106,17 @@ function Shell({ children }: { children: React.ReactNode }) {
   )
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Per-request CSP nonce set by middleware.ts. Reading headers() makes every
+  // page render dynamically — that's the cost of a nonce-based CSP.
+  const nonce = (await headers()).get('x-nonce') ?? undefined
+
   if (hasClerk) {
     return (
       <ClerkProvider
+        // `dynamic` makes Clerk read the nonce from the request and put it on
+        // the clerk-js <script> it injects.
+        dynamic
         appearance={{
           elements: {
             footer: {
@@ -125,9 +135,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           },
         }}
       >
-        <Shell>{children}</Shell>
+        <Shell nonce={nonce}>{children}</Shell>
       </ClerkProvider>
     )
   }
-  return <Shell>{children}</Shell>
+  return <Shell nonce={nonce}>{children}</Shell>
 }
