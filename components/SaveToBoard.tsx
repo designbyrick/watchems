@@ -10,11 +10,12 @@ interface Board {
 
 interface SaveToBoardProps {
   photoId: string
-  /** 'card' small icon overlay, 'tile' 44px gallery-tile bookmark (shown on hover), 'button' full button */
+  /** 'card' small icon overlay, 'tile' 44px gallery-tile bookmark (shown on hover), 'button' 52px pill */
   variant?: 'card' | 'tile' | 'button'
+  className?: string
 }
 
-export default function SaveToBoard({ photoId, variant = 'card' }: SaveToBoardProps) {
+export default function SaveToBoard({ photoId, variant = 'card', className = '' }: SaveToBoardProps) {
   const { isSignedIn } = useAuth()
   const [open, setOpen] = useState(false)
   const [boards, setBoards] = useState<Board[]>([])
@@ -134,7 +135,7 @@ export default function SaveToBoard({ photoId, variant = 'card' }: SaveToBoardPr
 
   const bookmarkIcon = (
     <svg
-      className={variant === 'card' ? 'w-3.5 h-3.5' : variant === 'tile' ? 'w-[18px] h-[18px]' : 'w-4 h-4'}
+      className={variant === 'card' ? 'w-3.5 h-3.5' : 'w-[18px] h-[18px]'}
       fill={isSavedAnywhere ? 'currentColor' : 'none'}
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -145,7 +146,7 @@ export default function SaveToBoard({ photoId, variant = 'card' }: SaveToBoardPr
   )
 
   return (
-    <div ref={menuRef} className="relative" onClick={(e) => e.stopPropagation()}>
+    <div ref={menuRef} className={`relative ${className}`} onClick={(e) => e.stopPropagation()}>
       {/* Trigger button */}
       {variant === 'tile' ? (
         <button
@@ -178,21 +179,18 @@ export default function SaveToBoard({ photoId, variant = 'card' }: SaveToBoardPr
         <button
           type="button"
           onClick={handleOpen}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-            isSavedAnywhere
-              ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
+          aria-pressed={isSavedAnywhere}
+          className="w-full h-[52px] rounded-full bg-ink text-white hover:bg-ink-hover flex items-center justify-center gap-2 text-base font-semibold transition-colors"
         >
           {bookmarkIcon}
-          {isSavedAnywhere ? 'Saved' : 'Save'}
+          {isSavedAnywhere ? 'Saved to a board' : 'Save to a board'}
         </button>
       )}
 
       {/* Dropdown */}
       {open && (
         <div className={`absolute z-50 bg-surface rounded-xl shadow-md border border-line w-56 py-2 ${
-          variant === 'card' ? 'top-10 right-0' : variant === 'tile' ? 'top-12 right-0' : 'top-full mt-2 right-0'
+          variant === 'card' ? 'top-10 right-0' : variant === 'tile' ? 'top-12 right-0' : 'top-full mt-2 left-0'
         }`}>
           <p className="px-3 py-1 font-mono text-[11px] tracking-[1px] uppercase text-muted">Save to a board</p>
 
