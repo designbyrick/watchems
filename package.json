@@ -13,8 +13,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "monitor:cwv": "curl https://watchems.com/api/cron/core-web-vitals",
-    "monitor:gsc": "curl https://watchems.com/api/cron/gsc-metrics",
+    "monitor:cwv": "curl -H \"Authorization: Bearer $CRON_SECRET\" https://watchems.com/api/cron/core-web-vitals",
+    "monitor:gsc": "curl -H \"Authorization: Bearer $CRON_SECRET\" https://watchems.com/api/cron/gsc-metrics",
     "test:cwv-local": "node -e \"import('./app/api/cron/core-web-vitals/route.ts')\""
   },
   "dependencies": {

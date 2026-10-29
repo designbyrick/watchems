@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
 import https from 'https'
@@ -7,7 +8,7 @@ import { getRedis } from '@/lib/redis'
 
 /**
  * Google Search Console Metrics Cron Job
- * Runs weekly (Mondays at 03:00 UTC) via Vercel Cron Jobs
+ * Runs weekly (Mondays at 03:00 UTC) via Vercel Cron Jobs (see vercel.json)
  * Fetches ranking metrics from GSC via service account
  * Stores metrics in Upstash Redis
  * Metrics: top keywords, average position, CTR, impressions
@@ -198,21 +199,23 @@ async function fetchGSCMetrics(accessToken: string): Promise<GSCResponse> {
 }
 
 /**
- * Verify Vercel cron secret token
+ * Verify the cron secret. Vercel sends `Authorization: Bearer ${CRON_SECRET}`
+ * automatically when the CRON_SECRET env var is set on the project.
  */
-function verifyVercelCronSecret(request: NextRequest): boolean {
-  const secret = process.env.VERCEL_CRON_SECRET
+function verifyCronSecret(request: NextRequest): boolean {
+  const secret = process.env.CRON_SECRET || process.env.VERCEL_CRON_SECRET
   if (!secret) {
     return process.env.NODE_ENV === 'development'
   }
 
-  const authHeader = request.headers.get('authorization')
-  return authHeader === `Bearer ${secret}`
+  const expected = Buffer.from(`Bearer ${secret}`)
+  const received = Buffer.from(request.headers.get('authorization') ?? '')
+  return received.length === expected.length && crypto.timingSafeEqual(received, expected)
 }
 
 export async function GET(request: NextRequest) {
   try {
-    if (!verifyVercelCronSecret(request)) {
+    if (!verifyCronSecret(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
