@@ -51,7 +51,7 @@ export default function OwnerReviews({ reviews }: OwnerReviewsProps) {
   return (
     <section className="py-12 md:py-14">
       <Container>
-        <h2 className="text-2xl sm:text-3xl font-bold text-textPrimary mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-ink mb-8">
           What Owners Say
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -67,13 +67,13 @@ export default function OwnerReviews({ reviews }: OwnerReviewsProps) {
               <Link
                 key={review.id}
                 href={`/watches/${review.watchSlug}`}
-                className="block bg-surface border border-border rounded-sm p-5 hover:border-borderStrong transition-colors"
+                className="block bg-surface border border-line rounded-sm p-5 hover:border-line-strong transition-colors"
               >
                 <StarRating rating={review.rating} />
-                <p className="text-sm text-textSecond mt-2 mb-3">
+                <p className="text-sm text-muted mt-2 mb-3">
                   &ldquo;{truncatedBody}&rdquo;
                 </p>
-                <div className="flex items-center justify-between text-xs text-textMuted">
+                <div className="flex items-center justify-between text-xs text-faint">
                   <span>{displayName}</span>
                   <span className="capitalize">{watchLabel}</span>
                 </div>
@@ -82,7 +82,7 @@ export default function OwnerReviews({ reviews }: OwnerReviewsProps) {
           })}
         </div>
         {isPlaceholder && (
-          <p className="text-center text-sm text-textMuted mt-4">
+          <p className="text-center text-sm text-faint mt-4">
             Be the first to review — visit any watch page to share your experience.
           </p>
         )}

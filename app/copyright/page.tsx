@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 export default function CopyrightPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-      <h1 className="text-4xl font-bold text-textPrimary mb-2">Copyright Policy</h1>
-      <p className="text-textMuted text-sm mb-10">Last updated: April 9, 2026</p>
+      <h1 className="text-4xl font-bold text-ink mb-2">Copyright Policy</h1>
+      <p className="text-faint text-sm mb-10">Last updated: April 9, 2026</p>
 
       <div className="prose-custom space-y-8">
         <section>
@@ -103,7 +103,7 @@ export default function CopyrightPage() {
             <br />
             <strong>DMCA Registration:</strong> DMCA-1071343
           </p>
-          <p className="text-sm text-textMuted">
+          <p className="text-sm text-faint">
             Email is the fastest way to reach us. Please put &quot;DMCA Notice&quot; or
             &quot;Copyright Claim&quot; in the subject line.
           </p>
@@ -198,11 +198,11 @@ export default function CopyrightPage() {
         </section>
       </div>
 
-      <div className="mt-10 pt-6 border-t border-border flex gap-6">
-        <Link href="/terms" className="text-accent hover:text-accentHover text-sm font-medium">
+      <div className="mt-10 pt-6 border-t border-line flex gap-6">
+        <Link href="/terms" className="text-ink hover:text-ink-hover text-sm font-medium">
           Terms of Use →
         </Link>
-        <Link href="/privacy" className="text-accent hover:text-accentHover text-sm font-medium">
+        <Link href="/privacy" className="text-ink hover:text-ink-hover text-sm font-medium">
           Privacy Policy →
         </Link>
       </div>

@@ -25,34 +25,32 @@ export default function UploadNudge() {
 
   return (
     <div
-      className="fixed bottom-6 right-6 z-50 max-w-sm w-full animate-slide-up"
+      className="fixed bottom-4 right-4 left-4 sm:left-auto sm:bottom-6 sm:right-6 z-50 sm:max-w-sm animate-slide-up"
       role="status"
       aria-live="polite"
     >
-      <div className="bg-gray-900 text-white rounded-2xl shadow-2xl px-6 py-5 flex items-start gap-4">
-        {/* Watch icon */}
-        <span className="text-4xl leading-none mt-1 shrink-0" aria-hidden="true">⌚</span>
+      <div className="bg-ink text-white rounded-2xl shadow-lg px-5 py-5 flex items-start gap-4">
 
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-base leading-snug">
             Got a watch on your wrist?
           </p>
-          <p className="text-gray-400 text-sm mt-1 leading-relaxed">
+          <p className="text-white/60 text-sm mt-1 leading-relaxed">
             Share a photo and help other enthusiasts see it in the wild.
           </p>
           <Link
             href="/upload"
             onClick={() => setVisible(false)}
-            className="inline-block mt-3 text-sm font-semibold bg-white text-gray-900 rounded-lg px-4 py-2 hover:bg-gray-100 transition-colors"
+            className="inline-flex items-center h-10 mt-3 text-sm font-semibold bg-white text-ink rounded-full px-4 hover:bg-canvas transition-colors"
           >
-            Upload a photo →
+            Add a wrist shot
           </Link>
         </div>
 
         <button
           type="button"
           onClick={() => setVisible(false)}
-          className="text-gray-500 hover:text-white transition-colors shrink-0 -mt-0.5 -mr-1"
+          className="text-white/50 hover:text-white transition-colors shrink-0 -mt-0.5 -mr-1"
           aria-label="Dismiss"
         >
           <X size={18} />

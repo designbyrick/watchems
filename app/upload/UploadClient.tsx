@@ -442,7 +442,7 @@ export default function UploadClient() {
   function fieldBorderClass(field: AiConfirmField) {
     if (isAiUnconfirmed(field)) return 'border-blue-400 ring-1 ring-blue-300 dark:ring-blue-600'
     if (meta.aiIdentified && meta.aiFilledFields.has(field) && meta.aiConfirmedFields[field]) return 'border-green-400'
-    return 'border-borderStrong focus:border-accent'
+    return 'border-line-strong focus:border-ink'
   }
 
   function inputPrClass(field: AiConfirmField) {
@@ -600,39 +600,39 @@ export default function UploadClient() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-surfaceAlt flex items-center justify-center">
-        <div className="animate-pulse text-textMuted">Loading...</div>
+      <div className="min-h-screen bg-canvas flex items-center justify-center">
+        <div className="animate-pulse text-faint">Loading...</div>
       </div>
     )
   }
 
   return (
-    <main className="min-h-screen bg-surfaceAlt text-textPrimary">
+    <main className="min-h-screen bg-canvas text-ink">
       <div className={`max-w-[80rem] mx-auto px-4 ${success ? 'py-12 sm:py-16' : 'py-8 sm:py-12'}`}>
         {!success && (
           <>
-            <Link href="/" className="text-xs sm:text-sm text-textMuted hover:text-textPrimary mb-6 inline-block">
+            <Link href="/" className="text-xs sm:text-sm text-faint hover:text-ink mb-6 inline-block">
               &larr; Back to home
             </Link>
 
             <h1 className="text-2xl sm:text-3xl font-bold mb-2">Upload Your Watch Photos</h1>
-            <p className="text-textMuted mb-8 text-sm sm:text-base">
+            <p className="text-faint mb-8 text-sm sm:text-base">
               Share real wrist shots. Help others see how watches look in real life.
             </p>
           </>
         )}
 
         {!isSignedIn ? (
-          <div className="bg-surface border border-borderStrong rounded-xl p-6 sm:p-8 text-center shadow-sm">
-            <p className="text-textSecond mb-4 text-sm sm:text-base">Sign in to upload your watch photos</p>
+          <div className="bg-surface border border-line-strong rounded-xl p-6 sm:p-8 text-center shadow-sm">
+            <p className="text-muted mb-4 text-sm sm:text-base">Sign in to upload your watch photos</p>
             <SignInButton mode="modal">
-              <button className="px-4 sm:px-6 py-2 sm:py-3 bg-accent hover:bg-accentHover text-white rounded-lg font-medium transition-colors text-sm sm:text-base w-full sm:w-auto">
+              <button className="px-4 sm:px-6 py-2 sm:py-3 bg-ink hover:bg-ink-hover text-white rounded-lg font-medium transition-colors text-sm sm:text-base w-full sm:w-auto">
                 Sign in to upload
               </button>
             </SignInButton>
           </div>
         ) : success ? (
-          <div className="max-w-lg mx-auto bg-surface border border-borderStrong rounded-2xl p-6 sm:p-8 text-center shadow-sm">
+          <div className="max-w-lg mx-auto bg-surface border border-line-strong rounded-2xl p-6 sm:p-8 text-center shadow-sm">
             {successPreviews.length > 0 && (
               <div className="flex justify-center gap-2 sm:gap-3 mb-5 flex-wrap">
                 {successPreviews.map((src, i) => (
@@ -646,18 +646,18 @@ export default function UploadClient() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-textPrimary mb-1.5">
+            <h2 className="text-xl sm:text-2xl font-bold text-ink mb-1.5">
               {successPreviews.length > 1 ? 'Photos submitted!' : 'Photo submitted!'}
             </h2>
-            <p className="text-textMuted mb-4 text-sm">
+            <p className="text-faint mb-4 text-sm">
               Your {successPreviews.length > 1 ? 'images are' : 'image is'} being reviewed and will be approved soon.
             </p>
             {meta.brandName && (
-              <p className="text-xs text-textMuted mb-6">
+              <p className="text-xs text-faint mb-6">
                 Once approved, your photo will appear on the{' '}
                 <Link
                   href={`/brand/${encodeURIComponent(meta.brandName.toLowerCase())}`}
-                  className="underline underline-offset-2 hover:text-textPrimary transition-colors"
+                  className="underline underline-offset-2 hover:text-ink transition-colors"
                 >
                   {meta.brandName} page
                 </Link>
@@ -666,7 +666,7 @@ export default function UploadClient() {
             )}
 
             {/* Dashboard feature CTAs — 3-col grid */}
-            <p className="text-xs font-semibold text-textMuted uppercase tracking-wider mb-3">While you wait</p>
+            <p className="text-xs font-semibold text-faint uppercase tracking-wider mb-3">While you wait</p>
             <div className="grid grid-cols-3 gap-3 mb-6">
               <Link href="/dashboard" className="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors group">
                 <span className="text-2xl">⌚</span>
@@ -688,7 +688,7 @@ export default function UploadClient() {
             <div className="flex flex-col gap-2">
               <Link
                 href="/"
-                className="px-6 py-2.5 bg-accent hover:bg-accentHover text-white rounded-lg font-medium transition-colors inline-block text-center text-sm"
+                className="px-6 py-2.5 bg-ink hover:bg-ink-hover text-white rounded-lg font-medium transition-colors inline-block text-center text-sm"
               >
                 &larr; Back to home
               </Link>
@@ -702,7 +702,7 @@ export default function UploadClient() {
                   setPartialSuccess('')
                   filesById.current.clear()
                 }}
-                className="px-6 py-2.5 bg-neutral hover:bg-neutral/80 text-textPrimary rounded-lg font-medium transition-colors text-sm"
+                className="px-6 py-2.5 bg-canvas hover:bg-canvas/80 text-ink rounded-lg font-medium transition-colors text-sm"
               >
                 Upload more
               </button>
@@ -725,7 +725,7 @@ export default function UploadClient() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 items-start">
 
               {/* ── LEFT: Photo area ── */}
-              <div className="bg-surface border border-borderStrong rounded-xl p-4 shadow-sm space-y-4">
+              <div className="bg-surface border border-line-strong rounded-xl p-4 shadow-sm space-y-4">
 
                 {/* Primary photo preview or drop zone */}
                 {hasItems && primaryItem?.preview ? (
@@ -742,7 +742,7 @@ export default function UploadClient() {
                       </div>
                     )}
 
-                    <div className="absolute top-2 left-2 bg-accent text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                    <div className="absolute top-2 left-2 bg-ink text-white text-xs px-2 py-0.5 rounded-full font-medium">
                       Primary
                     </div>
 
@@ -761,22 +761,22 @@ export default function UploadClient() {
                     onDrop={handleDrop}
                     onClick={() => fileRef.current?.click()}
                     className={`aspect-[4/3] border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${
-                      isDragging ? 'border-accent bg-accent/5' : 'border-borderStrong hover:border-accent'
+                      isDragging ? 'border-ink bg-ink/5' : 'border-line-strong hover:border-ink'
                     }`}
                   >
                     {hasItems ? (
-                      <div className="text-textMuted text-sm flex items-center gap-2">
-                        <span className="animate-spin inline-block w-4 h-4 border-2 border-textMuted border-t-transparent rounded-full" />
+                      <div className="text-faint text-sm flex items-center gap-2">
+                        <span className="animate-spin inline-block w-4 h-4 border-2 border-faint border-t-transparent rounded-full" />
                         Processing...
                       </div>
                     ) : (
                       <>
                         <div className="text-4xl mb-3">📷</div>
-                        <p className="text-textMuted text-sm text-center px-4">
+                        <p className="text-faint text-sm text-center px-4">
                           {isDragging ? 'Drop your photos here' : 'Drag & drop or click to add photos'}
                         </p>
-                        <p className="text-textMuted text-xs mt-1">JPEG, PNG, WebP · Up to 20MB each</p>
-                        <p className="text-textMuted text-[11px] mt-2.5">🔒 GPS location, camera info &amp; all EXIF metadata are automatically removed</p>
+                        <p className="text-faint text-xs mt-1">JPEG, PNG, WebP · Up to 20MB each</p>
+                        <p className="text-faint text-[11px] mt-2.5">🔒 GPS location, camera info &amp; all EXIF metadata are automatically removed</p>
                       </>
                     )}
                   </div>
@@ -789,11 +789,11 @@ export default function UploadClient() {
                       <div key={item.id} className="relative group">
                         <div
                           onClick={() => { if (i > 0 && item.status !== 'uploading') setPrimary(item.id) }}
-                          className={`w-16 h-16 rounded-lg overflow-hidden bg-neutral ${
+                          className={`w-16 h-16 rounded-lg overflow-hidden bg-canvas ${
                             i === 0
-                              ? 'ring-2 ring-accent'
+                              ? 'ring-2 ring-ink'
                               : item.status !== 'uploading'
-                              ? 'cursor-pointer hover:ring-2 hover:ring-accent/60'
+                              ? 'cursor-pointer hover:ring-2 hover:ring-ink/60'
                               : ''
                           }`}
                         >
@@ -802,7 +802,7 @@ export default function UploadClient() {
                             <img src={item.preview} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <span className="animate-spin w-3 h-3 border-2 border-textMuted border-t-transparent rounded-full" />
+                              <span className="animate-spin w-3 h-3 border-2 border-faint border-t-transparent rounded-full" />
                             </div>
                           )}
                           {item.status === 'uploading' && (
@@ -854,7 +854,7 @@ export default function UploadClient() {
                       <button
                         type="button"
                         onClick={() => fileRef.current?.click()}
-                        className="w-16 h-16 border-2 border-dashed border-borderStrong hover:border-accent rounded-lg flex items-center justify-center text-textMuted hover:text-accent transition-colors text-2xl leading-none"
+                        className="w-16 h-16 border-2 border-dashed border-line-strong hover:border-ink rounded-lg flex items-center justify-center text-faint hover:text-ink transition-colors text-2xl leading-none"
                         aria-label="Add more photos"
                       >
                         +
@@ -871,8 +871,8 @@ export default function UploadClient() {
                     onDrop={handleDrop}
                     className={`border border-dashed rounded-lg py-2 text-center text-xs transition-colors ${
                       isDragging
-                        ? 'border-accent bg-accent/5 text-accent'
-                        : 'border-borderStrong text-textMuted'
+                        ? 'border-ink bg-ink/5 text-ink'
+                        : 'border-line-strong text-faint'
                     }`}
                   >
                     Drop more angles here · {items.length}/{MAX_PHOTOS} photos
@@ -881,7 +881,7 @@ export default function UploadClient() {
               </div>
 
               {/* ── RIGHT: Watch form ── */}
-              <div className="bg-surface border border-borderStrong rounded-xl p-5 shadow-sm space-y-5">
+              <div className="bg-surface border border-line-strong rounded-xl p-5 shadow-sm space-y-5">
 
                 {/* Warnings */}
                 {meta.isWatch === false && (
@@ -922,7 +922,7 @@ export default function UploadClient() {
                 )}
                 {meta.identifyStatus === 'error' && (
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-textMuted">Identification failed — fill in details manually</span>
+                    <span className="text-faint">Identification failed — fill in details manually</span>
                     {primaryItem && (
                       <button
                         type="button"
@@ -932,7 +932,7 @@ export default function UploadClient() {
                             aiFilledFields: new Set(), aiConfirmedFields: {},
                           })
                         }}
-                        className="text-textMuted hover:text-textPrimary underline ml-3"
+                        className="text-faint hover:text-ink underline ml-3"
                       >
                         Try again
                       </button>
@@ -941,7 +941,7 @@ export default function UploadClient() {
                 )}
                 {meta.identifyStatus === 'done' && (
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-textMuted">Watch identified from primary photo</span>
+                    <span className="text-faint">Watch identified from primary photo</span>
                     {primaryItem && (
                       <button
                         type="button"
@@ -951,7 +951,7 @@ export default function UploadClient() {
                             aiFilledFields: new Set(), aiConfirmedFields: {},
                           })
                         }}
-                        className="text-textMuted hover:text-textPrimary underline ml-3"
+                        className="text-faint hover:text-ink underline ml-3"
                       >
                         Re-identify
                       </button>
@@ -984,7 +984,7 @@ export default function UploadClient() {
 
                 {/* Brand */}
                 <div>
-                  <label className="block text-sm font-medium text-textSecond mb-1.5">
+                  <label className="block text-sm font-medium text-muted mb-1.5">
                     Brand <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
@@ -994,7 +994,7 @@ export default function UploadClient() {
                       onChange={(e) => metaChange('brandName', e.target.value)}
                       placeholder="e.g. Rolex"
                       maxLength={80}
-                      className={`w-full bg-surfaceAlt rounded-md px-3 py-2.5 text-sm text-textPrimary placeholder-textMuted focus:outline-none shadow-sm transition-colors border ${fieldBorderClass('brand')} ${inputPrClass('brand')}`}
+                      className={`w-full bg-canvas rounded-md px-3 py-2.5 text-sm text-ink placeholder-faint focus:outline-none shadow-sm transition-colors border ${fieldBorderClass('brand')} ${inputPrClass('brand')}`}
                     />
                     <InlineConfirm field="brand" />
                   </div>
@@ -1002,7 +1002,7 @@ export default function UploadClient() {
 
                 {/* Model */}
                 <div>
-                  <label className="block text-sm font-medium text-textSecond mb-1.5">
+                  <label className="block text-sm font-medium text-muted mb-1.5">
                     Model <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
@@ -1012,7 +1012,7 @@ export default function UploadClient() {
                       onChange={(e) => metaChange('modelName', e.target.value)}
                       placeholder="e.g. Submariner"
                       maxLength={100}
-                      className={`w-full bg-surfaceAlt rounded-md px-3 py-2.5 text-sm text-textPrimary placeholder-textMuted focus:outline-none shadow-sm transition-colors border ${fieldBorderClass('model')} ${inputPrClass('model')}`}
+                      className={`w-full bg-canvas rounded-md px-3 py-2.5 text-sm text-ink placeholder-faint focus:outline-none shadow-sm transition-colors border ${fieldBorderClass('model')} ${inputPrClass('model')}`}
                     />
                     <InlineConfirm field="model" />
                   </div>
@@ -1022,7 +1022,7 @@ export default function UploadClient() {
                 <div className="space-y-4">
                     {/* Reference */}
                     <div>
-                      <label className="block text-sm font-medium text-textSecond mb-1.5">Reference</label>
+                      <label className="block text-sm font-medium text-muted mb-1.5">Reference</label>
                       <div className="relative">
                         <input
                           type="text"
@@ -1030,7 +1030,7 @@ export default function UploadClient() {
                           onChange={(e) => metaChange('referenceNumber', e.target.value)}
                           placeholder="e.g. 126610LN"
                           maxLength={60}
-                          className={`w-full bg-surfaceAlt rounded-md px-3 py-2.5 text-sm text-textPrimary placeholder-textMuted focus:outline-none shadow-sm border ${fieldBorderClass('reference')} ${inputPrClass('reference')}`}
+                          className={`w-full bg-canvas rounded-md px-3 py-2.5 text-sm text-ink placeholder-faint focus:outline-none shadow-sm border ${fieldBorderClass('reference')} ${inputPrClass('reference')}`}
                         />
                         <InlineConfirm field="reference" />
                       </div>
@@ -1038,7 +1038,7 @@ export default function UploadClient() {
 
                     {/* Movement */}
                     <div>
-                      <label className="block text-sm font-medium text-textSecond mb-1.5">Movement</label>
+                      <label className="block text-sm font-medium text-muted mb-1.5">Movement</label>
                       <div className="relative">
                         <input
                           type="text"
@@ -1046,7 +1046,7 @@ export default function UploadClient() {
                           onChange={(e) => metaChange('movement', e.target.value)}
                           placeholder="e.g. Automatic"
                           maxLength={60}
-                          className={`w-full bg-surfaceAlt rounded-md px-3 py-2.5 text-sm text-textPrimary placeholder-textMuted focus:outline-none shadow-sm border ${fieldBorderClass('movement')} ${inputPrClass('movement')}`}
+                          className={`w-full bg-canvas rounded-md px-3 py-2.5 text-sm text-ink placeholder-faint focus:outline-none shadow-sm border ${fieldBorderClass('movement')} ${inputPrClass('movement')}`}
                         />
                         <InlineConfirm field="movement" />
                       </div>
@@ -1054,7 +1054,7 @@ export default function UploadClient() {
 
                     {/* Case dimensions — grouped 2×2 */}
                     <div>
-                      <label className="block text-sm font-medium text-textSecond mb-1.5">Dimensions</label>
+                      <label className="block text-sm font-medium text-muted mb-1.5">Dimensions</label>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="flex items-center gap-1.5">
                           <div className="relative flex-1 min-w-0">
@@ -1064,11 +1064,11 @@ export default function UploadClient() {
                               onChange={(e) => metaChange('caseSize', e.target.value)}
                               placeholder="Case"
                               maxLength={20}
-                              className={`w-full bg-surfaceAlt rounded-md px-2.5 py-2 text-sm text-textPrimary placeholder-textMuted focus:outline-none shadow-sm border ${fieldBorderClass('caseSize')} ${inputPrClass('caseSize')}`}
+                              className={`w-full bg-canvas rounded-md px-2.5 py-2 text-sm text-ink placeholder-faint focus:outline-none shadow-sm border ${fieldBorderClass('caseSize')} ${inputPrClass('caseSize')}`}
                             />
                             <InlineConfirm field="caseSize" />
                           </div>
-                          <span className="text-xs text-textMuted flex-shrink-0">mm</span>
+                          <span className="text-xs text-faint flex-shrink-0">mm</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <div className="relative flex-1 min-w-0">
@@ -1078,11 +1078,11 @@ export default function UploadClient() {
                               onChange={(e) => metaChange('lugToLug', e.target.value)}
                               placeholder="Lug-to-lug"
                               maxLength={20}
-                              className={`w-full bg-surfaceAlt rounded-md px-2.5 py-2 text-sm text-textPrimary placeholder-textMuted focus:outline-none shadow-sm border ${fieldBorderClass('lugToLug')} ${inputPrClass('lugToLug')}`}
+                              className={`w-full bg-canvas rounded-md px-2.5 py-2 text-sm text-ink placeholder-faint focus:outline-none shadow-sm border ${fieldBorderClass('lugToLug')} ${inputPrClass('lugToLug')}`}
                             />
                             <InlineConfirm field="lugToLug" />
                           </div>
-                          <span className="text-xs text-textMuted flex-shrink-0">mm</span>
+                          <span className="text-xs text-faint flex-shrink-0">mm</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <div className="relative flex-1 min-w-0">
@@ -1092,11 +1092,11 @@ export default function UploadClient() {
                               onChange={(e) => metaChange('betweenLugs', e.target.value)}
                               placeholder="Lug width"
                               maxLength={20}
-                              className={`w-full bg-surfaceAlt rounded-md px-2.5 py-2 text-sm text-textPrimary placeholder-textMuted focus:outline-none shadow-sm border ${fieldBorderClass('betweenLugs')} ${inputPrClass('betweenLugs')}`}
+                              className={`w-full bg-canvas rounded-md px-2.5 py-2 text-sm text-ink placeholder-faint focus:outline-none shadow-sm border ${fieldBorderClass('betweenLugs')} ${inputPrClass('betweenLugs')}`}
                             />
                             <InlineConfirm field="betweenLugs" />
                           </div>
-                          <span className="text-xs text-textMuted flex-shrink-0">mm</span>
+                          <span className="text-xs text-faint flex-shrink-0">mm</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <div className="relative flex-1 min-w-0">
@@ -1106,18 +1106,18 @@ export default function UploadClient() {
                               onChange={(e) => metaChange('thickness', e.target.value)}
                               placeholder="Thickness"
                               maxLength={20}
-                              className={`w-full bg-surfaceAlt rounded-md px-2.5 py-2 text-sm text-textPrimary placeholder-textMuted focus:outline-none shadow-sm border ${fieldBorderClass('thickness')} ${inputPrClass('thickness')}`}
+                              className={`w-full bg-canvas rounded-md px-2.5 py-2 text-sm text-ink placeholder-faint focus:outline-none shadow-sm border ${fieldBorderClass('thickness')} ${inputPrClass('thickness')}`}
                             />
                             <InlineConfirm field="thickness" />
                           </div>
-                          <span className="text-xs text-textMuted flex-shrink-0">mm</span>
+                          <span className="text-xs text-faint flex-shrink-0">mm</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Water resistance */}
                     <div>
-                      <label className="block text-sm font-medium text-textSecond mb-1.5">Water resistance</label>
+                      <label className="block text-sm font-medium text-muted mb-1.5">Water resistance</label>
                       <div className="relative">
                         <input
                           type="text"
@@ -1125,7 +1125,7 @@ export default function UploadClient() {
                           onChange={(e) => metaChange('waterResistance', e.target.value)}
                           placeholder="e.g. 300m / 1000ft"
                           maxLength={40}
-                          className={`w-full bg-surfaceAlt rounded-md px-3 py-2.5 text-sm text-textPrimary placeholder-textMuted focus:outline-none shadow-sm border ${fieldBorderClass('waterResistance')} ${inputPrClass('waterResistance')}`}
+                          className={`w-full bg-canvas rounded-md px-3 py-2.5 text-sm text-ink placeholder-faint focus:outline-none shadow-sm border ${fieldBorderClass('waterResistance')} ${inputPrClass('waterResistance')}`}
                         />
                         <InlineConfirm field="waterResistance" />
                       </div>
@@ -1134,7 +1134,7 @@ export default function UploadClient() {
                     {/* Wrist size + Price */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-medium text-textSecond mb-1.5">Wrist size</label>
+                        <label className="block text-sm font-medium text-muted mb-1.5">Wrist size</label>
                         <div className="flex gap-1 items-center">
                           <input
                             type="text"
@@ -1142,7 +1142,7 @@ export default function UploadClient() {
                             value={meta.wristSize}
                             onChange={(e) => metaChange('wristSize', e.target.value)}
                             placeholder='e.g. 7.25"'
-                            className={`flex-1 min-w-0 bg-surfaceAlt rounded-md px-2 py-2.5 text-sm text-textPrimary focus:outline-none shadow-sm border ${fieldBorderClass('wristSize')}`}
+                            className={`flex-1 min-w-0 bg-canvas rounded-md px-2 py-2.5 text-sm text-ink focus:outline-none shadow-sm border ${fieldBorderClass('wristSize')}`}
                           />
                           {isAiUnconfirmed('wristSize') && (
                             <>
@@ -1156,12 +1156,12 @@ export default function UploadClient() {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-textSecond mb-1.5">Est. value</label>
+                        <label className="block text-sm font-medium text-muted mb-1.5">Est. value</label>
                         <div className="flex gap-1 items-center">
                           <select
                             value={meta.estimatedPrice}
                             onChange={(e) => metaChange('estimatedPrice', e.target.value)}
-                            className={`flex-1 min-w-0 bg-surfaceAlt rounded-md px-2 py-2.5 text-sm text-textPrimary focus:outline-none shadow-sm border ${fieldBorderClass('estimatedPrice')}`}
+                            className={`flex-1 min-w-0 bg-canvas rounded-md px-2 py-2.5 text-sm text-ink focus:outline-none shadow-sm border ${fieldBorderClass('estimatedPrice')}`}
                           >
                             <option value="">Select...</option>
                             {ESTIMATED_PRICE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -1186,9 +1186,9 @@ export default function UploadClient() {
                     type="checkbox"
                     checked={termsAccepted}
                     onChange={(e) => setTermsAccepted(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-borderStrong accent-accent flex-shrink-0"
+                    className="mt-0.5 h-4 w-4 rounded border-line-strong accent-ink flex-shrink-0"
                   />
-                  <span className="text-xs text-textSecond leading-relaxed">
+                  <span className="text-xs text-muted leading-relaxed">
                     I confirm I own the rights to this photo and grant Watchems a non-exclusive licence to display it on the website. The photo is not AI-generated and has not been digitally altered to misrepresent the watch.
                   </span>
                 </label>
@@ -1208,17 +1208,17 @@ export default function UploadClient() {
             {/* Sticky submit bar */}
             {hasItems && (
               <div className="sticky bottom-4 z-10">
-                <div className="bg-surface border border-borderStrong rounded-xl p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3">
-                  <div className="text-sm text-textSecond text-center sm:text-left">
+                <div className="bg-surface border border-line-strong rounded-xl p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="text-sm text-muted text-center sm:text-left">
                     {readyCount === 0 ? (
-                      <span className="text-textMuted">All photos uploaded</span>
+                      <span className="text-faint">All photos uploaded</span>
                     ) : !meta.brandName.trim() ? (
-                      <span className="text-textMuted">Enter a brand name to submit</span>
+                      <span className="text-faint">Enter a brand name to submit</span>
                     ) : !termsAccepted ? (
-                      <span className="text-textMuted">Confirm the terms in the form to submit</span>
+                      <span className="text-faint">Confirm the terms in the form to submit</span>
                     ) : (
                       <span>
-                        <span className="font-semibold text-textPrimary">{readyCount}</span>{' '}
+                        <span className="font-semibold text-ink">{readyCount}</span>{' '}
                         photo{readyCount !== 1 ? 's' : ''} of the same watch ready to submit
                       </span>
                     )}
@@ -1228,8 +1228,8 @@ export default function UploadClient() {
                     disabled={!canSubmit}
                     className={`w-full sm:w-auto px-6 py-3 rounded-lg font-medium transition-colors text-sm ${
                       canSubmit
-                        ? 'bg-accent hover:bg-accentHover text-white cursor-pointer'
-                        : 'bg-neutral text-textMuted cursor-not-allowed'
+                        ? 'bg-ink hover:bg-ink-hover text-white cursor-pointer'
+                        : 'bg-canvas text-faint cursor-not-allowed'
                     }`}
                   >
                     {isUploading

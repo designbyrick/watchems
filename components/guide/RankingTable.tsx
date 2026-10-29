@@ -57,10 +57,10 @@ function sortRows(rows: RankEntry[], key: SortKey, dir: SortDir): RankEntry[] {
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   return (
     <span className="inline-flex flex-col ml-1 opacity-40 group-hover:opacity-100 transition-opacity">
-      <svg className={`w-2.5 h-2.5 -mb-0.5 ${active && dir === 'asc' ? 'opacity-100 text-textPrimary' : ''}`} viewBox="0 0 10 6" fill="currentColor">
+      <svg className={`w-2.5 h-2.5 -mb-0.5 ${active && dir === 'asc' ? 'opacity-100 text-ink' : ''}`} viewBox="0 0 10 6" fill="currentColor">
         <path d="M5 0L10 6H0z" />
       </svg>
-      <svg className={`w-2.5 h-2.5 ${active && dir === 'desc' ? 'opacity-100 text-textPrimary' : ''}`} viewBox="0 0 10 6" fill="currentColor">
+      <svg className={`w-2.5 h-2.5 ${active && dir === 'desc' ? 'opacity-100 text-ink' : ''}`} viewBox="0 0 10 6" fill="currentColor">
         <path d="M5 6L0 0h10z" />
       </svg>
     </span>
@@ -85,7 +85,7 @@ export function CopyCell({ brand, model }: { brand: string; model: string }) {
       title={`Copy "${model}"`}
     >
       <span>
-        <span className="text-textMuted font-normal mr-1.5">{brand}</span>
+        <span className="text-faint font-normal mr-1.5">{brand}</span>
         {model.replace(brand + ' ', '')}
       </span>
       <span className="opacity-0 group-hover/copy:opacity-100 transition-opacity shrink-0">
@@ -94,7 +94,7 @@ export function CopyCell({ brand, model }: { brand: string; model: string }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         ) : (
-          <svg className="w-3.5 h-3.5 text-textMuted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="w-3.5 h-3.5 text-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
         )}
@@ -126,21 +126,21 @@ export function RankingTable({ rows, initialCount = 25 }: RankingTableProps) {
     return {
       scope: 'col' as const,
       onClick: () => handleSort(key),
-      className: `group cursor-pointer select-none ${className} ${active ? 'text-textPrimary' : ''}`,
+      className: `group cursor-pointer select-none ${className} ${active ? 'text-ink' : ''}`,
     }
   }
 
   return (
     <div>
-      <div className="overflow-x-auto rounded-xl border border-border shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-line shadow-sm">
         <table className="w-full text-sm border-collapse bg-surface">
           <caption className="sr-only">Top 20 watches under $500 — community ranking</caption>
           <thead>
-            <tr className="bg-surfaceAlt border-b border-border">
+            <tr className="bg-canvas border-b border-line">
               <th {...thProps('rank', `px-3 py-3.5 text-center ${tb.header} whitespace-nowrap w-10`)}>
                 # <SortIcon active={sortKey === 'rank'} dir={sortDir} />
               </th>
-              <th {...thProps('model', `sticky left-0 z-10 bg-surfaceAlt px-4 py-3.5 text-left ${tb.header} whitespace-nowrap border-l border-r border-border`)}>
+              <th {...thProps('model', `sticky left-0 z-10 bg-canvas px-4 py-3.5 text-left ${tb.header} whitespace-nowrap border-l border-r border-line`)}>
                 Brand &amp; Model <SortIcon active={sortKey === 'model'} dir={sortDir} />
               </th>
               <th {...thProps('price', `px-4 py-3.5 text-right ${tb.header} whitespace-nowrap`)}>
@@ -163,11 +163,11 @@ export function RankingTable({ rows, initialCount = 25 }: RankingTableProps) {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-line">
             {visible.map((row) => (
-              <tr key={row.rank} className="hover:bg-surfaceAlt transition-colors">
-                <td className={`px-3 py-3 text-center ${tb.cell} tabular-nums text-textMuted`}>{row.rank}</td>
-                <td className={`sticky left-0 z-10 px-4 py-3 bg-surface hover:bg-surfaceAlt transition-colors ${tb.cellStrong} whitespace-nowrap border-l border-r border-border`}>
+              <tr key={row.rank} className="hover:bg-canvas transition-colors">
+                <td className={`px-3 py-3 text-center ${tb.cell} tabular-nums text-faint`}>{row.rank}</td>
+                <td className={`sticky left-0 z-10 px-4 py-3 bg-surface hover:bg-canvas transition-colors ${tb.cellStrong} whitespace-nowrap border-l border-r border-line`}>
                   <CopyCell brand={row.brand} model={row.model} />
                 </td>
                 <td className={`px-4 py-3 ${tb.cellStrong} whitespace-nowrap tabular-nums text-right`}>{row.price}</td>
@@ -186,7 +186,7 @@ export function RankingTable({ rows, initialCount = 25 }: RankingTableProps) {
         <div className="mt-4 flex justify-center">
           <button
             onClick={() => setExpanded(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-border bg-surface hover:bg-surfaceAlt text-sm font-medium text-textSecond hover:text-textPrimary transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-line bg-surface hover:bg-canvas text-sm font-medium text-muted hover:text-ink transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -200,7 +200,7 @@ export function RankingTable({ rows, initialCount = 25 }: RankingTableProps) {
         <div className="mt-4 flex justify-center">
           <button
             onClick={() => setExpanded(false)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-border bg-surface hover:bg-surfaceAlt text-sm font-medium text-textSecond hover:text-textPrimary transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-line bg-surface hover:bg-canvas text-sm font-medium text-muted hover:text-ink transition-colors"
           >
             <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />

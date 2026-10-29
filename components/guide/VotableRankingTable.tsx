@@ -79,20 +79,20 @@ export function VotableRankingTable({ rows, guideSlug, initialCount }: Props) {
       {/* Vote prompt */}
       <div className="mb-4 flex items-center gap-3 flex-wrap">
         {!isLoaded ? null : isSignedIn ? (
-          <p className="text-xs text-textMuted">
+          <p className="text-xs text-faint">
             {currentVote
               ? 'Your favourite is highlighted. Click it again to remove your vote, or pick another.'
               : 'Click any watch to vote for your favourite from this list.'}
           </p>
         ) : (
-          <p className="text-xs text-textMuted flex items-center gap-1.5">
+          <p className="text-xs text-faint flex items-center gap-1.5">
             <SignInButton mode="modal">
-              <button className="text-textSecond underline underline-offset-2 hover:text-textPrimary transition-colors">
+              <button className="text-muted underline underline-offset-2 hover:text-ink transition-colors">
                 Sign in
               </button>
             </SignInButton>
             {' '}to vote for your favourite watch from this list.
-            {totalVotes > 0 && <span className="text-textMuted">({totalVotes} {totalVotes === 1 ? 'vote' : 'votes'} so far)</span>}
+            {totalVotes > 0 && <span className="text-faint">({totalVotes} {totalVotes === 1 ? 'vote' : 'votes'} so far)</span>}
           </p>
         )}
       </div>
@@ -131,13 +131,13 @@ function VotableTable({ rows, initialCount = 25, voteCounts, userVote, isSignedI
 
   return (
     <div>
-      <div className="overflow-x-auto rounded-xl border border-border shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-line shadow-sm">
         <table className="w-full text-sm border-collapse bg-surface">
           <caption className="sr-only">Watch ranking — click a row to vote for your favourite</caption>
           <thead>
-            <tr className="bg-surfaceAlt border-b border-border">
+            <tr className="bg-canvas border-b border-line">
               <th scope="col" className={`px-3 py-3.5 text-center ${tb.header} whitespace-nowrap w-10`}>#</th>
-              <th scope="col" className={`sticky left-0 z-10 bg-surfaceAlt px-4 py-3.5 text-left ${tb.header} whitespace-nowrap border-l border-r border-border`}>
+              <th scope="col" className={`sticky left-0 z-10 bg-canvas px-4 py-3.5 text-left ${tb.header} whitespace-nowrap border-l border-r border-line`}>
                 Brand &amp; Model
               </th>
               <th scope="col" className={`px-4 py-3.5 text-right ${tb.header} whitespace-nowrap`}>Price</th>
@@ -149,7 +149,7 @@ function VotableTable({ rows, initialCount = 25, voteCounts, userVote, isSignedI
               <th scope="col" className={`px-3 py-3.5 text-center ${tb.header} whitespace-nowrap w-16`}>Votes</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-line">
             {visible.map((row) => {
               const watchKey = toWatchKey(row.brand, row.model)
               const isMyVote = userVote === watchKey
@@ -164,12 +164,12 @@ function VotableTable({ rows, initialCount = 25, voteCounts, userVote, isSignedI
                     isSignedIn && !isPending ? 'cursor-pointer' : '',
                     isMyVote
                       ? 'bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/10'
-                      : 'hover:bg-surfaceAlt',
+                      : 'hover:bg-canvas',
                   ].join(' ')}
                 >
-                  <td className={`px-3 py-3 text-center ${tb.cell} tabular-nums text-textMuted`}>{row.rank}</td>
+                  <td className={`px-3 py-3 text-center ${tb.cell} tabular-nums text-faint`}>{row.rank}</td>
                   <td className={[
-                    'sticky left-0 z-10 px-4 py-3 transition-colors whitespace-nowrap border-l border-r border-border',
+                    'sticky left-0 z-10 px-4 py-3 transition-colors whitespace-nowrap border-l border-r border-line',
                     tb.cellStrong,
                     isMyVote ? 'bg-amber-50' : 'bg-surface',
                   ].join(' ')}>
@@ -192,14 +192,14 @@ function VotableTable({ rows, initialCount = 25, voteCounts, userVote, isSignedI
                   <td className={`px-4 py-3 ${tb.cell} hidden sm:table-cell whitespace-nowrap`}>{row.wr}</td>
                   <td className="px-3 py-3 text-center">
                     {count > 0 ? (
-                      <span className={`inline-flex items-center gap-1 text-xs font-medium tabular-nums ${isMyVote ? 'text-amber-600' : 'text-textMuted'}`}>
+                      <span className={`inline-flex items-center gap-1 text-xs font-medium tabular-nums ${isMyVote ? 'text-amber-600' : 'text-faint'}`}>
                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
                         {count}
                       </span>
                     ) : (
-                      <span className="text-xs text-textMuted/30">—</span>
+                      <span className="text-xs text-faint/30">—</span>
                     )}
                   </td>
                 </tr>
@@ -213,7 +213,7 @@ function VotableTable({ rows, initialCount = 25, voteCounts, userVote, isSignedI
         <div className="mt-4 flex justify-center">
           <button
             onClick={() => setExpanded(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-border bg-surface hover:bg-surfaceAlt text-sm font-medium text-textSecond hover:text-textPrimary transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-line bg-surface hover:bg-canvas text-sm font-medium text-muted hover:text-ink transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -227,7 +227,7 @@ function VotableTable({ rows, initialCount = 25, voteCounts, userVote, isSignedI
         <div className="mt-4 flex justify-center">
           <button
             onClick={() => setExpanded(false)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-border bg-surface hover:bg-surfaceAlt text-sm font-medium text-textSecond hover:text-textPrimary transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-line bg-surface hover:bg-canvas text-sm font-medium text-muted hover:text-ink transition-colors"
           >
             <svg className="w-4 h-4 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />

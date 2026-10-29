@@ -71,7 +71,7 @@ export function GuideSubnav({ items, maxWidth = 'max-w-3xl' }: Props) {
     <nav
       ref={navRef}
       aria-label="Guide sections"
-      className="sticky top-14 sm:top-16 z-20 border-b border-border bg-surface/90 backdrop-blur-sm overflow-x-auto scrollbar-hide"
+      className="sticky top-14 sm:top-16 z-20 border-b border-line bg-surface/90 backdrop-blur-sm overflow-x-auto scrollbar-hide"
     >
       <div className={`${maxWidth} mx-auto px-4 sm:px-6 flex items-center gap-0.5 py-2`}>
         {items.map(({ id, label }) => {
@@ -85,8 +85,8 @@ export function GuideSubnav({ items, maxWidth = 'max-w-3xl' }: Props) {
               className={[
                 'text-xs font-medium rounded-full px-3.5 py-1.5 whitespace-nowrap transition-all shrink-0',
                 isActive
-                  ? 'text-textPrimary bg-surfaceAlt border border-borderStrong'
-                  : 'text-textMuted hover:text-textSecond border border-transparent',
+                  ? 'text-ink bg-canvas border border-line-strong'
+                  : 'text-faint hover:text-muted border border-transparent',
               ].join(' ')}
             >
               {label}

@@ -3,32 +3,24 @@
 @tailwind utilities;
 
 :root {
-  --background: #FFFFFF;
-  --foreground: #444444;
-
-  /* Color tokens */
-  --bg-base: #FFFFFF;
+  /* Graphite palette — mirrors tailwind.config.ts */
+  --bg-canvas: #F6F6F5;
   --bg-surface: #FFFFFF;
-  --bg-subtle: #FAFAFA;
-  --border: #F0F0F0;
-  --border-strong: #E8E8E8;
-  --text-primary: #444444;
-  --text-secondary: #777777;
-  --text-muted: #AAAAAA;
-  --accent: #5C5C5C;
-  --accent-hover: #404040;
-  --accent-light: #F0F0F0;
+  --bg-subtle: #EEEEEC;
+  --line: #E4E4E2;
+  --line-strong: #D2D2CF;
+  --ink: #161616;
+  --muted: #5A5A58;
+  --faint: #767674;
+  --mark: #C2410C;
   --winner: #16A34A;
   --winner-bg: #F0FDF4;
-  --loser: #94A3B8;
-  --loser-bg: #F8FAFC;
-  --neutral: #F9F9F9;
 }
 
 body {
-  background-color: #FFFFFF;
-  color: #444444;
-  font-family: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
+  background-color: var(--bg-canvas);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), 'Geist', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   line-height: 1.6;
 }
@@ -44,12 +36,12 @@ body {
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Satoshi', system-ui, sans-serif;
+    font-family: var(--font-geist-sans), 'Geist', system-ui, sans-serif;
   }
 
   h1 {
     font-size: 2rem;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: -0.04em;
     line-height: 1.3;
   }
@@ -87,11 +79,11 @@ body {
 
 @layer components {
   .btn-gold {
-    @apply bg-accent text-white font-medium px-4 py-2 rounded-sm hover:bg-accentHover transition-colors text-sm inline-block;
+    @apply bg-ink text-white font-medium px-4 py-2 rounded-sm hover:bg-ink-hover transition-colors text-sm inline-block;
   }
 
   .btn-outline {
-    @apply border border-borderStrong text-textPrimary font-medium px-4 py-2 rounded-sm hover:bg-neutral transition-colors text-sm inline-block;
+    @apply border border-line-strong text-ink font-medium px-4 py-2 rounded-sm hover:bg-canvas transition-colors text-sm inline-block;
   }
 
   .card {
@@ -101,16 +93,16 @@ body {
 
 /* Legal page prose styling */
 .prose-custom h2 {
-  @apply text-xl font-bold text-textPrimary mb-3;
+  @apply text-xl font-bold text-ink mb-3;
 }
 .prose-custom h3 {
-  @apply text-base font-semibold text-textPrimary mb-2 mt-4;
+  @apply text-base font-semibold text-ink mb-2 mt-4;
 }
 .prose-custom p {
-  @apply text-textSecond leading-relaxed mb-3;
+  @apply text-muted leading-relaxed mb-3;
 }
 .prose-custom ul {
-  @apply list-disc pl-5 space-y-1 text-textSecond mb-3;
+  @apply list-disc pl-5 space-y-1 text-muted mb-3;
 }
 .prose-custom li {
   @apply leading-relaxed;
@@ -129,12 +121,12 @@ body {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #FFFFFF;
+  background: var(--bg-canvas);
 }
 ::-webkit-scrollbar-thumb {
-  background: #E8E8E8;
+  background: var(--line);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #D0D0D0;
+  background: var(--line-strong);
 }

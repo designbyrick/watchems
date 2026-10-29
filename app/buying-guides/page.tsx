@@ -94,7 +94,7 @@ export default function BuyingGuidesPage() {
               <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">
                 {entry.shortLabel}
               </p>
-              <h2 className="text-base font-semibold text-gray-900 group-hover:text-accent transition-colors mb-2">
+              <h2 className="text-base font-semibold text-gray-900 group-hover:text-ink transition-colors mb-2">
                 {entry.name}
               </h2>
               <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">

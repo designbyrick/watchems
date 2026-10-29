@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-      <h1 className="text-4xl font-bold text-textPrimary mb-2">Privacy Policy</h1>
-      <p className="text-textMuted text-sm mb-10">Last updated: March 26, 2026</p>
+      <h1 className="text-4xl font-bold text-ink mb-2">Privacy Policy</h1>
+      <p className="text-faint text-sm mb-10">Last updated: March 26, 2026</p>
 
       <div className="prose-custom space-y-8">
         <section>
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
           <p>
             Watchems (&quot;we,&quot; &quot;us,&quot; &quot;our&quot;) operates the website at{' '}
             <strong>watchems.com</strong>. We are an independently run watch photo gallery. For questions about this policy, email{' '}
-            <span className="text-accent">hello@watchems.com</span>.
+            <span className="text-ink">hello@watchems.com</span>.
           </p>
         </section>
 
@@ -105,7 +105,7 @@ export default function PrivacyPage() {
                 href="https://tools.google.com/dlpage/gaoptout"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-accent hover:text-accentHover"
+                className="text-ink hover:text-ink-hover"
               >
                 Google Analytics opt-out browser add-on
               </a>.
@@ -144,7 +144,7 @@ export default function PrivacyPage() {
           </ul>
           <p>
             To exercise any of these rights, email{' '}
-            <span className="text-accent">hello@watchems.com</span>. We will respond
+            <span className="text-ink">hello@watchems.com</span>. We will respond
             within 30 days.
           </p>
         </section>
@@ -171,13 +171,13 @@ export default function PrivacyPage() {
           <h2>10. Contact</h2>
           <p>
             Questions about this privacy policy? Email us at{' '}
-            <span className="text-accent">hello@watchems.com</span>.
+            <span className="text-ink">hello@watchems.com</span>.
           </p>
         </section>
       </div>
 
-      <div className="mt-10 pt-6 border-t border-border">
-        <Link href="/terms" className="text-accent hover:text-accentHover text-sm font-medium">
+      <div className="mt-10 pt-6 border-t border-line">
+        <Link href="/terms" className="text-ink hover:text-ink-hover text-sm font-medium">
           Read our Terms of Use →
         </Link>
       </div>

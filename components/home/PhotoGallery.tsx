@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { buildPhotoAltText } from '@/lib/photoAlt'
 import SocialActions from './SocialActions'
 import SaveToBoard from '@/components/SaveToBoard'
-import LikeButton from '@/components/LikeButton'
+import GalleryFilters from './GalleryFilters'
 import PhotoCountBadge from '@/components/ui/PhotoCountBadge'
 import PhotoCardOverlay from '@/components/ui/PhotoCardOverlay'
 import UserAttribution from '@/components/ui/UserAttribution'
@@ -14,7 +14,6 @@ import Fuse from 'fuse.js'
 import SectionLabel from '@/components/ui/SectionLabel'
 import EmptyState from '@/components/ui/EmptyState'
 import { getWatchesCacheSync, getWatchesData } from '@/lib/watchesCache'
-import type { BrandWithCount, CharacteristicChip } from '@/lib/watchesCache'
 import { trackEvent } from '@/lib/gtag'
 
 interface PhotoItem {
@@ -175,46 +174,26 @@ function RelatedPhotoCard({ group, onClick, variant }: {
   )
 }
 
-/**
- * Masonry grid that distributes children into columns round-robin style.
- * Unlike CSS columns, items never reflow when new children are appended.
- */
-function MasonryGrid({ children }: { children: React.ReactNode }) {
-  const items = React.Children.toArray(children)
-
-  // Responsive column count via a container query approach:
-  // We render a hidden probe div and read its width, but for simplicity
-  // we use a fixed breakpoint map matching Tailwind's defaults.
-  const [cols, setCols] = useState(2)
-
-  useEffect(() => {
-    function update() {
-      const w = window.innerWidth
-      if (w >= 1280) setCols(5)       // xl
-      else if (w >= 768) setCols(4)   // md
-      else if (w >= 640) setCols(3)   // sm
-      else setCols(2)
-    }
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [])
-
-  // Distribute items into columns round-robin
-  const columns: React.ReactNode[][] = Array.from({ length: cols }, () => [])
-  items.forEach((item, i) => {
-    columns[i % cols].push(item)
-  })
-
+function TileGrid({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex gap-3">
-      {columns.map((col, colIdx) => (
-        <div key={colIdx} className="flex-1 flex flex-col gap-3 min-w-0">
-          {col}
-        </div>
-      ))}
+    <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(232px,1fr))] sm:gap-x-5 sm:gap-y-9">
+      {children}
     </div>
   )
+}
+
+function TileSkeleton() {
+  return (
+    <div aria-hidden="true">
+      <div className="aspect-[4/5] rounded-md bg-subtle animate-pulse" />
+      <div className="mt-3 h-2.5 w-16 rounded bg-subtle animate-pulse" />
+      <div className="mt-2 h-3.5 w-3/4 rounded bg-subtle animate-pulse" />
+    </div>
+  )
+}
+
+function unslugify(slug: string) {
+  return slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
 const POPULAR_BRANDS = ['Rolex', 'Omega', 'Seiko', 'Tudor', 'Hamilton']
@@ -260,9 +239,9 @@ function DidYouMean({ query, serverSuggestions, onSearch, onBrand }: {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
       {/* Heading */}
-      <h2 className="text-xl font-bold text-textPrimary mb-1">No results found</h2>
+      <h2 className="text-xl font-bold text-ink mb-1">No results found</h2>
       {query && (
-        <p className="text-sm text-textSecond mb-6">
+        <p className="text-sm text-muted mb-6">
           No photos match &lsquo;{query}&rsquo;
         </p>
       )}
@@ -274,10 +253,10 @@ function DidYouMean({ query, serverSuggestions, onSearch, onBrand }: {
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5V19a1.5 1.5 0 001.5 1.5h15A1.5 1.5 0 0021 19v-2.5M16 8l-4-4-4 4M12 4v12" />
           </svg>
         </div>
-        <h3 className="text-lg font-bold text-textPrimary mb-2">Own this watch?</h3>
+        <h3 className="text-lg font-bold text-ink mb-2">Own this watch?</h3>
         <p className="text-sm text-gray-500 mb-6 leading-relaxed">
           {query
-            ? <>No one has shared a <span className="font-semibold text-textPrimary">{query}</span> yet. Be the first to add it to the community gallery.</>
+            ? <>No one has shared a <span className="font-semibold text-ink">{query}</span> yet. Be the first to add it to the community gallery.</>
             : 'No one has shared this watch yet. Be the first to add it to the community gallery.'}
         </p>
         <a
@@ -348,11 +327,6 @@ function PhotoGalleryContent({ initialPhotoSlug, userId }: { initialPhotoSlug?: 
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [totalCount, setTotalCount] = useState<number | null>(null)
   const [suggestions, setSuggestions] = useState<string[] | undefined>(undefined)
-  const [brandTags, setBrandTags] = useState<BrandWithCount[]>([])
-  const [dialColorChips, setDialColorChips] = useState<CharacteristicChip[]>([])
-  const [watchStyleChips, setWatchStyleChips] = useState<CharacteristicChip[]>([])
-  const [caseMaterialChips, setCaseMaterialChips] = useState<CharacteristicChip[]>([])
-  const [strapTypeChips, setStrapTypeChips] = useState<CharacteristicChip[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -360,21 +334,9 @@ function PhotoGalleryContent({ initialPhotoSlug, userId }: { initialPhotoSlug?: 
   // Lightbox state
   const [lightbox, setLightbox] = useState<{ groupIdx: number; photoIdx: number } | null>(null)
   const [lightboxImageLoading, setLightboxImageLoading] = useState(false)
-  // Load brand tags + visual characteristic chips from shared watches cache
+  // Warm the shared watches cache — DidYouMean reads it for fuzzy suggestions
   useEffect(() => {
-    const apply = (data: { brands: BrandWithCount[]; dialColors: CharacteristicChip[]; watchStyles: CharacteristicChip[]; caseMaterials: CharacteristicChip[]; strapTypes: CharacteristicChip[] }) => {
-      setBrandTags(data.brands)
-      setDialColorChips(data.dialColors)
-      setWatchStyleChips(data.watchStyles)
-      setCaseMaterialChips(data.caseMaterials)
-      setStrapTypeChips(data.strapTypes)
-    }
-    const cached = getWatchesCacheSync()
-    if (cached) {
-      apply(cached)
-    } else {
-      getWatchesData().then(apply).catch(() => {})
-    }
+    if (!getWatchesCacheSync()) getWatchesData().catch(() => {})
   }, [])
 
   // Zoom / pan state
@@ -1012,126 +974,87 @@ function PhotoGalleryContent({ initialPhotoSlug, userId }: { initialPhotoSlug?: 
       : photos[0].watchName ?? activeWatchId
     : null
 
-  // Build a single mixed chip list: top brands, then top styles, dial colors, materials, straps
-  const filterChips = useMemo(() => {
-    const chips: { key: string; label: string; param: string; value: string }[] = []
-    for (const b of brandTags.slice(0, 8)) chips.push({ key: `b-${b.name}`, label: b.name, param: 'brand', value: b.name.toLowerCase() })
-    for (const c of watchStyleChips.slice(0, 4)) chips.push({ key: `s-${c.name}`, label: c.name, param: 'watchStyle', value: c.name })
-    for (const c of dialColorChips.slice(0, 4)) chips.push({ key: `d-${c.name}`, label: `${c.name} dial`, param: 'dialColor', value: c.name })
-    for (const c of caseMaterialChips.slice(0, 3)) chips.push({ key: `m-${c.name}`, label: c.name, param: 'caseMaterial', value: c.name })
-    for (const c of strapTypeChips.slice(0, 3)) chips.push({ key: `t-${c.name}`, label: c.name, param: 'strapType', value: c.name })
-    return chips
-  }, [brandTags, watchStyleChips, dialColorChips, caseMaterialChips, strapTypeChips])
-
   return (
-    <section className={userId ? 'pb-8' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16'}>
-      {/* Subtle result count (hidden in user collection mode) */}
-      {!userId && activeWatchId && selectedWatchName && totalCount !== null && (
-        <p className="mb-3 text-xs text-gray-400">
-          {totalCount} photo{totalCount !== 1 ? 's' : ''} for &ldquo;{selectedWatchName}&rdquo;
-        </p>
-      )}
-      {!userId && !activeWatchId && activeQuery && totalCount !== null && (
-        <p className="mb-3 text-xs text-gray-400">
-          {totalCount} photo{totalCount !== 1 ? 's' : ''} for &ldquo;{activeQuery}&rdquo;
-        </p>
+    <section className={userId ? 'pb-8' : 'max-w-[1320px] mx-auto px-4 sm:px-8 pb-16 sm:pb-[72px]'}>
+      {/* Style tabs + dial swatches + more filters (home gallery only) */}
+      {!userId && <GalleryFilters />}
+
+      {/* Count row */}
+      {!userId && (
+        <div className="flex justify-between items-baseline gap-4 my-4 sm:my-5 font-mono text-[11px] sm:text-xs tracking-[1px] uppercase text-muted">
+          <span aria-live="polite">
+            {loading || totalCount === null
+              ? '\u00a0'
+              : activeWatchId && selectedWatchName
+                ? `${totalCount} wrist shot${totalCount !== 1 ? 's' : ''} · ${selectedWatchName}`
+                : activeQuery
+                  ? `${totalCount} result${totalCount !== 1 ? 's' : ''} for \u201c${activeQuery}\u201d`
+                  : `${totalCount} wrist shot${totalCount !== 1 ? 's' : ''}`}
+          </span>
+          <span><span className="sm:hidden">Newest</span><span className="hidden sm:inline">Newest first</span></span>
+        </div>
       )}
 
-      {/* Filter chips — single scrollable row, always visible, active chip highlighted */}
-      {!userId && !activeWatchId && !activeQuery && !loading && filterChips.length > 0 && (() => {
-        const hasActiveChip = !!(activeBrand || activeDialColor || activeWatchStyle || activeCaseMaterial || activeStrapType)
-        return (
-          <div className="mb-5 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            <button
-              type="button"
-              onClick={() => router.replace('/')}
-              className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                !hasActiveChip
-                  ? 'bg-gray-900 text-white border border-gray-900'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-400 hover:bg-gray-50'
-              }`}
-            >
-              All
-            </button>
-            {filterChips.map((c) => {
-              const isActive =
-                (c.param === 'brand' && activeBrand === c.value) ||
-                (c.param === 'dialColor' && activeDialColor === c.value) ||
-                (c.param === 'watchStyle' && activeWatchStyle === c.value) ||
-                (c.param === 'caseMaterial' && activeCaseMaterial === c.value) ||
-                (c.param === 'strapType' && activeStrapType === c.value)
-              return (
-                <button
-                  key={c.key}
-                  type="button"
-                  onClick={() => router.replace(isActive ? '/' : `/?${c.param}=${encodeURIComponent(c.value)}`)}
-                  className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors capitalize ${
-                    isActive
-                      ? 'bg-gray-900 text-white border border-gray-900'
-                      : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-400 hover:bg-gray-50'
-                  }`}
-                >
-                  {c.label}
-                </button>
-              )
-            })}
-          </div>
-        )
-      })()}
-
-      {/* Gallery masonry */}
+      {/* Gallery grid — uniform 4:5 tiles */}
       {loading ? (
-        <MasonryGrid>
-          {Array.from({ length: 20 }).map((_, i) => (
-            <div key={i} className={`rounded-2xl bg-surface animate-pulse ${i % 3 === 0 ? 'h-64' : i % 3 === 1 ? 'h-48' : 'h-56'}`} />
-          ))}
-        </MasonryGrid>
+        <TileGrid>
+          {Array.from({ length: 12 }).map((_, i) => <TileSkeleton key={i} />)}
+        </TileGrid>
       ) : groups.length === 0 ? (
         hasActiveSearch ? (
           <DidYouMean query={activeQuery} serverSuggestions={suggestions} onSearch={(q) => router.replace(`/?q=${encodeURIComponent(q)}`)} onBrand={(b) => router.replace(`/?brand=${b.toLowerCase()}`)} />
         ) : (
-          <EmptyState icon="📷" title="No photos yet" message="Be the first to share your watch" actionUrl="/upload" actionText="Upload a Photo" />
+          <EmptyState icon="📷" title="No photos yet" message="Be the first to share your watch" actionUrl="/upload" actionText="Add a wrist shot" />
         )
       ) : (
-        <MasonryGrid>
+        <TileGrid>
           {groups.map((group, groupIdx) => {
             const primary = group.photos[0]
             const { brand, model, ref } = getWatchLabel(group)
-            const watchDisplayName = [brand, model].filter(Boolean).join(' ') || ref || null
-            const count = group.photos.length
+            const title = model || ref || unslugify(group.watchId)
             return (
-              <div
-                key={group.key}
-                className="group relative rounded-2xl overflow-hidden bg-surface block w-full cursor-pointer"
-                onClick={() => openLightbox(groupIdx, 0)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter') openLightbox(groupIdx, 0) }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={primary.thumbnailUrl || primary.url}
-                  alt={buildPhotoAltText(primary)}
-                  className="w-full h-auto object-cover transition-transform duration-200 group-hover:scale-105"
-                  loading={groupIdx < 6 ? 'eager' : 'lazy'}
-                />
-                <PhotoCountBadge count={count} variant="badge" showIcon />
-                <PhotoCardOverlay label={watchDisplayName} alwaysVisible={hasActiveSearch} />
-                {/* Save + Like icons */}
-                <div className="absolute top-0 right-0 z-10 flex flex-col gap-1 m-1.5 pointer-events-none [&>*]:pointer-events-auto">
-                  <SaveToBoard photoId={primary.id} variant="card" />
-                  <LikeButton photoId={primary.id} variant="card" />
+              <article key={group.key} className="group relative min-w-0">
+                <a
+                  href={`/photo/${primary.slug ?? primary.id}`}
+                  onClick={(e) => {
+                    // Let modified clicks open the photo page in a new tab
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+                    e.preventDefault()
+                    openLightbox(groupIdx, 0)
+                  }}
+                  className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-4 focus-visible:ring-offset-canvas rounded-md"
+                >
+                  <div className="aspect-[4/5] overflow-hidden rounded-md bg-surface">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={primary.thumbnailUrl || primary.url}
+                      alt={buildPhotoAltText(primary)}
+                      className="block w-full h-full object-cover transition-transform duration-[350ms] ease-out group-hover:scale-[1.035]"
+                      loading={groupIdx < 6 ? 'eager' : 'lazy'}
+                    />
+                  </div>
+                  {brand && (
+                    <p className="mt-2 sm:mt-3 font-mono text-[10.5px] sm:text-[11px] tracking-[0.8px] sm:tracking-[1px] uppercase text-muted truncate">
+                      {brand}
+                    </p>
+                  )}
+                  <p className={`${brand ? 'mt-[3px] sm:mt-1' : 'mt-2 sm:mt-3'} text-[15px] sm:text-[17px] leading-[1.25] font-semibold tracking-[-0.2px] text-ink`}>
+                    {title}
+                  </p>
+                </a>
+                <div className="absolute top-2.5 right-2.5 z-10">
+                  <SaveToBoard photoId={primary.id} variant="tile" />
                 </div>
-              </div>
+              </article>
             )
           })}
-        </MasonryGrid>
+        </TileGrid>
       )}
 
       <div ref={sentinelRef} className="h-1" />
       {loadingMore && (
         <div className="flex justify-center py-8">
-          <div className="w-6 h-6 border-2 border-textSecond border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-muted border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 
@@ -1443,16 +1366,10 @@ function PhotoGalleryContent({ initialPhotoSlug, userId }: { initialPhotoSlug?: 
 export default function PhotoGallery({ initialPhotoSlug, userId }: { initialPhotoSlug?: string; userId?: string }) {
   return (
     <Suspense fallback={
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        <div className="flex gap-3">
-          {Array.from({ length: 4 }).map((_, col) => (
-            <div key={col} className="flex-1 flex flex-col gap-3">
-              {Array.from({ length: 5 }).map((_, row) => (
-                <div key={row} className={`rounded-2xl bg-surface animate-pulse ${(col + row) % 3 === 0 ? 'h-64' : (col + row) % 3 === 1 ? 'h-48' : 'h-56'}`} />
-              ))}
-            </div>
-          ))}
-        </div>
+      <div className="max-w-[1320px] mx-auto px-4 sm:px-8 pb-16 pt-6">
+        <TileGrid>
+          {Array.from({ length: 12 }).map((_, i) => <TileSkeleton key={i} />)}
+        </TileGrid>
       </div>
     }>
       <PhotoGalleryContent initialPhotoSlug={initialPhotoSlug} userId={userId} />

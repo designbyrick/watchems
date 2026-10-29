@@ -23,10 +23,10 @@ export function VoteButton({
   const isDisabledState = disabled || (userVote !== null && !isActive);
 
   const buttonClass = isActive
-    ? 'bg-accent text-white border-accent'
+    ? 'bg-ink text-white border-ink'
     : isDisabledState
-    ? 'bg-surface text-textMuted border-border'
-    : 'bg-surface text-textPrimary border-border hover:border-borderStrong';
+    ? 'bg-surface text-faint border-line'
+    : 'bg-surface text-ink border-line hover:border-line-strong';
 
   return (
     <button
@@ -36,7 +36,7 @@ export function VoteButton({
     >
       <span className="truncate">{watchName}</span>
       <span
-        className={`text-xs ${isActive ? 'text-white' : 'text-textMuted'}`}
+        className={`text-xs ${isActive ? 'text-white' : 'text-faint'}`}
       >
         {votes.toLocaleString()} vote{votes !== 1 ? 's' : ''}
       </span>

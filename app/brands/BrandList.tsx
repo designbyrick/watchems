@@ -73,9 +73,9 @@ export default function BrandList({ brands }: { brands: Brand[] }) {
                   <Link
                     key={brand.brandName}
                     href={`/brand/${encodeURIComponent(brand.brandName.toLowerCase())}`}
-                    className="flex items-center justify-between py-2.5 hover:text-accent transition-colors group"
+                    className="flex items-center justify-between py-2.5 hover:text-ink transition-colors group"
                   >
-                    <span className="text-sm font-medium text-gray-800 group-hover:text-accent transition-colors">
+                    <span className="text-sm font-medium text-gray-800 group-hover:text-ink transition-colors">
                       {brand.brandName}
                     </span>
                     <span className="text-xs text-gray-400">

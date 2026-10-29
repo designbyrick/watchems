@@ -7,12 +7,12 @@ interface PullQuoteProps {
 
 export default function PullQuote({ children, attribution }: PullQuoteProps) {
   return (
-    <blockquote className="relative border-l-4 border-accent bg-accentLight/30 rounded-r-sm px-6 py-5 my-8 italic">
-      <div className="text-textPrimary text-lg leading-relaxed [&>p]:mb-0">
+    <blockquote className="relative border-l-4 border-ink bg-subtle/30 rounded-r-sm px-6 py-5 my-8 italic">
+      <div className="text-ink text-lg leading-relaxed [&>p]:mb-0">
         {children}
       </div>
       {attribution && (
-        <footer className="mt-3 text-sm text-textMuted not-italic font-medium">
+        <footer className="mt-3 text-sm text-faint not-italic font-medium">
           — {attribution}
         </footer>
       )}

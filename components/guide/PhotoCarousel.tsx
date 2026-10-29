@@ -37,14 +37,14 @@ export function PhotoCarousel({ modelName, photos }: Props) {
           <>
             <button
               onClick={() => scroll('left')}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-surface border border-border hover:border-borderStrong shadow-sm transition-colors text-textSecond"
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-surface border border-line hover:border-line-strong shadow-sm transition-colors text-muted"
               aria-label="Scroll left"
             >
               ‹
             </button>
             <button
               onClick={() => scroll('right')}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-surface border border-border hover:border-borderStrong shadow-sm transition-colors text-textSecond"
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-surface border border-line hover:border-line-strong shadow-sm transition-colors text-muted"
               aria-label="Scroll right"
             >
               ›
@@ -60,9 +60,9 @@ export function PhotoCarousel({ modelName, photos }: Props) {
             <Link
               key={photo.id}
               href={`/photo/${photo.slug ?? photo.id}`}
-              className={`group shrink-0 w-[calc(25%-6px)] rounded-xl overflow-hidden ${c.card} hover:border-borderStrong hover:shadow-sm transition-all`}
+              className={`group shrink-0 w-[calc(25%-6px)] rounded-xl overflow-hidden ${c.card} hover:border-line-strong hover:shadow-sm transition-all`}
             >
-              <div className="aspect-square bg-surfaceAlt overflow-hidden relative">
+              <div className="aspect-square bg-canvas overflow-hidden relative">
                 <Image
                   src={photo.thumbnailUrl ?? photo.url}
                   alt={[photo.brandName, photo.modelName].filter(Boolean).join(' ') || modelName}

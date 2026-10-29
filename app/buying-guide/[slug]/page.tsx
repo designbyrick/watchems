@@ -141,7 +141,7 @@ export default async function BuyingGuidePage({ params }: Props) {
         <article>
 
           {/* ── HERO IMAGE ── */}
-          <figure className="relative w-full h-48 sm:h-64 overflow-hidden bg-surfaceAlt m-0">
+          <figure className="relative w-full h-48 sm:h-64 overflow-hidden bg-canvas m-0">
             <Image
               src={entry.images.hero}
               alt={`${entry.name} — hero`}
@@ -157,29 +157,29 @@ export default async function BuyingGuidePage({ params }: Props) {
           <div className={`${l.page} pt-10 pb-6`}>
             <header>
               <nav aria-label="Breadcrumb" className={`${t.meta} mb-8 flex items-center gap-1.5`}>
-                <Link href="/" className="hover:text-textSecond transition-colors">Home</Link>
+                <Link href="/" className="hover:text-muted transition-colors">Home</Link>
                 <span aria-hidden="true">/</span>
-                <Link href="/buying-guides" className="hover:text-textSecond transition-colors">Buying Guides</Link>
+                <Link href="/buying-guides" className="hover:text-muted transition-colors">Buying Guides</Link>
                 <span aria-hidden="true">/</span>
-                <span className="text-textSecond">{entry.shortLabel}</span>
+                <span className="text-muted">{entry.shortLabel}</span>
               </nav>
 
               <p className={`${t.eyebrow} mb-4`}>Watchems Buying Guide</p>
               <h1 className={`${t.h1} mb-5`}>{entry.name}</h1>
               <p className={`guide-intro ${t.intro} mb-6 ${l.prose}`}>{entry.intro}</p>
 
-              <div className={`flex items-center gap-4 ${t.meta} pb-8 border-b border-border`}>
+              <div className={`flex items-center gap-4 ${t.meta} pb-8 border-b border-line`}>
                 <time dateTime={datePublished}>Updated {entry.lastUpdated}</time>
-                <span className="w-px h-3 bg-border" aria-hidden="true" />
+                <span className="w-px h-3 bg-line" aria-hidden="true" />
                 <span>{entry.notableModels.length} picks verified</span>
-                <span className="w-px h-3 bg-border" aria-hidden="true" />
+                <span className="w-px h-3 bg-line" aria-hidden="true" />
                 <span>Watchems Editorial</span>
               </div>
             </header>
 
             {/* ── OTHER TIERS ── */}
             {otherTiers.length > 0 && (
-              <nav aria-label="Other price guides" className="py-4 border-b border-border overflow-x-auto scrollbar-hide">
+              <nav aria-label="Other price guides" className="py-4 border-b border-line overflow-x-auto scrollbar-hide">
                 <div className="flex items-center gap-1 min-w-max">
                   <span className={`${t.eyebrow} mr-3 shrink-0`}>Other budgets</span>
                   {otherTiers.map((tier) => (
@@ -203,9 +203,9 @@ export default async function BuyingGuidePage({ params }: Props) {
               <p className={`${t.body} mb-6 ${l.prose}`}>
                 Quick answer if you already know what you need. Each pick is the strongest option for that use case — details in the full breakdown below.
               </p>
-              <ul className="glance-list divide-y divide-border border border-border rounded-xl overflow-hidden">
+              <ul className="glance-list divide-y divide-line border border-line rounded-xl overflow-hidden">
                 {entry.pickByUseCase.map((pick) => (
-                  <li key={pick.useCase} className="flex items-baseline gap-4 px-5 py-3.5 bg-surface hover:bg-surfaceAlt transition-colors">
+                  <li key={pick.useCase} className="flex items-baseline gap-4 px-5 py-3.5 bg-surface hover:bg-canvas transition-colors">
                     <span className={`${t.meta} w-36 shrink-0`}>{pick.useCase}</span>
                     <span className={t.strong}>{pick.model}</span>
                   </li>
@@ -220,7 +220,7 @@ export default async function BuyingGuidePage({ params }: Props) {
                 <ul className={`space-y-5 ${l.prose}`}>
                   {entry.whoItIsFor.map((item) => (
                     <li key={item.profile} className="flex gap-4">
-                      <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-borderStrong shrink-0" aria-hidden="true" />
+                      <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-line-strong shrink-0" aria-hidden="true" />
                       <div>
                         <h3 className={`${t.strong} inline`}>{item.profile}. </h3>
                         <span className={t.body}>{item.description}</span>
@@ -235,7 +235,7 @@ export default async function BuyingGuidePage({ params }: Props) {
             <section id="overview" aria-labelledby="overview-heading" className={l.section}>
               <GuideSectionHeader label="What to know before you buy" />
               <figure className="mb-8 -mx-4 sm:-mx-6">
-                <blockquote className="bg-textPrimary px-6 sm:px-8 py-6">
+                <blockquote className="bg-ink px-6 sm:px-8 py-6">
                   <p className="price-hero-fact text-base font-medium text-white leading-relaxed italic">
                     &ldquo;{entry.heroFact}&rdquo;
                   </p>
@@ -248,7 +248,7 @@ export default async function BuyingGuidePage({ params }: Props) {
 
             {/* ── MID IMAGE ── */}
             {entry.images.mid && (
-              <figure className="relative w-full h-56 sm:h-72 overflow-hidden rounded-xl mb-14 bg-surfaceAlt">
+              <figure className="relative w-full h-56 sm:h-72 overflow-hidden rounded-xl mb-14 bg-canvas">
                 <Image
                   src={entry.images.mid}
                   alt={`${entry.name} — editorial`}
@@ -266,7 +266,7 @@ export default async function BuyingGuidePage({ params }: Props) {
                 <table className="w-full">
                   <caption className="sr-only">Watch specifications comparison for {entry.name}</caption>
                   <thead>
-                    <tr className="bg-surfaceAlt border-b border-border">
+                    <tr className="bg-canvas border-b border-line">
                       <th scope="col" className={`px-4 py-3 text-left ${tb.header} whitespace-nowrap`}>Model</th>
                       <th scope="col" className={`px-4 py-3 text-left ${tb.header} whitespace-nowrap`}>Price</th>
                       <th scope="col" className={`px-4 py-3 text-left ${tb.header} whitespace-nowrap hidden sm:table-cell`}>Case</th>
@@ -276,7 +276,7 @@ export default async function BuyingGuidePage({ params }: Props) {
                       <th scope="col" className={`px-4 py-3 text-left ${tb.header} whitespace-nowrap`}>Best for</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody className="divide-y divide-line">
                     {entry.notableModels.map((model) => (
                       <tr key={model.name} className={tb.row}>
                         <td className={`px-4 py-3.5 ${tb.cellStrong} whitespace-nowrap`}>{model.name}</td>
@@ -309,7 +309,7 @@ export default async function BuyingGuidePage({ params }: Props) {
                       <li key={model.name} className={`${c.cardHover} flex overflow-hidden`}>
 
                         {/* Thumbnail */}
-                        <div className="w-28 sm:w-36 shrink-0 bg-surfaceAlt relative">
+                        <div className="w-28 sm:w-36 shrink-0 bg-canvas relative">
                           {thumbSrc ? (
                             thumbHref ? (
                               <Link href={thumbHref} className="block w-full h-full">
@@ -363,14 +363,14 @@ export default async function BuyingGuidePage({ params }: Props) {
 
                           {/* Community signal */}
                           {model.communitySignal && (
-                            <p className={`${t.meta} italic leading-relaxed border-l-2 border-border pl-3 mt-2`}>
+                            <p className={`${t.meta} italic leading-relaxed border-l-2 border-line pl-3 mt-2`}>
                               {model.communitySignal}
                             </p>
                           )}
 
                           {/* Upload CTA */}
                           {!dbPhoto && (
-                            <Link href="/upload" className={`mt-3 inline-flex items-center gap-1 ${t.meta} text-accent hover:underline underline-offset-2`}>
+                            <Link href="/upload" className={`mt-3 inline-flex items-center gap-1 ${t.meta} text-ink hover:underline underline-offset-2`}>
                               {model.imageUrl ? 'Own this? Upload your wrist shot →' : 'Own this watch? Upload a photo'}
                             </Link>
                           )}
@@ -430,7 +430,7 @@ export default async function BuyingGuidePage({ params }: Props) {
             </aside>
 
             <footer className="pb-4">
-              <Link href="/buying-guides" className={`${t.meta} hover:text-textSecond transition-colors inline-flex items-center gap-2`}>
+              <Link href="/buying-guides" className={`${t.meta} hover:text-muted transition-colors inline-flex items-center gap-2`}>
                 <span aria-hidden="true">←</span>
                 <span>All buying guides</span>
               </Link>

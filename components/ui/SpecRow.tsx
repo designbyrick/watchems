@@ -19,42 +19,42 @@ export function SpecRow({
   winner,
   highlight = false,
 }: SpecRowProps) {
-  const bgClass = highlight ? 'bg-surfaceAlt' : '';
+  const bgClass = highlight ? 'bg-canvas' : '';
 
   const value1Class =
     winner === 1
       ? 'font-bold text-winner'
       : winner === 2
-      ? 'text-textMuted'
-      : 'text-textPrimary font-medium';
+      ? 'text-faint'
+      : 'text-ink font-medium';
 
   const value2Class =
     winner === 2
       ? 'font-bold text-winner'
       : winner === 1
-      ? 'text-textMuted'
-      : 'text-textPrimary font-medium';
+      ? 'text-faint'
+      : 'text-ink font-medium';
 
   return (
     <>
       {/* Desktop: 3-column grid */}
-      <div className={`hidden sm:grid grid-cols-3 gap-2 py-3 border-b border-border text-sm ${bgClass}`}>
-        <div className="text-textMuted text-xs text-center">{label}</div>
+      <div className={`hidden sm:grid grid-cols-3 gap-2 py-3 border-b border-line text-sm ${bgClass}`}>
+        <div className="text-faint text-xs text-center">{label}</div>
         <div className={`text-center ${value1Class}`}>{value1}</div>
         <div className={`text-center ${value2Class}`}>{value2}</div>
       </div>
 
       {/* Mobile: stacked card layout */}
-      <div className={`sm:hidden border-b border-border py-3.5 px-4 ${bgClass}`}>
-        <div className="text-xs text-textMuted font-semibold uppercase tracking-wider mb-2">{label}</div>
+      <div className={`sm:hidden border-b border-line py-3.5 px-4 ${bgClass}`}>
+        <div className="text-xs text-faint font-semibold uppercase tracking-wider mb-2">{label}</div>
         <div className="flex justify-between gap-3">
           <div className="flex-1 min-w-0">
-            {watch1Name && <div className="text-[11px] text-textMuted mb-0.5 truncate">{watch1Name}</div>}
+            {watch1Name && <div className="text-[11px] text-faint mb-0.5 truncate">{watch1Name}</div>}
             <div className={`text-sm break-words ${value1Class}`}>{value1}</div>
           </div>
-          <div className="w-px bg-border self-stretch mx-1" />
+          <div className="w-px bg-line self-stretch mx-1" />
           <div className="flex-1 min-w-0 text-right">
-            {watch2Name && <div className="text-[11px] text-textMuted mb-0.5 truncate">{watch2Name}</div>}
+            {watch2Name && <div className="text-[11px] text-faint mb-0.5 truncate">{watch2Name}</div>}
             <div className={`text-sm break-words ${value2Class}`}>{value2}</div>
           </div>
         </div>

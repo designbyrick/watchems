@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-      <h1 className="text-4xl font-bold text-textPrimary mb-2">Terms of Use</h1>
-      <p className="text-textMuted text-sm mb-10">Last updated: April 9, 2026</p>
+      <h1 className="text-4xl font-bold text-ink mb-2">Terms of Use</h1>
+      <p className="text-faint text-sm mb-10">Last updated: April 9, 2026</p>
 
       <div className="prose-custom space-y-8">
         <section>
@@ -77,7 +77,7 @@ export default function TermsPage() {
             you. This license exists only so we can actually show your photo on the site;
             it does not give us any other rights. You can request removal of your photos at
             any time by emailing{' '}
-            <span className="text-accent">hello@watchems.com</span>.
+            <span className="text-ink">hello@watchems.com</span>.
           </p>
 
           <h3>Your responsibilities</h3>
@@ -148,7 +148,7 @@ export default function TermsPage() {
           <ul>
             <li>It fails the relevance check (not a watch photo)</li>
             <li>We receive a valid copyright takedown notice — see our{' '}
-              <Link href="/copyright" className="text-accent hover:text-accentHover underline">
+              <Link href="/copyright" className="text-ink hover:text-ink-hover underline">
                 Copyright Policy
               </Link>
             </li>
@@ -231,7 +231,7 @@ export default function TermsPage() {
           <h2>9. DMCA and copyright claims</h2>
           <p>
             If you believe content on Watchems infringes your copyright, see our{' '}
-            <Link href="/copyright" className="text-accent hover:text-accentHover underline">
+            <Link href="/copyright" className="text-ink hover:text-ink-hover underline">
               Copyright Policy
             </Link>{' '}
             for the full takedown and counter-notice procedure, including the contact
@@ -263,13 +263,13 @@ export default function TermsPage() {
           <h2>12. Contact</h2>
           <p>
             Questions about these terms? Email us at{' '}
-            <span className="text-accent">hello@watchems.com</span>.
+            <span className="text-ink">hello@watchems.com</span>.
           </p>
         </section>
       </div>
 
-      <div className="mt-10 pt-6 border-t border-border">
-        <Link href="/privacy" className="text-accent hover:text-accentHover text-sm font-medium">
+      <div className="mt-10 pt-6 border-t border-line">
+        <Link href="/privacy" className="text-ink hover:text-ink-hover text-sm font-medium">
           Read our Privacy Policy →
         </Link>
       </div>

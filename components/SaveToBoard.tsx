@@ -10,8 +10,8 @@ interface Board {
 
 interface SaveToBoardProps {
   photoId: string
-  /** 'card' shows as small icon overlay, 'button' shows as a full button */
-  variant?: 'card' | 'button'
+  /** 'card' small icon overlay, 'tile' 44px gallery-tile bookmark (shown on hover), 'button' full button */
+  variant?: 'card' | 'tile' | 'button'
 }
 
 export default function SaveToBoard({ photoId, variant = 'card' }: SaveToBoardProps) {
@@ -134,7 +134,7 @@ export default function SaveToBoard({ photoId, variant = 'card' }: SaveToBoardPr
 
   const bookmarkIcon = (
     <svg
-      className={variant === 'card' ? 'w-3.5 h-3.5' : 'w-4 h-4'}
+      className={variant === 'card' ? 'w-3.5 h-3.5' : variant === 'tile' ? 'w-[18px] h-[18px]' : 'w-4 h-4'}
       fill={isSavedAnywhere ? 'currentColor' : 'none'}
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -147,7 +147,21 @@ export default function SaveToBoard({ photoId, variant = 'card' }: SaveToBoardPr
   return (
     <div ref={menuRef} className="relative" onClick={(e) => e.stopPropagation()}>
       {/* Trigger button */}
-      {variant === 'card' ? (
+      {variant === 'tile' ? (
+        <button
+          type="button"
+          onClick={handleOpen}
+          className={`w-11 h-11 rounded-full flex items-center justify-center transition-opacity duration-150 ${
+            isSavedAnywhere || open
+              ? 'bg-ink text-white'
+              : 'bg-[rgba(14,15,15,0.72)] text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:hidden'
+          }`}
+          aria-label={isSavedAnywhere ? 'Saved to a board' : 'Save to a board'}
+          aria-pressed={isSavedAnywhere}
+        >
+          {bookmarkIcon}
+        </button>
+      ) : variant === 'card' ? (
         <button
           type="button"
           onClick={handleOpen}
@@ -177,13 +191,13 @@ export default function SaveToBoard({ photoId, variant = 'card' }: SaveToBoardPr
 
       {/* Dropdown */}
       {open && (
-        <div className={`absolute z-50 bg-white rounded-lg shadow-lg border border-gray-200 w-56 py-2 ${
-          variant === 'card' ? 'top-10 right-0' : 'top-full mt-2 right-0'
+        <div className={`absolute z-50 bg-surface rounded-xl shadow-md border border-line w-56 py-2 ${
+          variant === 'card' ? 'top-10 right-0' : variant === 'tile' ? 'top-12 right-0' : 'top-full mt-2 right-0'
         }`}>
-          <p className="px-3 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wide">Save to collection</p>
+          <p className="px-3 py-1 font-mono text-[11px] tracking-[1px] uppercase text-muted">Save to a board</p>
 
           {loading ? (
-            <div className="px-3 py-4 text-center text-sm text-gray-400">Loading...</div>
+            <div className="px-3 py-4 text-center text-sm text-faint">Loading…</div>
           ) : (
             <>
               <div className="max-h-48 overflow-y-auto">
@@ -193,10 +207,10 @@ export default function SaveToBoard({ photoId, variant = 'card' }: SaveToBoardPr
                     type="button"
                     onClick={() => toggleBoard(board.id)}
                     disabled={toggling === board.id}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-canvas transition-colors text-left"
                   >
                     <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                      savedIn.has(board.id) ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'
+                      savedIn.has(board.id) ? 'bg-ink border-ink text-white' : 'border-line-strong'
                     }`}>
                       {savedIn.has(board.id) && (
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
@@ -210,14 +224,14 @@ export default function SaveToBoard({ photoId, variant = 'card' }: SaveToBoardPr
               </div>
 
               {/* Create new board */}
-              <div className="border-t border-gray-100 mt-1 pt-1">
+              <div className="border-t border-line mt-1 pt-1">
                 <div className="px-3 py-1.5">
                   <input
                     type="text"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    placeholder="New collection name..."
-                    className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-300"
+                    placeholder="New board name…"
+                    className="w-full px-2 py-1.5 border border-line rounded-md text-sm text-ink placeholder:text-faint focus:outline-none focus:border-line-strong"
                     maxLength={100}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleCreate() }}
                   />
@@ -226,7 +240,7 @@ export default function SaveToBoard({ photoId, variant = 'card' }: SaveToBoardPr
                       type="button"
                       onClick={handleCreate}
                       disabled={creating}
-                      className="mt-1.5 w-full text-center text-xs font-medium text-blue-600 hover:text-blue-700 py-1"
+                      className="mt-1.5 w-full text-center text-xs font-medium text-ink hover:underline py-1"
                     >
                       {creating ? 'Creating...' : `Create "${newName.trim()}" & save`}
                     </button>

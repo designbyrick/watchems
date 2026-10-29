@@ -133,10 +133,10 @@ export function SearchForm({
             onFocus={() => query.length >= 2 && setOpen(true)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="w-full bg-surfaceAlt border border-borderStrong rounded-sm px-4 py-2.5 text-sm text-textPrimary placeholder:text-textMuted focus:outline-none focus:border-accent transition-colors"
+            className="w-full bg-canvas border border-line-strong rounded-sm px-4 py-2.5 text-sm text-ink placeholder:text-faint focus:outline-none focus:border-ink transition-colors"
           />
           <svg
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-textMuted"
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -147,32 +147,32 @@ export function SearchForm({
       </div>
 
       {open && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-surface border border-borderStrong rounded-sm shadow-lg overflow-hidden max-h-[60vh] overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 bg-surface border border-line-strong rounded-sm shadow-lg overflow-hidden max-h-[60vh] overflow-y-auto">
           {results.map((r, i) => (
             <button
               key={r.href}
               type="button"
               onClick={() => navigate(r.href)}
               className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors ${
-                i === activeIndex ? 'bg-accentLight' : 'hover:bg-surfaceAlt'
+                i === activeIndex ? 'bg-subtle' : 'hover:bg-canvas'
               }`}
             >
               <span className={`shrink-0 w-5 h-5 rounded-sm flex items-center justify-center text-[10px] font-bold ${
                 r.type === 'comparison'
-                  ? 'bg-accent text-white'
-                  : 'bg-surfaceAlt border border-borderStrong text-textMuted'
+                  ? 'bg-ink text-white'
+                  : 'bg-canvas border border-line-strong text-faint'
               }`}>
                 {r.type === 'comparison' ? 'VS' : 'W'}
               </span>
-              <p className="text-sm text-textPrimary truncate">{r.label}</p>
+              <p className="text-sm text-ink truncate">{r.label}</p>
             </button>
           ))}
         </div>
       )}
 
       {open && query.length >= 2 && results.length === 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-surface border border-borderStrong rounded-sm shadow-lg p-4 text-center">
-          <p className="text-sm text-textMuted">No watches or comparisons found</p>
+        <div className="absolute z-50 w-full mt-1 bg-surface border border-line-strong rounded-sm shadow-lg p-4 text-center">
+          <p className="text-sm text-faint">No watches or comparisons found</p>
         </div>
       )}
     </div>

@@ -83,7 +83,7 @@ export default function CropModal({ imageSrc, onConfirm, onCancel }: CropModalPr
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-2 sm:p-4">
       <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-sm sm:max-w-lg shadow-lg">
-        <h2 className="text-xl font-bold text-textPrimary mb-4">Crop your photo</h2>
+        <h2 className="text-xl font-bold text-ink mb-4">Crop your photo</h2>
 
         <div className="mb-4">
           <ReactCrop
@@ -110,14 +110,14 @@ export default function CropModal({ imageSrc, onConfirm, onCancel }: CropModalPr
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 px-4 py-2 bg-neutral hover:bg-neutral/80 text-textPrimary rounded-lg font-medium transition-colors"
+            className="flex-1 px-4 py-2 bg-canvas hover:bg-canvas/80 text-ink rounded-lg font-medium transition-colors"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleCrop}
-            className="flex-1 px-4 py-2 bg-accent hover:bg-accentHover text-white rounded-lg font-medium transition-colors"
+            className="flex-1 px-4 py-2 bg-ink hover:bg-ink-hover text-white rounded-lg font-medium transition-colors"
           >
             Crop & Use Photo
           </button>

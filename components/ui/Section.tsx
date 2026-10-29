@@ -27,7 +27,7 @@ export function Section({
     lg: 'py-16 md:py-20',
   }[py];
 
-  const borderClass = border ? 'border-y border-border' : '';
+  const borderClass = border ? 'border-y border-line' : '';
 
   return (
     <section className={`${bgClass} ${borderClass} ${pyClass} ${className}`}>

@@ -23,21 +23,21 @@ export function ResultBar({
 
   return (
     <div className={className}>
-      <div className="flex h-1.5 rounded-full overflow-hidden bg-border w-full">
+      <div className="flex h-1.5 rounded-full overflow-hidden bg-line w-full">
         <div
           className={`h-full rounded-full transition-all duration-500 ${
-            winner1 ? 'bg-winner' : 'bg-border'
+            winner1 ? 'bg-winner' : 'bg-line'
           }`}
           style={{ width: `${pct1}%` }}
         />
         <div
           className={`h-full rounded-full transition-all duration-500 ${
-            winner2 ? 'bg-winner' : 'bg-border'
+            winner2 ? 'bg-winner' : 'bg-line'
           }`}
           style={{ width: `${pct2}%` }}
         />
       </div>
-      {label && <div className="text-xs text-textMuted mt-1.5">{label}</div>}
+      {label && <div className="text-xs text-faint mt-1.5">{label}</div>}
     </div>
   );
 }
