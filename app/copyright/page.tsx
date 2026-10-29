@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { LEGAL_PROSE } from '@/components/ui/prose'
 
 export const metadata: Metadata = {
   title: 'Copyright Policy',
@@ -12,11 +13,12 @@ export const metadata: Metadata = {
 
 export default function CopyrightPage() {
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-      <h1 className="text-4xl font-bold text-ink mb-2">Copyright Policy</h1>
-      <p className="text-faint text-sm mb-10">Last updated: April 9, 2026</p>
+    <div className="max-w-3xl mx-auto px-4 sm:px-8 pt-10 pb-16 sm:pt-14">
+      <p className="font-mono text-xs tracking-[1px] uppercase text-muted">Legal</p>
+      <h1 className="mt-2.5 text-[36px] sm:text-[44px] leading-[1.05] font-semibold tracking-[-1.8px] text-ink">Copyright Policy</h1>
+      <p className="mt-4 mb-12 font-mono text-[11px] tracking-[1px] uppercase text-faint">Last updated: April 9, 2026</p>
 
-      <div className="prose-custom space-y-8">
+      <div className={LEGAL_PROSE}>
         <section>
           <h2>The short version</h2>
           <p>
@@ -198,11 +200,11 @@ export default function CopyrightPage() {
         </section>
       </div>
 
-      <div className="mt-10 pt-6 border-t border-line flex gap-6">
-        <Link href="/terms" className="text-ink hover:text-ink-hover text-sm font-medium">
+      <div className="mt-12 pt-6 border-t border-line flex gap-6">
+        <Link href="/terms" className="text-ink hover:text-muted transition-colors text-sm font-medium">
           Terms of Use →
         </Link>
-        <Link href="/privacy" className="text-ink hover:text-ink-hover text-sm font-medium">
+        <Link href="/privacy" className="text-ink hover:text-muted transition-colors text-sm font-medium">
           Privacy Policy →
         </Link>
       </div>

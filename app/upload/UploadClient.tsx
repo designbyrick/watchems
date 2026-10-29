@@ -440,17 +440,16 @@ export default function UploadClient() {
   }
 
   function fieldBorderClass(field: AiConfirmField) {
-    if (isAiUnconfirmed(field)) return 'border-blue-400 ring-1 ring-blue-300 dark:ring-blue-600'
-    if (meta.aiIdentified && meta.aiFilledFields.has(field) && meta.aiConfirmedFields[field]) return 'border-green-400'
-    return 'border-line-strong focus:border-ink'
+    if (isAiUnconfirmed(field)) return 'border-mark ring-1 ring-mark/25'
+    return 'border-line hover:border-line-strong'
   }
 
   function inputPrClass(field: AiConfirmField) {
     if (!meta.aiIdentified || !meta.aiFilledFields.has(field)) return ''
-    return isAiUnconfirmed(field) ? 'pr-14' : 'pr-8'
+    return isAiUnconfirmed(field) ? 'pr-[68px]' : 'pr-9'
   }
 
-  function InlineConfirm({ field }: { field: AiConfirmField }) {
+  function InlineConfirm({ field, suffix }: { field: AiConfirmField; suffix?: string }) {
     if (isAiUnconfirmed(field)) {
       return (
         <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
@@ -458,23 +457,30 @@ export default function UploadClient() {
             type="button"
             onClick={() => confirmField(field)}
             aria-label={`Accept AI suggestion for ${field}`}
-            className="w-5 h-5 flex items-center justify-center text-blue-500 hover:text-blue-700 font-bold text-sm transition-colors"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-ink hover:bg-subtle transition-colors"
           >
-            ✓
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10" /></svg>
           </button>
           <button
             type="button"
             onClick={() => rejectField(field)}
             aria-label={`Reject AI suggestion for ${field}`}
-            className="w-5 h-5 flex items-center justify-center text-red-500 hover:text-red-700 font-bold text-sm transition-colors"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-subtle transition-colors"
           >
-            ✕
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
           </button>
         </div>
       )
     }
     if (meta.aiIdentified && meta.aiFilledFields.has(field) && meta.aiConfirmedFields[field]) {
-      return <span className="absolute right-2 top-1/2 -translate-y-1/2 text-green-500 text-sm" aria-label="Confirmed">✓</span>
+      return (
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-mark" aria-label="Confirmed">
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10" /></svg>
+        </span>
+      )
+    }
+    if (suffix) {
+      return <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-faint pointer-events-none">{suffix}</span>
     }
     return null
   }
@@ -598,101 +604,130 @@ export default function UploadClient() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  if (!isLoaded) {
+  // Light step state for the eyebrow: 1 photos → 2 details → 3 submitted
+  const step = success ? 3 : hasItems ? 2 : 1
+  const stepLabel = ['Photos', 'Details', 'Submitted'][step - 1]
+
+  const MONO_LABEL = 'font-mono text-[11px] tracking-[1px] uppercase text-muted'
+  const CARD = 'rounded-[10px] bg-surface border border-line'
+  const INPUT = 'w-full h-11 rounded-lg bg-surface border px-3 text-[15px] text-ink placeholder:text-faint transition-colors focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-ink'
+
+  // Called as a function (not <Component/>) so inputs keep focus across renders
+  function textField(opts: {
+    id: string
+    label: React.ReactNode
+    metaKey: keyof WatchMeta
+    field: AiConfirmField
+    placeholder: string
+    maxLength?: number
+    suffix?: string
+    inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
+  }) {
+    const aiPad = inputPrClass(opts.field)
     return (
-      <div className="min-h-screen bg-canvas flex items-center justify-center">
-        <div className="animate-pulse text-faint">Loading...</div>
+      <div className="min-w-0">
+        <label htmlFor={opts.id} className="block mb-1.5 text-[13px] font-medium text-ink">{opts.label}</label>
+        <div className="relative">
+          <input
+            id={opts.id}
+            type="text"
+            inputMode={opts.inputMode}
+            value={meta[opts.metaKey] as string}
+            onChange={(e) => metaChange(opts.metaKey, e.target.value)}
+            placeholder={opts.placeholder}
+            maxLength={opts.maxLength}
+            className={`${INPUT} ${fieldBorderClass(opts.field)} ${aiPad || (opts.suffix ? 'pr-10' : '')}`}
+          />
+          <InlineConfirm field={opts.field} suffix={opts.suffix} />
+        </div>
       </div>
     )
   }
 
-  return (
-    <main className="min-h-screen bg-canvas text-ink">
-      <div className={`max-w-[80rem] mx-auto px-4 ${success ? 'py-12 sm:py-16' : 'py-8 sm:py-12'}`}>
-        {!success && (
-          <>
-            <Link href="/" className="text-xs sm:text-sm text-faint hover:text-ink mb-6 inline-block">
-              &larr; Back to home
-            </Link>
+  function resetIdentify() {
+    patchMeta({
+      identifyStatus: 'idle', aiIdentified: false,
+      aiFilledFields: new Set(), aiConfirmedFields: {},
+    })
+  }
 
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Upload Your Watch Photos</h1>
-            <p className="text-faint mb-8 text-sm sm:text-base">
-              Share real wrist shots. Help others see how watches look in real life.
-            </p>
-          </>
-        )}
+  if (!isLoaded) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="animate-pulse font-mono text-xs tracking-[1px] uppercase text-faint">Loading…</div>
+      </div>
+    )
+  }
+
+  const priceUnconfirmed = isAiUnconfirmed('estimatedPrice')
+  const priceConfirmed = meta.aiIdentified && meta.aiFilledFields.has('estimatedPrice') && !!meta.aiConfirmedFields.estimatedPrice
+
+  return (
+    <div className="text-ink">
+      <div className="max-w-[1080px] mx-auto px-4 sm:px-8 pt-8 sm:pt-10 pb-16 sm:pb-[72px]">
+        <p className="font-mono text-xs tracking-[1px] uppercase text-muted">
+          Step {step} of 3 · {stepLabel}
+        </p>
+        <h1 className="mt-2.5 text-[34px] sm:text-[44px] leading-[1.05] font-semibold tracking-[-1.8px]">
+          {success ? (successPreviews.length > 1 ? 'Wrist shots submitted' : 'Wrist shot submitted') : 'Add a wrist shot'}
+        </h1>
 
         {!isSignedIn ? (
-          <div className="bg-surface border border-line-strong rounded-xl p-6 sm:p-8 text-center shadow-sm">
-            <p className="text-muted mb-4 text-sm sm:text-base">Sign in to upload your watch photos</p>
+          <div className={`${CARD} mt-8 p-6 sm:p-8 max-w-lg`}>
+            <p className="text-[15px] text-muted mb-5">Sign in to add your wrist shots to the library.</p>
             <SignInButton mode="modal">
-              <button className="px-4 sm:px-6 py-2 sm:py-3 bg-ink hover:bg-ink-hover text-white rounded-lg font-medium transition-colors text-sm sm:text-base w-full sm:w-auto">
+              <button className="h-12 px-6 rounded-full bg-ink hover:bg-ink-hover text-white text-[15px] font-semibold transition-colors w-full sm:w-auto">
                 Sign in to upload
               </button>
             </SignInButton>
           </div>
         ) : success ? (
-          <div className="max-w-lg mx-auto bg-surface border border-line-strong rounded-2xl p-6 sm:p-8 text-center shadow-sm">
+          <div className={`${CARD} mt-8 p-6 sm:p-8 max-w-xl`}>
             {successPreviews.length > 0 && (
-              <div className="flex justify-center gap-2 sm:gap-3 mb-5 flex-wrap">
+              <div className="flex gap-2.5 mb-6 flex-wrap">
                 {successPreviews.map((src, i) => (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img key={i} src={src} className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl shadow-sm" alt={`Submitted photo ${i + 1}`} />
+                  <img key={i} src={src} className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg border border-line" alt={`Submitted photo ${i + 1}`} />
                 ))}
               </div>
             )}
-            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-              </svg>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-ink mb-1.5">
-              {successPreviews.length > 1 ? 'Photos submitted!' : 'Photo submitted!'}
-            </h2>
-            <p className="text-faint mb-4 text-sm">
-              Your {successPreviews.length > 1 ? 'images are' : 'image is'} being reviewed and will be approved soon.
+            <p className="flex items-center gap-2 text-[17px] font-semibold">
+              <svg className="w-4 h-4 text-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10" /></svg>
+              In review
             </p>
-            {meta.brandName && (
-              <p className="text-xs text-faint mb-6">
-                Once approved, your photo will appear on the{' '}
-                <Link
-                  href={`/brand/${encodeURIComponent(meta.brandName.toLowerCase())}`}
-                  className="underline underline-offset-2 hover:text-ink transition-colors"
-                >
-                  {meta.brandName} page
-                </Link>
-                .
-              </p>
-            )}
+            <p className="mt-2 text-[15px] text-muted leading-relaxed">
+              Your {successPreviews.length > 1 ? 'photos are' : 'photo is'} being reviewed and will be approved soon.
+              {meta.brandName && (
+                <>
+                  {' '}Once approved, {successPreviews.length > 1 ? 'they' : 'it'} will appear on the{' '}
+                  <Link
+                    href={`/brand/${encodeURIComponent(meta.brandName.toLowerCase())}`}
+                    className="text-ink underline underline-offset-2 hover:text-muted transition-colors"
+                  >
+                    {meta.brandName} page
+                  </Link>
+                  .
+                </>
+              )}
+            </p>
 
-            {/* Dashboard feature CTAs — 3-col grid */}
-            <p className="text-xs font-semibold text-faint uppercase tracking-wider mb-3">While you wait</p>
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              <Link href="/dashboard" className="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors group">
-                <span className="text-2xl">⌚</span>
-                <p className="text-xs font-semibold text-gray-800 group-hover:text-blue-700 leading-tight">My Watches</p>
-                <p className="text-[10px] text-gray-400 leading-tight">Your submissions</p>
-              </Link>
-              <Link href="/dashboard/wrist-check" className="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors group">
-                <span className="text-2xl">📅</span>
-                <p className="text-xs font-semibold text-gray-800 group-hover:text-blue-700 leading-tight">Wrist Check</p>
-                <p className="text-[10px] text-gray-400 leading-tight">Daily wear log</p>
-              </Link>
-              <Link href="/dashboard/boards" className="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors group">
-                <span className="text-2xl">🗂️</span>
-                <p className="text-xs font-semibold text-gray-800 group-hover:text-blue-700 leading-tight">Collections</p>
-                <p className="text-[10px] text-gray-400 leading-tight">Save & organise</p>
-              </Link>
+            <p className={`${MONO_LABEL} mt-8 mb-3`}>While you wait</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {[
+                { href: '/dashboard', title: 'My Watches', note: 'Your submissions' },
+                { href: '/dashboard/wrist-check', title: 'Wrist Check', note: 'Daily wear log' },
+                { href: '/dashboard/boards', title: 'Collections', note: 'Save and organise' },
+              ].map((l) => (
+                <Link key={l.href} href={l.href} className="rounded-lg border border-line px-4 py-3 hover:border-line-strong hover:bg-canvas transition-colors">
+                  <span className="block text-[15px] font-semibold">{l.title}</span>
+                  <span className="block mt-0.5 text-[13px] text-muted">{l.note}</span>
+                </Link>
+              ))}
             </div>
 
-            <div className="flex flex-col gap-2">
-              <Link
-                href="/"
-                className="px-6 py-2.5 bg-ink hover:bg-ink-hover text-white rounded-lg font-medium transition-colors inline-block text-center text-sm"
-              >
-                &larr; Back to home
-              </Link>
+            <div className="mt-8 flex flex-wrap gap-3">
               <button
+                type="button"
                 onClick={() => {
                   setSuccess(false)
                   setItems([])
@@ -702,99 +737,100 @@ export default function UploadClient() {
                   setPartialSuccess('')
                   filesById.current.clear()
                 }}
-                className="px-6 py-2.5 bg-canvas hover:bg-canvas/80 text-ink rounded-lg font-medium transition-colors text-sm"
+                className="h-12 px-6 rounded-full bg-ink hover:bg-ink-hover text-white text-[15px] font-semibold transition-colors"
               >
-                Upload more
+                Add another watch
               </button>
+              <Link href="/" className="h-12 px-6 rounded-full border border-line hover:border-line-strong text-ink text-[15px] font-semibold transition-colors flex items-center">
+                Back to the gallery
+              </Link>
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="mt-8">
             {globalError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-800">{globalError}</p>
-              </div>
+              <div role="alert" className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{globalError}</div>
             )}
             {partialSuccess && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-sm text-green-800">{partialSuccess}</p>
-              </div>
+              <div role="status" className="mb-5 rounded-lg border border-line bg-surface px-4 py-3 text-sm text-ink">{partialSuccess}</div>
             )}
 
-            {/* Two-column layout: photo left, form right */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 items-start">
+            <div className="flex flex-wrap gap-8 items-start">
 
-              {/* ── LEFT: Photo area ── */}
-              <div className="bg-surface border border-line-strong rounded-xl p-4 shadow-sm space-y-4">
-
-                {/* Primary photo preview or drop zone */}
+              {/* ── LEFT: Photos ── */}
+              <section
+                aria-label="Photos"
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className="flex-[1_1_340px] min-w-0 flex flex-col gap-3"
+              >
                 {hasItems && primaryItem?.preview ? (
-                  <div className="relative rounded-lg overflow-hidden bg-gray-100 aspect-[4/3] flex items-center justify-center">
+                  <div className={`relative rounded-[10px] overflow-hidden bg-surface border ${isDragging ? 'border-ink' : 'border-line'}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={primaryItem.preview} alt="Primary photo" className="w-full h-full object-contain" />
+                    <img src={primaryItem.preview} alt="Primary photo" className="block w-full aspect-[4/5] object-cover" />
 
                     {meta.identifyStatus === 'identifying' && (
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <div className="text-white text-sm flex items-center gap-2">
+                      <div className="absolute inset-0 bg-ink/50 flex items-center justify-center">
+                        <div className="text-white text-sm font-medium flex items-center gap-2">
                           <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                          Identifying watch...
+                          Identifying watch…
                         </div>
                       </div>
                     )}
 
-                    <div className="absolute top-2 left-2 bg-ink text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                    <span className="absolute left-3 top-3 h-7 rounded-full bg-ink/80 text-white flex items-center px-2.5 font-mono text-[11px] tracking-[1px] uppercase">
                       Primary
-                    </div>
+                    </span>
 
                     <button
                       type="button"
                       onClick={() => setPendingCrop({ src: primaryItem.preview, file: primaryItem.file, id: primaryItem.id })}
-                      className="absolute bottom-2 left-2 bg-white/80 text-xs px-2 py-1 rounded shadow hover:bg-white text-gray-700"
+                      aria-label="Crop photo"
+                      className="absolute right-3 bottom-3 h-10 rounded-full bg-white/95 hover:bg-white text-ink flex items-center gap-1.5 px-3.5 text-sm font-semibold shadow-sm transition-colors"
                     >
-                      ✂ Crop
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 2v14a2 2 0 0 0 2 2h14M18 22V8a2 2 0 0 0-2-2H2" /></svg>
+                      Crop
                     </button>
                   </div>
                 ) : (
-                  <div
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
+                  <button
+                    type="button"
                     onClick={() => fileRef.current?.click()}
-                    className={`aspect-[4/3] border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${
-                      isDragging ? 'border-ink bg-ink/5' : 'border-line-strong hover:border-ink'
+                    className={`w-full aspect-[4/5] rounded-[10px] border-[1.5px] border-dashed bg-surface flex flex-col items-center justify-center gap-3 px-6 text-center transition-colors ${
+                      isDragging ? 'border-ink' : 'border-line-strong hover:border-ink'
                     }`}
                   >
                     {hasItems ? (
-                      <div className="text-faint text-sm flex items-center gap-2">
+                      <span className="text-sm text-muted flex items-center gap-2">
                         <span className="animate-spin inline-block w-4 h-4 border-2 border-faint border-t-transparent rounded-full" />
-                        Processing...
-                      </div>
+                        Processing…
+                      </span>
                     ) : (
                       <>
-                        <div className="text-4xl mb-3">📷</div>
-                        <p className="text-faint text-sm text-center px-4">
-                          {isDragging ? 'Drop your photos here' : 'Drag & drop or click to add photos'}
-                        </p>
-                        <p className="text-faint text-xs mt-1">JPEG, PNG, WebP · Up to 20MB each</p>
-                        <p className="text-faint text-[11px] mt-2.5">🔒 GPS location, camera info &amp; all EXIF metadata are automatically removed</p>
+                        <span className="w-12 h-12 rounded-full bg-ink text-white flex items-center justify-center">
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                        </span>
+                        <span className="text-[17px] font-semibold">{isDragging ? 'Drop your photos here' : 'Add photos'}</span>
+                        <span className="text-[13px] text-muted">Drag and drop or click · JPEG, PNG, WebP up to 20MB each</span>
                       </>
                     )}
-                  </div>
+                  </button>
                 )}
 
-                {/* Thumbnail strip + add button */}
                 {hasItems && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-4 gap-2.5">
                     {items.map((item, i) => (
                       <div key={item.id} className="relative group">
                         <div
                           onClick={() => { if (i > 0 && item.status !== 'uploading') setPrimary(item.id) }}
-                          className={`w-16 h-16 rounded-lg overflow-hidden bg-canvas ${
+                          title={i > 0 && item.status === 'ready' ? 'Set as primary' : undefined}
+                          className={`relative aspect-square rounded-lg overflow-hidden bg-subtle border-2 ${
                             i === 0
-                              ? 'ring-2 ring-ink'
+                              ? 'border-ink'
                               : item.status !== 'uploading'
-                              ? 'cursor-pointer hover:ring-2 hover:ring-ink/60'
-                              : ''
+                              ? 'border-transparent cursor-pointer hover:border-line-strong'
+                              : 'border-transparent'
                           }`}
                         >
                           {item.preview ? (
@@ -806,26 +842,31 @@ export default function UploadClient() {
                             </div>
                           )}
                           {item.status === 'uploading' && (
-                            <div className="absolute inset-0 bg-blue-500/40 rounded-lg flex items-center justify-center">
+                            <div className="absolute inset-0 bg-ink/50 flex items-center justify-center">
                               <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
                             </div>
                           )}
                           {item.status === 'done' && (
-                            <div className="absolute inset-0 bg-green-500/40 rounded-lg flex items-center justify-center">
-                              <span className="text-white font-bold text-lg">✓</span>
+                            <div className="absolute inset-0 bg-ink/50 flex items-center justify-center text-white">
+                              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-label="Uploaded"><path d="m5 12 5 5 9-10" /></svg>
                             </div>
                           )}
                           {item.status === 'error' && (
-                            <div className="absolute inset-0 bg-red-500/40 rounded-lg flex items-center justify-center">
+                            <div className="absolute inset-0 bg-ink/60 flex items-center justify-center">
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); retryUpload(item.id) }}
-                                className="text-white text-[10px] font-bold bg-red-600/80 px-1.5 py-0.5 rounded"
+                                className="h-7 px-2.5 rounded-full bg-white text-ink text-xs font-semibold"
                                 title={item.errorMessage || 'Retry upload'}
                               >
                                 Retry
                               </button>
                             </div>
+                          )}
+                          {i > 0 && item.status === 'ready' && (
+                            <span className="absolute inset-x-0 bottom-0 py-1 bg-ink/70 text-white text-center font-mono text-[9px] tracking-[0.5px] uppercase opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                              Set primary
+                            </span>
                           )}
                         </div>
 
@@ -833,19 +874,11 @@ export default function UploadClient() {
                           <button
                             type="button"
                             onClick={() => removeItem(item.id)}
-                            className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full text-xs flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute top-1 right-1 w-7 h-7 rounded-full bg-ink/80 hover:bg-ink text-white flex items-center justify-center transition-colors"
                             aria-label="Remove photo"
                           >
-                            &times;
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
                           </button>
-                        )}
-
-                        {i > 0 && item.status === 'ready' && (
-                          <div className="absolute bottom-0 left-0 right-0 text-center pointer-events-none">
-                            <span className="text-[9px] text-white bg-black/60 px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                              Set primary
-                            </span>
-                          </div>
                         )}
                       </div>
                     ))}
@@ -854,346 +887,200 @@ export default function UploadClient() {
                       <button
                         type="button"
                         onClick={() => fileRef.current?.click()}
-                        className="w-16 h-16 border-2 border-dashed border-line-strong hover:border-ink rounded-lg flex items-center justify-center text-faint hover:text-ink transition-colors text-2xl leading-none"
+                        className={`aspect-square rounded-lg border-[1.5px] border-dashed bg-surface flex items-center justify-center transition-colors ${
+                          isDragging ? 'border-ink text-ink' : 'border-line-strong text-muted hover:border-ink hover:text-ink'
+                        }`}
                         aria-label="Add more photos"
                       >
-                        +
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
                       </button>
                     )}
                   </div>
                 )}
 
-                {/* Drop zone for adding more angles */}
-                {hasItems && !atMax && (
-                  <div
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    className={`border border-dashed rounded-lg py-2 text-center text-xs transition-colors ${
-                      isDragging
-                        ? 'border-ink bg-ink/5 text-ink'
-                        : 'border-line-strong text-faint'
-                    }`}
-                  >
-                    Drop more angles here · {items.length}/{MAX_PHOTOS} photos
-                  </div>
-                )}
-              </div>
+                <p className="text-[13px] leading-normal text-muted">
+                  Up to {MAX_PHOTOS} photos{hasItems ? ` (${items.length} added)` : ''}. The first one is used to identify the watch.
+                  {' '}GPS location, camera info and all EXIF metadata are removed automatically.
+                </p>
+              </section>
 
-              {/* ── RIGHT: Watch form ── */}
-              <div className="bg-surface border border-line-strong rounded-xl p-5 shadow-sm space-y-5">
+              {/* ── RIGHT: Watch details ── */}
+              <section aria-label="Watch details" className="flex-[1.4_1_460px] min-w-0 flex flex-col gap-5">
 
-                {/* Warnings */}
                 {meta.isWatch === false && (
-                  <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
-                    <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                      ⚠️ This doesn&apos;t look like a watch photo. You can still submit if the AI is incorrect.
-                    </p>
+                  <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    This doesn&apos;t look like a watch photo. You can still submit if the AI is incorrect.
                   </div>
                 )}
                 {meta.aiGenerated === true && (
-                  <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
-                    <p className="text-xs text-amber-800 dark:text-amber-200">
-                      ⚠️ Photo may be AI-generated. AI images won&apos;t be approved.
-                    </p>
+                  <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    This photo may be AI-generated. AI images won&apos;t be approved.
                   </div>
                 )}
 
-                {/* AI auto-fill button */}
-                {primaryItem && meta.identifyStatus === 'idle' && (
-                  <button
-                    type="button"
-                    onClick={() => identifyPrimary(primaryItem.id)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
-                    </svg>
-                    Auto-fill with AI
-                  </button>
-                )}
-
-                {/* AI identification status */}
-                {meta.identifyStatus === 'identifying' && (
-                  <div className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg text-sm text-blue-700 dark:text-blue-300">
-                    <span className="animate-spin inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full" />
-                    Identifying watch...
-                  </div>
-                )}
-                {meta.identifyStatus === 'error' && (
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-faint">Identification failed — fill in details manually</span>
-                    {primaryItem && (
+                {/* Identity card */}
+                <div className={`${CARD} overflow-hidden`}>
+                  <div className="flex items-center gap-2.5 px-[18px] py-3.5 border-b border-line min-h-[52px]">
+                    {meta.identifyStatus === 'done' && <span className="w-2 h-2 rounded-full bg-mark shrink-0" aria-hidden="true" />}
+                    {meta.identifyStatus === 'identifying' && (
+                      <span className="animate-spin inline-block w-3 h-3 border-2 border-ink border-t-transparent rounded-full shrink-0" aria-hidden="true" />
+                    )}
+                    <span className="flex-1 font-mono text-xs tracking-[1px] uppercase">
+                      {meta.identifyStatus === 'done'
+                        ? 'Watch identified from primary photo'
+                        : meta.identifyStatus === 'identifying'
+                        ? 'Identifying watch…'
+                        : meta.identifyStatus === 'error'
+                        ? 'Identification failed'
+                        : 'Watch'}
+                    </span>
+                    {primaryItem && meta.identifyStatus === 'idle' && (
                       <button
                         type="button"
-                        onClick={() => {
-                          patchMeta({
-                            identifyStatus: 'idle', aiIdentified: false,
-                            aiFilledFields: new Set(), aiConfirmedFields: {},
-                          })
-                        }}
-                        className="text-faint hover:text-ink underline ml-3"
+                        onClick={() => identifyPrimary(primaryItem.id)}
+                        className="h-9 -my-1 px-3.5 rounded-full bg-ink hover:bg-ink-hover text-white text-[13px] font-semibold flex items-center gap-1.5 transition-colors"
                       >
-                        Try again
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+                        </svg>
+                        Auto-fill with AI
+                      </button>
+                    )}
+                    {primaryItem && (meta.identifyStatus === 'done' || meta.identifyStatus === 'error') && (
+                      <button
+                        type="button"
+                        onClick={resetIdentify}
+                        className="text-[13px] font-medium text-muted hover:text-ink underline underline-offset-2 transition-colors"
+                      >
+                        {meta.identifyStatus === 'error' ? 'Try again' : 'Re-identify'}
                       </button>
                     )}
                   </div>
-                )}
-                {meta.identifyStatus === 'done' && (
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-faint">Watch identified from primary photo</span>
-                    {primaryItem && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          patchMeta({
-                            identifyStatus: 'idle', aiIdentified: false,
-                            aiFilledFields: new Set(), aiConfirmedFields: {},
-                          })
-                        }}
-                        className="text-faint hover:text-ink underline ml-3"
-                      >
-                        Re-identify
-                      </button>
+                  <div className="p-[18px] grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3.5">
+                    {textField({ id: 'u-brand', label: <>Brand <span className="text-mark" aria-hidden="true">*</span></>, metaKey: 'brandName', field: 'brand', placeholder: 'e.g. Rolex', maxLength: 80 })}
+                    {textField({ id: 'u-model', label: <>Model <span className="text-mark" aria-hidden="true">*</span></>, metaKey: 'modelName', field: 'model', placeholder: 'e.g. Submariner', maxLength: 100 })}
+                    {textField({ id: 'u-ref', label: 'Reference', metaKey: 'referenceNumber', field: 'reference', placeholder: 'e.g. 126610LN', maxLength: 60 })}
+                    {textField({ id: 'u-mov', label: 'Movement', metaKey: 'movement', field: 'movement', placeholder: 'e.g. Automatic', maxLength: 60 })}
+                  </div>
+                  <div className="px-[18px] pb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[13px] text-muted">
+                    <span>
+                      {meta.identifyStatus === 'error'
+                        ? 'Fill in the details manually.'
+                        : meta.aiIdentified && aiFilledCount > 0
+                        ? 'Check and correct anything the AI got wrong before submitting. Highlighted fields need a ✓ or ✕.'
+                        : hasItems
+                        ? 'Brand is required. Auto-fill with AI or type the details yourself.'
+                        : 'Brand is required. Add a photo first to auto-fill the rest with AI.'}
+                    </span>
+                    {meta.aiIdentified && aiFilledCount > 0 && (
+                      <span className="font-mono text-[11px] tracking-[1px] uppercase tabular-nums">
+                        {aiConfirmedCount}/{aiFilledCount} checked
+                      </span>
                     )}
                   </div>
-                )}
-
-                {/* AI confirmation progress */}
-                {meta.aiIdentified && aiFilledCount > 0 && (
-                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-medium text-blue-800 dark:text-blue-200">
-                        AI filled {aiFilledCount} field{aiFilledCount !== 1 ? 's' : ''} — verify each one
-                      </span>
-                      <span className="text-xs text-blue-700 dark:text-blue-300 tabular-nums">
-                        {aiConfirmedCount}/{aiFilledCount}
-                      </span>
-                    </div>
-                    <div className="h-1 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-500 rounded-full transition-all duration-300"
-                        style={{ width: `${(aiConfirmedCount / aiFilledCount) * 100}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1.5">
-                      Click ✓ to keep or ✕ to clear each highlighted field.
-                    </p>
-                  </div>
-                )}
-
-                {/* Brand */}
-                <div>
-                  <label className="block text-sm font-medium text-muted mb-1.5">
-                    Brand <span className="text-red-400">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={meta.brandName}
-                      onChange={(e) => metaChange('brandName', e.target.value)}
-                      placeholder="e.g. Rolex"
-                      maxLength={80}
-                      className={`w-full bg-canvas rounded-md px-3 py-2.5 text-sm text-ink placeholder-faint focus:outline-none shadow-sm transition-colors border ${fieldBorderClass('brand')} ${inputPrClass('brand')}`}
-                    />
-                    <InlineConfirm field="brand" />
-                  </div>
                 </div>
 
-                {/* Model */}
-                <div>
-                  <label className="block text-sm font-medium text-muted mb-1.5">
-                    Model <span className="text-red-400">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={meta.modelName}
-                      onChange={(e) => metaChange('modelName', e.target.value)}
-                      placeholder="e.g. Submariner"
-                      maxLength={100}
-                      className={`w-full bg-canvas rounded-md px-3 py-2.5 text-sm text-ink placeholder-faint focus:outline-none shadow-sm transition-colors border ${fieldBorderClass('model')} ${inputPrClass('model')}`}
-                    />
-                    <InlineConfirm field="model" />
+                {/* Dimensions */}
+                <fieldset className={`${CARD} m-0 p-[18px] min-w-0`}>
+                  <legend className="px-1.5 font-mono text-xs tracking-[1px] uppercase text-muted">Dimensions</legend>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {textField({ id: 'u-case', label: 'Case', metaKey: 'caseSize', field: 'caseSize', placeholder: '40', maxLength: 20, suffix: 'mm', inputMode: 'decimal' })}
+                    {textField({ id: 'u-lug', label: 'Lug width', metaKey: 'betweenLugs', field: 'betweenLugs', placeholder: '20', maxLength: 20, suffix: 'mm', inputMode: 'decimal' })}
+                    {textField({ id: 'u-l2l', label: 'Lug-to-lug', metaKey: 'lugToLug', field: 'lugToLug', placeholder: '47', maxLength: 20, suffix: 'mm', inputMode: 'decimal' })}
+                    {textField({ id: 'u-thk', label: 'Thickness', metaKey: 'thickness', field: 'thickness', placeholder: '12', maxLength: 20, suffix: 'mm', inputMode: 'decimal' })}
                   </div>
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {textField({ id: 'u-wr', label: 'Water resistance', metaKey: 'waterResistance', field: 'waterResistance', placeholder: 'e.g. 300m / 1000ft', maxLength: 40 })}
+                    {textField({ id: 'u-wrist', label: 'Your wrist size', metaKey: 'wristSize', field: 'wristSize', placeholder: 'e.g. 7.25" or 17 cm', inputMode: 'decimal' })}
+                  </div>
+                </fieldset>
+
+                {/* Estimated price */}
+                <div className={`${CARD} px-[18px] py-4 flex flex-wrap items-center gap-3.5 ${priceUnconfirmed ? 'border-mark ring-1 ring-mark/25' : ''}`}>
+                  <div className="flex-1 min-w-[200px]">
+                    <label htmlFor="u-price" className={MONO_LABEL}>
+                      {meta.aiFilledFields.has('estimatedPrice') && meta.aiIdentified ? 'AI suggestion · Estimated price' : 'Estimated price'}
+                    </label>
+                    <select
+                      id="u-price"
+                      value={meta.estimatedPrice}
+                      onChange={(e) => metaChange('estimatedPrice', e.target.value)}
+                      className="mt-1 -ml-1 block max-w-full bg-transparent text-[17px] font-semibold text-ink rounded-md px-1 py-0.5 cursor-pointer hover:bg-subtle focus:outline focus:outline-2 focus:outline-ink"
+                    >
+                      <option value="">Select a range…</option>
+                      {ESTIMATED_PRICE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  </div>
+                  {priceUnconfirmed && (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => rejectField('estimatedPrice')}
+                        aria-label="Reject AI suggestion for estimated price"
+                        className="h-11 px-4 rounded-full border border-line hover:border-line-strong text-ink text-sm font-semibold transition-colors"
+                      >
+                        Not right
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => confirmField('estimatedPrice')}
+                        aria-label="Accept AI suggestion for estimated price"
+                        className="h-11 px-4 rounded-full bg-ink hover:bg-ink-hover text-white text-sm font-semibold transition-colors"
+                      >
+                        Looks right
+                      </button>
+                    </div>
+                  )}
+                  {priceConfirmed && (
+                    <span className="flex items-center gap-1.5 text-sm font-semibold">
+                      <svg className="w-4 h-4 text-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10" /></svg>
+                      Confirmed
+                    </span>
+                  )}
                 </div>
-
-                {/* Optional details — always visible */}
-                <div className="space-y-4">
-                    {/* Reference */}
-                    <div>
-                      <label className="block text-sm font-medium text-muted mb-1.5">Reference</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={meta.referenceNumber}
-                          onChange={(e) => metaChange('referenceNumber', e.target.value)}
-                          placeholder="e.g. 126610LN"
-                          maxLength={60}
-                          className={`w-full bg-canvas rounded-md px-3 py-2.5 text-sm text-ink placeholder-faint focus:outline-none shadow-sm border ${fieldBorderClass('reference')} ${inputPrClass('reference')}`}
-                        />
-                        <InlineConfirm field="reference" />
-                      </div>
-                    </div>
-
-                    {/* Movement */}
-                    <div>
-                      <label className="block text-sm font-medium text-muted mb-1.5">Movement</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={meta.movement}
-                          onChange={(e) => metaChange('movement', e.target.value)}
-                          placeholder="e.g. Automatic"
-                          maxLength={60}
-                          className={`w-full bg-canvas rounded-md px-3 py-2.5 text-sm text-ink placeholder-faint focus:outline-none shadow-sm border ${fieldBorderClass('movement')} ${inputPrClass('movement')}`}
-                        />
-                        <InlineConfirm field="movement" />
-                      </div>
-                    </div>
-
-                    {/* Case dimensions — grouped 2×2 */}
-                    <div>
-                      <label className="block text-sm font-medium text-muted mb-1.5">Dimensions</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <div className="relative flex-1 min-w-0">
-                            <input
-                              type="text"
-                              value={meta.caseSize}
-                              onChange={(e) => metaChange('caseSize', e.target.value)}
-                              placeholder="Case"
-                              maxLength={20}
-                              className={`w-full bg-canvas rounded-md px-2.5 py-2 text-sm text-ink placeholder-faint focus:outline-none shadow-sm border ${fieldBorderClass('caseSize')} ${inputPrClass('caseSize')}`}
-                            />
-                            <InlineConfirm field="caseSize" />
-                          </div>
-                          <span className="text-xs text-faint flex-shrink-0">mm</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <div className="relative flex-1 min-w-0">
-                            <input
-                              type="text"
-                              value={meta.lugToLug}
-                              onChange={(e) => metaChange('lugToLug', e.target.value)}
-                              placeholder="Lug-to-lug"
-                              maxLength={20}
-                              className={`w-full bg-canvas rounded-md px-2.5 py-2 text-sm text-ink placeholder-faint focus:outline-none shadow-sm border ${fieldBorderClass('lugToLug')} ${inputPrClass('lugToLug')}`}
-                            />
-                            <InlineConfirm field="lugToLug" />
-                          </div>
-                          <span className="text-xs text-faint flex-shrink-0">mm</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <div className="relative flex-1 min-w-0">
-                            <input
-                              type="text"
-                              value={meta.betweenLugs}
-                              onChange={(e) => metaChange('betweenLugs', e.target.value)}
-                              placeholder="Lug width"
-                              maxLength={20}
-                              className={`w-full bg-canvas rounded-md px-2.5 py-2 text-sm text-ink placeholder-faint focus:outline-none shadow-sm border ${fieldBorderClass('betweenLugs')} ${inputPrClass('betweenLugs')}`}
-                            />
-                            <InlineConfirm field="betweenLugs" />
-                          </div>
-                          <span className="text-xs text-faint flex-shrink-0">mm</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <div className="relative flex-1 min-w-0">
-                            <input
-                              type="text"
-                              value={meta.thickness}
-                              onChange={(e) => metaChange('thickness', e.target.value)}
-                              placeholder="Thickness"
-                              maxLength={20}
-                              className={`w-full bg-canvas rounded-md px-2.5 py-2 text-sm text-ink placeholder-faint focus:outline-none shadow-sm border ${fieldBorderClass('thickness')} ${inputPrClass('thickness')}`}
-                            />
-                            <InlineConfirm field="thickness" />
-                          </div>
-                          <span className="text-xs text-faint flex-shrink-0">mm</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Water resistance */}
-                    <div>
-                      <label className="block text-sm font-medium text-muted mb-1.5">Water resistance</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={meta.waterResistance}
-                          onChange={(e) => metaChange('waterResistance', e.target.value)}
-                          placeholder="e.g. 300m / 1000ft"
-                          maxLength={40}
-                          className={`w-full bg-canvas rounded-md px-3 py-2.5 text-sm text-ink placeholder-faint focus:outline-none shadow-sm border ${fieldBorderClass('waterResistance')} ${inputPrClass('waterResistance')}`}
-                        />
-                        <InlineConfirm field="waterResistance" />
-                      </div>
-                    </div>
-
-                    {/* Wrist size + Price */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-muted mb-1.5">Wrist size</label>
-                        <div className="flex gap-1 items-center">
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            value={meta.wristSize}
-                            onChange={(e) => metaChange('wristSize', e.target.value)}
-                            placeholder='e.g. 7.25"'
-                            className={`flex-1 min-w-0 bg-canvas rounded-md px-2 py-2.5 text-sm text-ink focus:outline-none shadow-sm border ${fieldBorderClass('wristSize')}`}
-                          />
-                          {isAiUnconfirmed('wristSize') && (
-                            <>
-                              <button type="button" onClick={() => confirmField('wristSize')} aria-label="Accept AI suggestion for wrist size" className="flex-shrink-0 w-6 h-7 flex items-center justify-center text-blue-500 hover:text-blue-700 font-bold text-sm">✓</button>
-                              <button type="button" onClick={() => rejectField('wristSize')} aria-label="Reject AI suggestion for wrist size" className="flex-shrink-0 w-6 h-7 flex items-center justify-center text-red-500 hover:text-red-700 font-bold text-sm">✕</button>
-                            </>
-                          )}
-                          {meta.aiIdentified && meta.aiFilledFields.has('wristSize') && meta.aiConfirmedFields['wristSize'] && (
-                            <span className="flex-shrink-0 w-7 h-7 flex items-center justify-center text-green-500 text-sm">✓</span>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-muted mb-1.5">Est. value</label>
-                        <div className="flex gap-1 items-center">
-                          <select
-                            value={meta.estimatedPrice}
-                            onChange={(e) => metaChange('estimatedPrice', e.target.value)}
-                            className={`flex-1 min-w-0 bg-canvas rounded-md px-2 py-2.5 text-sm text-ink focus:outline-none shadow-sm border ${fieldBorderClass('estimatedPrice')}`}
-                          >
-                            <option value="">Select...</option>
-                            {ESTIMATED_PRICE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                          </select>
-                          {isAiUnconfirmed('estimatedPrice') && (
-                            <>
-                              <button type="button" onClick={() => confirmField('estimatedPrice')} aria-label="Accept AI suggestion for estimated price" className="flex-shrink-0 w-6 h-7 flex items-center justify-center text-blue-500 hover:text-blue-700 font-bold text-sm">✓</button>
-                              <button type="button" onClick={() => rejectField('estimatedPrice')} aria-label="Reject AI suggestion for estimated price" className="flex-shrink-0 w-6 h-7 flex items-center justify-center text-red-500 hover:text-red-700 font-bold text-sm">✕</button>
-                            </>
-                          )}
-                          {meta.aiIdentified && meta.aiFilledFields.has('estimatedPrice') && meta.aiConfirmedFields['estimatedPrice'] && (
-                            <span className="flex-shrink-0 w-7 h-7 flex items-center justify-center text-green-500 text-sm">✓</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
 
                 {/* Terms */}
-                <label className="flex items-start gap-3 pt-1 cursor-pointer select-none">
+                <label className="flex items-start gap-2.5 text-sm leading-normal cursor-pointer">
                   <input
                     type="checkbox"
                     checked={termsAccepted}
                     onChange={(e) => setTermsAccepted(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-line-strong accent-ink flex-shrink-0"
+                    className="mt-px w-5 h-5 shrink-0 accent-ink"
                   />
-                  <span className="text-xs text-muted leading-relaxed">
-                    I confirm I own the rights to this photo and grant Watchems a non-exclusive licence to display it on the website. The photo is not AI-generated and has not been digitally altered to misrepresent the watch.
+                  <span className="text-muted">
+                    I confirm I own the rights to this photo and grant Watchems a non-exclusive licence to display it on the website. The photo is not AI-generated and has not been digitally altered to misrepresent the watch.{' '}
+                    <Link href="/terms" target="_blank" className="text-ink underline underline-offset-2 hover:text-muted transition-colors">Terms</Link>
                   </span>
                 </label>
-              </div>
 
+                {/* Submit */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+                  <button
+                    type="submit"
+                    disabled={!canSubmit}
+                    className={`h-[52px] px-7 rounded-full text-base font-semibold transition-colors ${
+                      canSubmit ? 'bg-ink hover:bg-ink-hover text-white' : 'bg-line text-muted cursor-not-allowed'
+                    }`}
+                  >
+                    {isUploading
+                      ? 'Uploading…'
+                      : readyCount > 1
+                      ? `Submit ${readyCount} photos for review`
+                      : 'Submit for review'}
+                  </button>
+                  <span className="text-[13px] text-muted">
+                    {!hasItems
+                      ? 'Add at least one photo to submit'
+                      : readyCount === 0
+                      ? 'All photos uploaded'
+                      : !meta.brandName.trim()
+                      ? 'Enter a brand name to submit'
+                      : !termsAccepted
+                      ? 'Confirm the terms to submit'
+                      : 'Photos are reviewed before they go live.'}
+                  </span>
+                </div>
+              </section>
             </div>
 
             <input
@@ -1204,43 +1091,6 @@ export default function UploadClient() {
               onChange={handleFileInput}
               className="hidden"
             />
-
-            {/* Sticky submit bar */}
-            {hasItems && (
-              <div className="sticky bottom-4 z-10">
-                <div className="bg-surface border border-line-strong rounded-xl p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3">
-                  <div className="text-sm text-muted text-center sm:text-left">
-                    {readyCount === 0 ? (
-                      <span className="text-faint">All photos uploaded</span>
-                    ) : !meta.brandName.trim() ? (
-                      <span className="text-faint">Enter a brand name to submit</span>
-                    ) : !termsAccepted ? (
-                      <span className="text-faint">Confirm the terms in the form to submit</span>
-                    ) : (
-                      <span>
-                        <span className="font-semibold text-ink">{readyCount}</span>{' '}
-                        photo{readyCount !== 1 ? 's' : ''} of the same watch ready to submit
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={!canSubmit}
-                    className={`w-full sm:w-auto px-6 py-3 rounded-lg font-medium transition-colors text-sm ${
-                      canSubmit
-                        ? 'bg-ink hover:bg-ink-hover text-white cursor-pointer'
-                        : 'bg-canvas text-faint cursor-not-allowed'
-                    }`}
-                  >
-                    {isUploading
-                      ? 'Uploading...'
-                      : readyCount === 1
-                      ? 'Submit 1 photo'
-                      : `Submit ${readyCount} photos`}
-                  </button>
-                </div>
-              </div>
-            )}
           </form>
         )}
 
@@ -1252,6 +1102,6 @@ export default function UploadClient() {
           />
         )}
       </div>
-    </main>
+    </div>
   )
 }

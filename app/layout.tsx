@@ -7,6 +7,7 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
+import MobileTabBar from '@/components/MobileTabBar'
 
 const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
@@ -28,6 +29,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
+  // Lets env(safe-area-inset-bottom) report the iOS home-indicator inset for the mobile tab bar
+  viewportFit: 'cover',
 }
 
 export const metadata: Metadata = {
@@ -97,6 +100,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <Navigation />
         <main className="flex-1">{children}</main>
         <Footer />
+        <MobileTabBar />
         <SpeedInsights />
         <Analytics />
       </body>

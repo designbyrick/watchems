@@ -17,6 +17,14 @@ const NAV_LINKS = [
   { href: '/dashboard/wrist-check', label: 'Wrist check' },
 ]
 
+// Gallery, Brands, Upload, Boards and the account live in MobileTabBar below lg
+const MENU_LINKS = [
+  { href: '/styles', label: 'Styles' },
+  { href: '/buying-guides', label: 'Buying guides' },
+  { href: '/dashboard/wrist-check', label: 'Wrist check' },
+  { href: '/about', label: 'About' },
+]
+
 function isActive(pathname: string, href: string) {
   if (href === '/') return pathname === '/' || pathname.startsWith('/photo/')
   if (href === '/brands') return pathname.startsWith('/brand')
@@ -39,15 +47,13 @@ const ClerkAuth = clerkEnabled
       import('@clerk/nextjs').then((mod) => {
         const { SignedIn, SignedOut, SignInButton, UserButton } = mod
         return {
-          default: ({ compact }: { compact?: boolean }) => (
+          default: () => (
             <>
               <SignedOut>
                 <SignInButton mode="modal">
                   <button
                     type="button"
-                    className={compact
-                      ? 'w-full text-left text-[15px] font-medium text-ink'
-                      : 'h-10 px-4 rounded-full border border-line text-sm font-medium text-ink hover:border-line-strong transition-colors whitespace-nowrap'}
+                    className="h-10 px-4 rounded-full border border-line text-sm font-medium text-ink hover:border-line-strong transition-colors whitespace-nowrap"
                   >
                     Sign in
                   </button>
@@ -57,7 +63,7 @@ const ClerkAuth = clerkEnabled
                 <UserButton
                   appearance={{
                     elements: {
-                      avatarBox: compact ? 'w-8 h-8' : 'w-10 h-10',
+                      avatarBox: 'w-10 h-10',
                       userButtonTrigger: 'rounded-full ring-1 ring-line focus:shadow-none',
                     },
                   }}
@@ -94,6 +100,23 @@ export default function Navigation() {
 
   // Close menu on route change
   useEffect(() => { setMenuOpen(false) }, [pathname])
+
+  // Upload is a focused flow: logo + Cancel only
+  if (pathname.startsWith('/upload')) {
+    return (
+      <header className="sticky top-0 z-50 bg-canvas/95 backdrop-blur border-b border-line">
+        <nav aria-label="Main" className="max-w-[1320px] mx-auto px-4 sm:px-8 h-14 lg:h-[72px] flex items-center gap-8">
+          <Link href="/" aria-label="Watchems home" className="shrink-0 text-ink">
+            <Logo />
+          </Link>
+          <div className="flex-1" />
+          <Link href="/" className="h-11 flex items-center text-[15px] font-medium text-muted hover:text-ink transition-colors">
+            Cancel
+          </Link>
+        </nav>
+      </header>
+    )
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-canvas/95 backdrop-blur border-b border-line">
@@ -137,17 +160,8 @@ export default function Navigation() {
           <ClerkAuth />
         </div>
 
-        {/* Mobile: add button + menu */}
+        {/* Mobile: secondary links menu */}
         <div ref={menuRef} className="relative lg:hidden flex items-center gap-2 shrink-0">
-          <Link
-            href="/upload"
-            aria-label="Add a wrist shot"
-            className="w-10 h-10 rounded-full bg-ink text-white flex items-center justify-center"
-          >
-            <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </Link>
           <button
             type="button"
             onClick={() => setMenuOpen(!menuOpen)}
@@ -167,8 +181,8 @@ export default function Navigation() {
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-60 bg-surface rounded-xl border border-line shadow-md py-2 z-50">
-              {[...NAV_LINKS, { href: '/about', label: 'About' }].map((link) => {
+            <div className="absolute right-0 top-full mt-2 w-56 bg-surface rounded-xl border border-line shadow-md py-2 z-50">
+              {MENU_LINKS.map((link) => {
                 const active = isActive(pathname, link.href)
                 return (
                   <Link
@@ -182,14 +196,6 @@ export default function Navigation() {
                   </Link>
                 )
               })}
-              {clerkEnabled && (
-                <>
-                  <div className="border-t border-line my-2" />
-                  <div className="px-4 py-1.5 flex items-center min-h-11">
-                    <ClerkAuth compact />
-                  </div>
-                </>
-              )}
             </div>
           )}
         </div>

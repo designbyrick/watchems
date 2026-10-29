@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { LEGAL_PROSE } from '@/components/ui/prose'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
@@ -11,11 +12,12 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-      <h1 className="text-4xl font-bold text-ink mb-2">Privacy Policy</h1>
-      <p className="text-faint text-sm mb-10">Last updated: March 26, 2026</p>
+    <div className="max-w-3xl mx-auto px-4 sm:px-8 pt-10 pb-16 sm:pt-14">
+      <p className="font-mono text-xs tracking-[1px] uppercase text-muted">Legal</p>
+      <h1 className="mt-2.5 text-[36px] sm:text-[44px] leading-[1.05] font-semibold tracking-[-1.8px] text-ink">Privacy Policy</h1>
+      <p className="mt-4 mb-12 font-mono text-[11px] tracking-[1px] uppercase text-faint">Last updated: March 26, 2026</p>
 
-      <div className="prose-custom space-y-8">
+      <div className={LEGAL_PROSE}>
         <section>
           <h2>1. Who we are</h2>
           <p>
@@ -105,7 +107,7 @@ export default function PrivacyPage() {
                 href="https://tools.google.com/dlpage/gaoptout"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-ink hover:text-ink-hover"
+                className="text-ink underline underline-offset-2 hover:text-muted transition-colors"
               >
                 Google Analytics opt-out browser add-on
               </a>.
@@ -176,8 +178,8 @@ export default function PrivacyPage() {
         </section>
       </div>
 
-      <div className="mt-10 pt-6 border-t border-line">
-        <Link href="/terms" className="text-ink hover:text-ink-hover text-sm font-medium">
+      <div className="mt-12 pt-6 border-t border-line">
+        <Link href="/terms" className="text-ink hover:text-muted transition-colors text-sm font-medium">
           Read our Terms of Use →
         </Link>
       </div>
