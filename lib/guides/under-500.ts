@@ -1,18 +1,4 @@
-/**
- * Best Watches Under $500 — buying guide
- * Route: /buying-guide/under-500
- */
-
-export const dynamic = 'force-dynamic'
-
-import type { Metadata } from 'next'
-import BuyingGuideTemplate, { type BuyingGuideConfig, type RankEntry } from '@/components/guide/BuyingGuideTemplate'
-
-export const metadata: Metadata = {
-  title: 'Best Watches Under $500 (2026) — 20 Picks, Ranked | Watchems',
-  description: 'The 20 most recommended watches under $500, ranked by community consensus across r/Watches, WatchUSeek, and 17 sources. Verified prices, full specs, honest trade-offs.',
-  alternates: { canonical: 'https://watchems.com/buying-guide/under-500' },
-}
+import type { BuyingGuideConfig, RankEntry } from './types'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TOP 50 RANKING — community + trusted source consensus
@@ -20,20 +6,20 @@ export const metadata: Metadata = {
 
 const RANKING: RankEntry[] = [
   { rank: 1,  brand: 'Seiko',    model: '5 Sports',                   price: '~$300', caseSize: '42.5mm', thickness: '13mm',    movement: 'Auto (4R36)',        crystal: 'Hardlex',  wr: '100m',  url: 'https://www.seikowatches.com/global-en/products/5sports' },
-  { rank: 2,  brand: 'Orient',   model: 'Bambino',                    price: '~$250', caseSize: '38–42mm', thickness: '11mm',   movement: 'Auto (F6724)',        crystal: 'Mineral',  wr: '30m',   url: 'https://orient-watch.com/en/orient/collection/classic/' },
+  { rank: 2,  brand: 'Orient',   model: 'Bambino',                    price: '~$250', caseSize: '38–42mm', thickness: '11mm',   movement: 'Auto (F6724)',        crystal: 'Mineral',  wr: '30m',   url: 'https://orient-watch.com/en/orient/collection/classic/', guideModel: 'Orient Bambino RA-AC0001S' },
   { rank: 3,  brand: 'Orient',   model: 'Kamasu',                     price: '~$375', caseSize: '41.8mm', thickness: '12.5mm',  movement: 'Auto (F6922)',        crystal: 'Sapphire', wr: '200m',  url: 'https://orient-watch.com/en/orient/collection/sports/' },
   { rank: 4,  brand: 'Seiko',    model: 'Presage Cocktail Time',      price: '~$450', caseSize: '40.5mm', thickness: '12.5mm',  movement: 'Auto (4R35)',         crystal: 'Sapphire', wr: '50m',   url: 'https://www.seikowatches.com/global-en/products/presage' },
   { rank: 5,  brand: 'Casio',    model: 'G-Shock DW-5600E',           price: '~$100', caseSize: '42.8mm', thickness: '13.4mm',  movement: 'Quartz (3232)',       crystal: 'Mineral',  wr: '200m',  url: 'https://www.casio.com/intl/watches/gshock/' },
   { rank: 6,  brand: 'Tissot',   model: 'PRX Quartz',                 price: '~$450', caseSize: '40mm',   thickness: '10.5mm',  movement: 'Quartz (ETA F06)',    crystal: 'Sapphire', wr: '100m',  url: 'https://www.tissotwatches.com/en-en/tissot-prx.html' },
   { rank: 7,  brand: 'Seiko',    model: '5 Sports (37mm)',            price: '~$200', caseSize: '37mm',   thickness: '11mm',    movement: 'Auto (7S26)',         crystal: 'Hardlex',  wr: '30m',   url: 'https://www.seikowatches.com/global-en/products/5sports' },
-  { rank: 8,  brand: 'Citizen',  model: 'Promaster Diver',            price: '~$295', caseSize: '44mm',   thickness: '14mm',    movement: 'Solar (E168)',        crystal: 'Mineral',  wr: '200m',  url: 'https://www.citizenwatch-global.com/collection/promaster/' },
+  { rank: 8,  brand: 'Citizen',  model: 'Promaster Diver',            price: '~$295', caseSize: '44mm',   thickness: '14mm',    movement: 'Solar (E168)',        crystal: 'Mineral',  wr: '200m',  url: 'https://www.citizenwatch-global.com/collection/promaster/', guideModel: 'Citizen Promaster Diver BN0150-28E' },
   { rank: 9,  brand: 'Orient',   model: 'Mako II',                    price: '~$285', caseSize: '41.5mm', thickness: '13mm',    movement: 'Auto (F6922)',        crystal: 'Mineral',  wr: '200m',  url: 'https://orient-watch.com/en/orient/collection/sports/' },
   { rank: 10, brand: 'Casio',    model: 'G-Shock GA-2100 CasiOak',   price: '~$110', caseSize: '45.4mm', thickness: '11.8mm',  movement: 'Ana-digi quartz',     crystal: 'Mineral',  wr: '200m',  url: 'https://www.casio.com/intl/watches/gshock/' },
   { rank: 11, brand: 'Seiko',    model: 'Prospex Solar Diver',        price: '~$425', caseSize: '38.5mm', thickness: '12mm',    movement: 'Solar (V157)',        crystal: 'Sapphire', wr: '200m',  url: 'https://www.seikowatches.com/global-en/products/prospex' },
-  { rank: 12, brand: 'Timex',    model: 'Marlin Automatic',           price: '~$220', caseSize: '40mm',   thickness: '11mm',    movement: 'Auto (Miyota 8215)',  crystal: 'Acrylic',  wr: '30m',   url: 'https://www.timex.com/collections/marlin' },
+  { rank: 12, brand: 'Timex',    model: 'Marlin Automatic',           price: '~$220', caseSize: '40mm',   thickness: '11mm',    movement: 'Auto (Miyota 8215)',  crystal: 'Acrylic',  wr: '30m',   url: 'https://www.timex.com/collections/marlin', guideModel: 'Timex Marlin TW2T22700' },
   { rank: 13, brand: 'Vostok',   model: 'Amphibia',                   price: '~$90',  caseSize: '40mm',   thickness: '13mm',    movement: 'Auto (2416B)',        crystal: 'Acrylic',  wr: '200m',  url: 'https://vostok-watches.ru/en/catalog/amphibia/' },
   { rank: 14, brand: 'Citizen',  model: 'Tsuyosa',                    price: '~$350', caseSize: '40mm',   thickness: '11.8mm',  movement: 'Auto (Miyota 8210)',  crystal: 'Sapphire', wr: '100m',  url: 'https://www.citizenwatch-global.com/collection/tsuyosa/' },
-  { rank: 15, brand: 'Seiko',    model: '5 Sports GMT',               price: '~$495', caseSize: '42.5mm', thickness: '14mm',    movement: 'Auto GMT (4R34)',     crystal: 'Hardlex',  wr: '100m',  url: 'https://www.seikowatches.com/global-en/products/5sports' },
+  { rank: 15, brand: 'Seiko',    model: '5 Sports GMT',               price: '~$495', caseSize: '42.5mm', thickness: '14mm',    movement: 'Auto GMT (4R34)',     crystal: 'Hardlex',  wr: '100m',  url: 'https://www.seikowatches.com/global-en/products/5sports', guideModel: 'Seiko 5 Sports GMT SSK001' },
   { rank: 16, brand: 'Seiko',    model: 'Prospex Samurai',            price: '~$395', caseSize: '43.8mm', thickness: '13mm',    movement: 'Auto (4R35)',         crystal: 'Hardlex',  wr: '200m',  url: 'https://www.seikowatches.com/global-en/products/prospex' },
   { rank: 17, brand: 'Orient',   model: 'Sun and Moon',               price: '~$450', caseSize: '42mm',   thickness: '13mm',    movement: 'Auto (F6B24)',        crystal: 'Mineral',  wr: '50m',   url: 'https://orient-watch.com/en/orient/collection/classic/' },
   { rank: 18, brand: 'Baltic',   model: 'HMS 002',                    price: '~$420', caseSize: '36.5mm', thickness: '10.5mm',  movement: 'Auto (Miyota 8215)',  crystal: 'Sapphire', wr: '50m',   url: 'https://baltic-watches.com/en/collections/hms' },
@@ -156,25 +142,20 @@ const EXTENDED_FAQ = [
 // CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 
-const config: BuyingGuideConfig = {
+export const under500: BuyingGuideConfig = {
   slug: 'under-500',
   title: 'Best Watches Under $500',
   subtitle: 'What watch buyers actually recommend under $500. No editorial agenda. Prices verified May 2026.',
+  summary: 'What watch buyers actually recommend under $500.',
+  tier: 'Under $500',
+  lastVerified: 'May 2026',
+  seoTitle: 'Best Watches Under $500 (2026) — 20 Picks, Ranked | Watchems',
+  seoDescription: 'The 20 most recommended watches under $500, ranked by community consensus across r/Watches, WatchUSeek, and 17 sources. Verified prices, full specs, honest trade-offs.',
   breadcrumbLabel: 'Under $500',
   heroImage: '/images/guides/under-500-hero.png',
-  proofStats: [
-    { stat: '20', label: 'watches ranked' },
-    { stat: '$90–$499', label: 'price range' },
-    { stat: 'May 2026', label: 'prices verified' },
-  ],
-  rankingHeading: 'Top 20 watches under $500',
-  rankingSubtitle: 'Curated by the Watchems team based on enthusiast community research. Not a live data feed. Scroll horizontally on mobile.',
   sourcesNote: 'This ranking was compiled by the Watchems team by researching recommendation frequency across 19 sources including r/Watches, WatchUSeek, Worn & Wound, Teddy Baldassarre, Two Broke Watch Snobs, Fratello Watches, HiConsumption, Gear Patrol, and Time and Tide Watches. Rank order reflects how often each model appeared across those sources — not a live data pull. The list may be updated or modified by the Watchems team at any time. Last reviewed May 2026.',
   ranking: RANKING,
   faq: EXTENDED_FAQ,
-  galleryBrands: ['Seiko', 'Orient', 'Citizen', 'Tissot', 'Timex', 'Casio', 'Vostok', 'Baltic', 'Hamilton'],
-  prevGuide: { href: '/buying-guide/under-100', label: 'Best under $100' },
-  nextGuide: { href: '/buying-guide/under-1000', label: 'Best under $1,000' },
   articleJsonLd: {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -185,8 +166,4 @@ const config: BuyingGuideConfig = {
     author: { '@type': 'Organization', name: 'Watchems Editorial', url: 'https://watchems.com' },
     publisher: { '@type': 'Organization', name: 'Watchems', url: 'https://watchems.com' },
   },
-}
-
-export default function BuyingGuideUnder500Page() {
-  return <BuyingGuideTemplate config={config} />
 }

@@ -1,18 +1,4 @@
-/**
- * Best Watches Under $1,000 — buying guide
- * Route: /buying-guide/under-1000
- */
-
-export const dynamic = 'force-dynamic'
-
-import type { Metadata } from 'next'
-import BuyingGuideTemplate, { type BuyingGuideConfig, type RankEntry } from '@/components/guide/BuyingGuideTemplate'
-
-export const metadata: Metadata = {
-  title: 'Best Watches Under $1,000 (2026) — 20 Picks, Ranked | Watchems',
-  description: 'The 20 most recommended watches under $1,000, ranked by community consensus across r/Watches, WatchUSeek, Fratello, and 5 other sources. Verified prices, full specs, honest trade-offs.',
-  alternates: { canonical: 'https://watchems.com/buying-guide/under-1000' },
-}
+import type { BuyingGuideConfig, RankEntry } from './types'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RANKING
@@ -100,24 +86,20 @@ const FAQ = [
 // CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 
-const config: BuyingGuideConfig = {
+export const under1000: BuyingGuideConfig = {
   slug: 'under-1000',
   title: 'Best Watches Under $1,000',
   subtitle: 'The most recommended watches between $500 and $1,000. Community-researched, prices verified May 2026. No sponsored picks.',
+  summary: 'The most recommended watches between $500 and $1,000.',
+  tier: '$500 – $1,000',
+  lastVerified: 'May 2026',
+  seoTitle: 'Best Watches Under $1,000 (2026) — 20 Picks, Ranked | Watchems',
+  seoDescription: 'The 20 most recommended watches under $1,000, ranked by community consensus across r/Watches, WatchUSeek, Fratello, and 5 other sources. Verified prices, full specs, honest trade-offs.',
   breadcrumbLabel: 'Under $1,000',
   heroImage: '/images/guides/under-1000-hero.png',
-  proofStats: [
-    { stat: '20', label: 'watches ranked' },
-    { stat: '$595–$995', label: 'price range' },
-    { stat: 'May 2026', label: 'prices verified' },
-  ],
-  rankingHeading: 'Top 20 watches under $1,000',
-  rankingSubtitle: 'Curated by the Watchems team based on enthusiast community research. Not a live data feed. Scroll horizontally on mobile.',
   sourcesNote: 'This ranking was compiled by the Watchems team by researching recommendation frequency across sources including r/Watches, WatchUSeek, Worn & Wound, Teddy Baldassarre, Two Broke Watch Snobs, Fratello Watches, and Gear Patrol. Rank order reflects how often each model appeared across those sources — not a live data pull. Prices verified against brand international sites and Amazon US in May 2026.',
   ranking: RANKING,
   faq: FAQ,
-  galleryBrands: ['Hamilton', 'Tissot', 'Seiko', 'Certina', 'Baltic', 'Mido', 'Bulova'],
-  prevGuide: { href: '/buying-guide/under-500', label: 'Best under $500' },
   articleJsonLd: {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -128,8 +110,4 @@ const config: BuyingGuideConfig = {
     author: { '@type': 'Organization', name: 'Watchems Editorial', url: 'https://watchems.com' },
     publisher: { '@type': 'Organization', name: 'Watchems', url: 'https://watchems.com' },
   },
-}
-
-export default function BuyingGuideUnder1000Page() {
-  return <BuyingGuideTemplate config={config} />
 }
