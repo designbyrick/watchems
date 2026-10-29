@@ -3,6 +3,7 @@ import HeroSearch from '@/components/home/HeroSearch'
 import PhotoGallery from '@/components/home/PhotoGallery'
 import UploadNudge from '@/components/home/UploadNudge'
 import type { Metadata } from 'next'
+import { serializeJsonLd } from '@/lib/jsonLd'
 
 const faqItems = [
   {
@@ -95,15 +96,15 @@ export default async function HomePage() {
       {/* JSON-LD Schemas */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(websiteJsonLd) }}
       />
 
       <main className="min-h-screen">

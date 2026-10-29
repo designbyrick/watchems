@@ -7,6 +7,7 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
+import { serializeJsonLd } from '@/lib/jsonLd'
 
 const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
@@ -66,7 +67,7 @@ function Shell({ children }: { children: React.ReactNode }) {
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationJsonLd) }}
         />
         <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://api.fontshare.com" />

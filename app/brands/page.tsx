@@ -7,6 +7,7 @@ import { db } from '@/lib/db'
 import { photos } from '@/lib/db/schema'
 import { eq, and, sql, isNotNull } from 'drizzle-orm'
 import BrandList from './BrandList'
+import { serializeJsonLd } from '@/lib/jsonLd'
 
 export const metadata: Metadata = {
   title: 'Watch Brands — Wrist Photo Gallery | Watchems',
@@ -67,11 +68,11 @@ export default async function BrandsPage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(itemListJsonLd) }}
       />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">

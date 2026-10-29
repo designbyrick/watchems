@@ -20,6 +20,13 @@ function auditLog(event: string, data: Record<string, unknown>) {
   console.log(JSON.stringify({ ts: new Date().toISOString(), event, ...data }))
 }
 
+/** Reads an optional metadata field: trimmed, length-capped, with angle brackets stripped. */
+function metaField(formData: FormData, key: string): string | null {
+  const value = formData.get(key)
+  if (typeof value !== 'string') return null
+  return sanitizeText(value.replace(/[<>]/g, ''), 120) || null
+}
+
 function validateMagicBytes(buf: Buffer): boolean {
   // JPEG
   if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return true
@@ -163,9 +170,9 @@ export async function POST(
   let photoUrl: string
 
   // Read metadata fields from formData early (needed for dedup)
-  const wristSize = formData.get('wristSize') as string | null
-  const rawBrandName = formData.get('brandName') as string | null
-  const rawModelName = formData.get('modelName') as string | null
+  const wristSize = metaField(formData, 'wristSize')
+  const rawBrandName = metaField(formData, 'brandName')
+  const rawModelName = metaField(formData, 'modelName')
 
   // Normalize brand + model server-side — fixes casing, diacritics, brand-in-model,
   // and derives a canonical watchId regardless of what the client sent.
@@ -252,20 +259,20 @@ export async function POST(
     thumbnailUrl = `/images/user-uploads/${effectiveWatchId}/${thumbFilename}`
   }
 
-  const referenceNumber = formData.get('referenceNumber') as string | null
-  const movement = formData.get('movement') as string | null
-  const caseSize = formData.get('caseSize') as string | null
-  const estimatedPrice = formData.get('estimatedPrice') as string | null
-  const lugToLug = formData.get('lugToLug') as string | null
-  const betweenLugs = formData.get('betweenLugs') as string | null
-  const thickness = formData.get('thickness') as string | null
-  const waterResistance = formData.get('waterResistance') as string | null
+  const referenceNumber = metaField(formData, 'referenceNumber')
+  const movement = metaField(formData, 'movement')
+  const caseSize = metaField(formData, 'caseSize')
+  const estimatedPrice = metaField(formData, 'estimatedPrice')
+  const lugToLug = metaField(formData, 'lugToLug')
+  const betweenLugs = metaField(formData, 'betweenLugs')
+  const thickness = metaField(formData, 'thickness')
+  const waterResistance = metaField(formData, 'waterResistance')
   // AI-detected visual characteristics (hidden from user)
-  const dialColor = formData.get('dialColor') as string | null
-  const bezelColor = formData.get('bezelColor') as string | null
-  const caseMaterial = formData.get('caseMaterial') as string | null
-  const strapType = formData.get('strapType') as string | null
-  const watchStyle = formData.get('watchStyle') as string | null
+  const dialColor = metaField(formData, 'dialColor')
+  const bezelColor = metaField(formData, 'bezelColor')
+  const caseMaterial = metaField(formData, 'caseMaterial')
+  const strapType = metaField(formData, 'strapType')
+  const watchStyle = metaField(formData, 'watchStyle')
 
   try {
     await db.insert(photos).values({
