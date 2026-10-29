@@ -6,6 +6,7 @@ import { eq, desc, or, ilike, and } from 'drizzle-orm'
 import { FaqAccordion } from '@/components/guide/FaqAccordion'
 import { VotableRankingTable } from '@/components/guide/VotableRankingTable'
 import { t } from '@/lib/styles'
+import { serializeJsonLd } from '@/lib/jsonLd'
 
 export interface RankEntry {
   rank: number
@@ -80,8 +81,8 @@ export default async function BuyingGuideTemplate({ config }: { config: BuyingGu
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(config.articleJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(config.articleJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }} />
 
       <main>
         <article>

@@ -13,6 +13,7 @@ import { or, and, ne, asc, desc, eq } from 'drizzle-orm'
 import HeroSearch from '@/components/home/HeroSearch'
 import PhotoGallery from '@/components/home/PhotoGallery'
 import SaveToBoard from '@/components/SaveToBoard'
+import { serializeJsonLd } from '@/lib/jsonLd'
 
 interface PhotoPageProps {
   params: { id: string }
@@ -213,17 +214,17 @@ export default async function PhotoPage({ params }: PhotoPageProps) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(imageJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(imageJsonLd) }}
       />
       {productJsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(productJsonLd) }}
         />
       )}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
       <main className="min-h-screen">
         <Suspense>

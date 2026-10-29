@@ -340,6 +340,10 @@ export async function POST(req: NextRequest) {
             if (thumbUrl) {
               await deletePhotoFromR2(thumbUrl)
             }
+            // Pre-crop original kept for revert — remove it as well
+            if (photoRecord.originalUrl && photoRecord.originalUrl !== url) {
+              await deletePhotoFromR2(photoRecord.originalUrl)
+            }
           }
         } catch (error) {
           console.error('Failed to delete from R2:', error)

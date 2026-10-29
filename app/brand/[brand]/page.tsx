@@ -10,6 +10,7 @@ import { photos } from '@/lib/db/schema'
 import { eq, and, asc, sql, isNotNull, ilike } from 'drizzle-orm'
 import { brands as brandDataList } from '@/lib/brandData'
 import { toWatchSlug } from '@/lib/normalizeWatch'
+import { serializeJsonLd } from '@/lib/jsonLd'
 
 interface BrandPageProps {
   params: { brand: string }
@@ -183,26 +184,26 @@ export default async function BrandPage({ params }: BrandPageProps) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(collectionPageJsonLd) }}
       />
       {faqJsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
         />
       )}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(speakableJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(speakableJsonLd) }}
       />
       {organisationJsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organisationJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(organisationJsonLd) }}
         />
       )}
 

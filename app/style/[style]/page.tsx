@@ -10,6 +10,7 @@ import { photos } from '@/lib/db/schema'
 import { eq, and, desc, sql, isNotNull, ilike } from 'drizzle-orm'
 import { buildPhotoAltText } from '@/lib/photoAlt'
 import { getStyleBySlug } from '@/lib/styleData'
+import { serializeJsonLd } from '@/lib/jsonLd'
 
 const MIN_PHOTOS_FOR_HUB = 5
 
@@ -169,16 +170,16 @@ export default async function StylePage({ params }: StylePageProps) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(collectionPageJsonLd) }}
       />
       {faqJsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
         />
       )}
 

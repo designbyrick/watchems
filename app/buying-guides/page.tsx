@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getAllGuides } from '@/lib/buyingGuides'
+import { serializeJsonLd } from '@/lib/jsonLd'
 
 const registeredGuides = getAllGuides()
 
@@ -63,8 +64,8 @@ export default function BuyingGuidesPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(itemListJsonLd) }} />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
 
