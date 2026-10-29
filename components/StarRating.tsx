@@ -15,12 +15,12 @@ export default function StarRating({ rating, size = 'md', showNumber = false }: 
     <div className="flex items-center gap-1">
       <div className="flex items-center gap-0.5">
         {Array.from({ length: fullStars }).map((_, i) => (
-          <svg key={`f${i}`} className={`${starSize} text-accent fill-current`} viewBox="0 0 24 24">
+          <svg key={`f${i}`} className={`${starSize} text-ink fill-current`} viewBox="0 0 24 24">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
         ))}
         {partial > 0 && (
-          <svg className={`${starSize} text-accent`} viewBox="0 0 24 24">
+          <svg className={`${starSize} text-ink`} viewBox="0 0 24 24">
             <defs>
               <linearGradient id={`partial-${Math.round(partial * 10)}`}>
                 <stop offset={`${partial * 100}%`} stopColor="#5C5C5C" />
@@ -34,13 +34,13 @@ export default function StarRating({ rating, size = 'md', showNumber = false }: 
           </svg>
         )}
         {Array.from({ length: emptyStars }).map((_, i) => (
-          <svg key={`e${i}`} className={`${starSize} text-border fill-current`} viewBox="0 0 24 24">
+          <svg key={`e${i}`} className={`${starSize} text-line fill-current`} viewBox="0 0 24 24">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
         ))}
       </div>
       {showNumber && (
-        <span className="text-sm text-textSecond ml-1">{rating.toFixed(1)}</span>
+        <span className="text-sm text-muted ml-1">{rating.toFixed(1)}</span>
       )}
     </div>
   )

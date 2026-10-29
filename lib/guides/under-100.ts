@@ -1,18 +1,4 @@
-/**
- * Best Watches Under $100 — buying guide
- * Route: /buying-guide/under-100
- */
-
-export const dynamic = 'force-dynamic'
-
-import type { Metadata } from 'next'
-import BuyingGuideTemplate, { type BuyingGuideConfig, type RankEntry, type FaqEntry } from '@/components/guide/BuyingGuideTemplate'
-
-export const metadata: Metadata = {
-  title: 'Best Watches Under $100 (2026) — 20 Picks, Ranked | Watchems',
-  description: 'The 20 most recommended watches under $100, ranked by community consensus across r/Watches, WatchUSeek, and enthusiast forums. Verified prices, full specs, honest trade-offs.',
-  alternates: { canonical: 'https://watchems.com/buying-guide/under-100' },
-}
+import type { BuyingGuideConfig, FaqEntry, RankEntry } from './types'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RANKING
@@ -100,24 +86,20 @@ const FAQ: FaqEntry[] = [
 // CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 
-const config: BuyingGuideConfig = {
+export const under100: BuyingGuideConfig = {
   slug: 'under-100',
   title: 'Best Watches Under $100',
   subtitle: 'What watch buyers actually recommend under $100. No editorial agenda. Prices verified May 2026.',
+  summary: 'What watch buyers actually recommend under $100.',
+  tier: 'Under $100',
+  lastVerified: 'May 2026',
+  seoTitle: 'Best Watches Under $100 (2026) — 20 Picks, Ranked | Watchems',
+  seoDescription: 'The 20 most recommended watches under $100, ranked by community consensus across r/Watches, WatchUSeek, and enthusiast forums. Verified prices, full specs, honest trade-offs.',
   breadcrumbLabel: 'Under $100',
   heroImage: '/images/guides/under-100-hero.png',
-  proofStats: [
-    { stat: '20', label: 'watches ranked' },
-    { stat: '$23–$99', label: 'price range' },
-    { stat: 'May 2026', label: 'prices verified' },
-  ],
-  rankingHeading: 'Top 20 watches under $100',
-  rankingSubtitle: 'Curated by the Watchems team based on enthusiast community research. Not a live data feed. Scroll horizontally on mobile.',
   sourcesNote: 'This ranking was compiled by the Watchems team by researching recommendation frequency across 14 sources including r/Watches, r/SuggestAWatch, WatchUSeek, Worn & Wound, Teddy Baldassarre, Two Broke Watch Snobs, HiConsumption, Gear Patrol, Cool Material, Gentleman\'s Gazette, The Time Bum, Dappered, WatchCompared, and The Modest Man. Prices verified against Casio.com, Timex.com, and Amazon in May 2026. Rank order reflects how often each model appeared across those sources — not a live data pull. The list may be updated or modified by the Watchems team at any time.',
   ranking: RANKING,
   faq: FAQ,
-  galleryBrands: ['Casio', 'Timex', 'Vostok'],
-  nextGuide: { href: '/buying-guide/under-500', label: 'Best under $500' },
   articleJsonLd: {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -128,8 +110,4 @@ const config: BuyingGuideConfig = {
     author: { '@type': 'Organization', name: 'Watchems Editorial', url: 'https://watchems.com' },
     publisher: { '@type': 'Organization', name: 'Watchems', url: 'https://watchems.com' },
   },
-}
-
-export default function BuyingGuideUnder100Page() {
-  return <BuyingGuideTemplate config={config} />
 }

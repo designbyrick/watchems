@@ -76,7 +76,7 @@ type WatchesCache = {
 let watchesCache: WatchesCache | null = null
 const WATCHES_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
-export default function GallerySearch({ onExpandChange }: { onExpandChange?: (expanded: boolean) => void } = {}) {
+export default function GallerySearch({ onExpandChange, placeholder = 'Brand, model or ref. 116600' }: { onExpandChange?: (expanded: boolean) => void; placeholder?: string } = {}) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [watches, setWatches] = useState<WatchWithCount[]>([])
@@ -102,6 +102,8 @@ export default function GallerySearch({ onExpandChange }: { onExpandChange?: (ex
   const activePriceMax = searchParams.get('priceMax')
   const activeCaseSizeMin = searchParams.get('caseSizeMin')
   const activeCaseSizeMax = searchParams.get('caseSizeMax')
+  const activeDialColor = searchParams.get('dialColor')
+  const activeWatchStyle = searchParams.get('watchStyle')
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isTypingRef = useRef(false)
@@ -116,8 +118,10 @@ export default function GallerySearch({ onExpandChange }: { onExpandChange?: (ex
     if (activePriceMax) params.set('priceMax', activePriceMax)
     if (activeCaseSizeMin) params.set('caseSizeMin', activeCaseSizeMin)
     if (activeCaseSizeMax) params.set('caseSizeMax', activeCaseSizeMax)
+    if (activeDialColor) params.set('dialColor', activeDialColor)
+    if (activeWatchStyle) params.set('watchStyle', activeWatchStyle)
     return params
-  }, [activeBrand, activeMovement, activePriceMin, activePriceMax, activeCaseSizeMin, activeCaseSizeMax])
+  }, [activeBrand, activeMovement, activePriceMin, activePriceMax, activeCaseSizeMin, activeCaseSizeMax, activeDialColor, activeWatchStyle])
 
   // Debounced URL update for free-text search
   const updateQuery = useCallback((text: string) => {
@@ -376,7 +380,9 @@ export default function GallerySearch({ onExpandChange }: { onExpandChange?: (ex
     isTypingRef.current = false
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    router.replace('/')
+    // Clear the text search only — style/dial filters have their own controls
+    const qs = buildFilterParams().toString()
+    router.replace(qs ? `/?${qs}` : '/')
     setInput('')
     setIsOpen(false)
   }
@@ -442,64 +448,64 @@ export default function GallerySearch({ onExpandChange }: { onExpandChange?: (ex
     return false
   }
 
-  const hasActiveFilters = activeBrand || activeMovement || activePriceMin || activePriceMax || activeCaseSizeMin || activeCaseSizeMax
-
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const brandChips = brands.slice(0, 8)
 
   return (
-    <div>
-      <div ref={containerRef} className="relative">
-        <div className="relative">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+    <div ref={containerRef} className="relative">
+      <form
+        role="search"
+        onSubmit={(e) => e.preventDefault()}
+        className="flex items-center gap-2.5 sm:gap-3 h-12 sm:h-[60px] rounded-full bg-surface border border-line px-4 sm:px-[22px] focus-within:border-line-strong transition-colors"
+      >
+        <svg className="w-[17px] h-[17px] sm:w-[19px] sm:h-[19px] shrink-0 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" />
+        </svg>
+        <label htmlFor="gallery-search" className="sr-only">Search by brand, model or reference</label>
+        <input
+          id="gallery-search"
+          ref={inputRef}
+          type="search"
+          placeholder={placeholder}
+          value={input}
+          onChange={(e) => {
+            // Mark as typing, reset after 600ms of no input
+            isTypingRef.current = true
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+            typingTimeoutRef.current = setTimeout(() => {
+              isTypingRef.current = false
+            }, 600)
+
+            const val = e.target.value
+            setInput(val)
+            setIsOpen(true)
+            setSelectedIndex(-1)
+            updateQuery(val)
+          }}
+          onFocus={() => {
+            setIsOpen(true)
+            setRecentSearches(getRecentSearches())
+          }}
+          onKeyDown={handleKeyDown}
+          disabled={isLoading}
+          className="flex-1 min-w-0 bg-transparent border-0 text-base text-ink placeholder:text-faint focus:outline-none disabled:opacity-50 [&::-webkit-search-cancel-button]:hidden"
+        />
+
+        {/* Clear button — visible when there is a text search */}
+        {(activeWatchId || activeQuery || input) && (
+          <button
+            type="button"
+            onClick={clearFilter}
+            className="shrink-0 -mr-2 w-9 h-9 flex items-center justify-center rounded-full text-muted hover:text-ink hover:bg-subtle transition-colors"
+            aria-label="Clear search"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" />
             </svg>
-          </div>
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="Search watches..."
-            value={input}
-            onChange={(e) => {
-              // Mark as typing, reset after 600ms of no input
-              isTypingRef.current = true
-              if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
-              typingTimeoutRef.current = setTimeout(() => {
-                isTypingRef.current = false
-              }, 600)
-
-              const val = e.target.value
-              setInput(val)
-              setIsOpen(true)
-              setSelectedIndex(-1)
-              updateQuery(val)
-            }}
-            onFocus={() => {
-              setIsOpen(true)
-              setRecentSearches(getRecentSearches())
-            }}
-            onKeyDown={handleKeyDown}
-            disabled={isLoading}
-            className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 h-9 sm:h-10 text-base sm:text-sm rounded-lg border-0 bg-gray-100 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-inset disabled:opacity-50"
-          />
-
-          {/* Clear / close button — visible when focused or has content */}
-          {(isOpen || activeWatchId || activeQuery || input || hasActiveFilters) && (
-            <button
-              type="button"
-              onClick={clearFilter}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg font-semibold"
-              aria-label="Close search"
-            >
-              ×
-            </button>
-          )}
-        </div>
-
-      </div>
-
-      {/* Filter chips — hidden for now until feature is refined */}
+          </button>
+        )}
+      </form>
     </div>
   )
 }

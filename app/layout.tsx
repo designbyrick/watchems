@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { DM_Sans } from 'next/font/google'
+import localFont from 'next/font/local'
 import Script from 'next/script'
 import { ClerkProvider } from '@clerk/nextjs'
 import { SpeedInsights } from '@vercel/speed-insights/next'
@@ -7,19 +7,30 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
+import MobileTabBar from '@/components/MobileTabBar'
 
 const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-dm-sans',
+const geistSans = localFont({
+  src: './fonts/GeistVF.woff',
+  variable: '--font-geist-sans',
+  weight: '100 900',
+  display: 'swap',
+})
+
+const geistMono = localFont({
+  src: './fonts/GeistMonoVF.woff',
+  variable: '--font-geist-mono',
+  weight: '100 900',
+  display: 'swap',
 })
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
+  // Lets env(safe-area-inset-bottom) report the iOS home-indicator inset for the mobile tab bar
+  viewportFit: 'cover',
 }
 
 export const metadata: Metadata = {
@@ -62,14 +73,12 @@ const organizationJsonLd = {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={dmSans.variable}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
-        <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://api.fontshare.com" />
         {/* Bootstrap dataLayer immediately so gtag() calls before the GA script
             loads are queued rather than lost — prevents (not set) attribution.
             Do NOT call gtag('config') here — the Script tag below handles that
@@ -80,11 +89,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           }}
         />
       </head>
-      <body className="bg-surfaceAlt text-textPrimary antialiased min-h-screen flex flex-col">
-        {/* Load Satoshi font non-blocking — was render-blocking in <head> */}
-        <Script id="satoshi-font" strategy="afterInteractive">
-          {`(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap';document.head.appendChild(l);})()`}
-        </Script>
+      <body className="bg-canvas text-ink antialiased min-h-screen flex flex-col">
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-T077JWH4E5"
           strategy="afterInteractive"
@@ -95,6 +100,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <Navigation />
         <main className="flex-1">{children}</main>
         <Footer />
+        <MobileTabBar />
         <SpeedInsights />
         <Analytics />
       </body>

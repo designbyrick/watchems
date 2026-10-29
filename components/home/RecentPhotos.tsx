@@ -31,20 +31,20 @@ export function RecentPhotos() {
   }
 
   return (
-    <section className="bg-surface border-b border-border">
+    <section className="bg-surface border-b border-line">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="flex items-end justify-between mb-8 sm:mb-12 gap-4">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-textPrimary">
+            <h2 className="text-2xl sm:text-3xl font-bold text-ink">
               Recently Added Photos
             </h2>
-            <p className="text-textSecond text-sm mt-1">
+            <p className="text-muted text-sm mt-1">
               Real watches from our community
             </p>
           </div>
           <Link
             href="/"
-            className="text-accent hover:text-accentHover transition-colors font-medium text-sm shrink-0"
+            className="text-ink hover:text-ink-hover transition-colors font-medium text-sm shrink-0"
           >
             View all →
           </Link>
@@ -57,7 +57,7 @@ export function RecentPhotos() {
               <Link
                 key={photo.id}
                 href={photo.slug ? `/photo/${photo.slug}` : `/photo/${photo.id}`}
-                className="group relative aspect-square bg-surfaceAlt rounded-sm overflow-hidden border border-border hover:border-borderStrong transition-colors"
+                className="group relative aspect-square bg-canvas rounded-sm overflow-hidden border border-line hover:border-line-strong transition-colors"
               >
                 <Image
                   src={photo.url}

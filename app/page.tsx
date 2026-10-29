@@ -11,7 +11,7 @@ const faqItems = [
   },
   {
     q: 'Can I upload my own watch photos?',
-    a: 'Yes! Click the "Upload a Photo" button to share your watch collection with the community. Sign in with your email or Google account to get started.',
+    a: 'Yes! Click "Add a wrist shot" to share your watch collection with the community. Sign in with your email or Google account to get started.',
   },
   {
     q: 'Is Watchems free to use?',
@@ -106,12 +106,12 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
       />
 
-      <main className="min-h-screen">
+      <div className="min-h-screen">
         <Suspense>
           <HeroSearch />
           <PhotoGallery />
         </Suspense>
-      </main>
+      </div>
       <UploadNudge />
     </>
   )

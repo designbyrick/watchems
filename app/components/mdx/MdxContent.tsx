@@ -19,7 +19,7 @@ const components = {
   a: ({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
     if (href?.startsWith('/')) {
       return (
-        <Link href={href} className="text-accent hover:underline" {...props}>
+        <Link href={href} className="text-ink hover:underline" {...props}>
           {children}
         </Link>
       )
@@ -27,7 +27,7 @@ const components = {
     return (
       <a
         href={href}
-        className="text-accent hover:underline"
+        className="text-ink hover:underline"
         target="_blank"
         rel="noopener noreferrer"
         {...props}
@@ -60,7 +60,7 @@ const components = {
             .replace(/(^-|-$)/g, '')
         : undefined
     return (
-      <h2 id={id} className="text-2xl font-bold text-textPrimary mt-10 mb-4" {...props}>
+      <h2 id={id} className="text-2xl font-bold text-ink mt-10 mb-4" {...props}>
         {children}
       </h2>
     )
@@ -74,32 +74,32 @@ const components = {
             .replace(/(^-|-$)/g, '')
         : undefined
     return (
-      <h3 id={id} className="text-xl font-semibold text-textPrimary mt-8 mb-3" {...props}>
+      <h3 id={id} className="text-xl font-semibold text-ink mt-8 mb-3" {...props}>
         {children}
       </h3>
     )
   },
   p: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-    <p className="text-textSecond leading-relaxed mb-4" {...props}>
+    <p className="text-muted leading-relaxed mb-4" {...props}>
       {children}
     </p>
   ),
   ul: ({ children, ...props }: React.HTMLAttributes<HTMLUListElement>) => (
-    <ul className="list-disc list-inside text-textSecond space-y-2 mb-4 ml-4" {...props}>
+    <ul className="list-disc list-inside text-muted space-y-2 mb-4 ml-4" {...props}>
       {children}
     </ul>
   ),
   ol: ({ children, ...props }: React.HTMLAttributes<HTMLOListElement>) => (
-    <ol className="list-decimal list-inside text-textSecond space-y-2 mb-4 ml-4" {...props}>
+    <ol className="list-decimal list-inside text-muted space-y-2 mb-4 ml-4" {...props}>
       {children}
     </ol>
   ),
   strong: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
-    <strong className="font-semibold text-textPrimary" {...props}>
+    <strong className="font-semibold text-ink" {...props}>
       {children}
     </strong>
   ),
-  hr: () => <hr className="border-border my-8" />,
+  hr: () => <hr className="border-line my-8" />,
 }
 
 interface MdxContentProps {

@@ -204,16 +204,16 @@ function FieldInput({
 }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <label className="text-[10px] text-textMuted font-medium uppercase tracking-wide">{label}</label>
+      <label className="text-[10px] text-faint font-medium uppercase tracking-wide">{label}</label>
       <div className="flex items-center gap-1">
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full text-xs border border-border rounded px-1.5 py-1 bg-surface text-textPrimary focus:outline-none focus:ring-1 focus:ring-blue-400"
+          className="w-full text-xs border border-line rounded px-1.5 py-1 bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-blue-400"
           placeholder="—"
         />
-        {unit && <span className="text-[10px] text-textMuted shrink-0">{unit}</span>}
+        {unit && <span className="text-[10px] text-faint shrink-0">{unit}</span>}
       </div>
     </div>
   )
@@ -450,10 +450,10 @@ function GroupedPhotoCard<T extends PendingPhoto | ApprovedPhoto>({
 
   return (
     <>
-      <div className="border border-border rounded-lg overflow-hidden bg-surface">
+      <div className="border border-line rounded-lg overflow-hidden bg-surface">
         {/* ── Collapsed header row — always visible ── */}
         <div
-          className="px-3 py-2.5 sm:px-4 sm:py-3 bg-surfaceAlt cursor-pointer select-none"
+          className="px-3 py-2.5 sm:px-4 sm:py-3 bg-canvas cursor-pointer select-none"
           onClick={() => setExpanded((v) => !v)}
         >
           <div className="flex items-center gap-2">
@@ -471,7 +471,7 @@ function GroupedPhotoCard<T extends PendingPhoto | ApprovedPhoto>({
             )}
             {/* Chevron */}
             <svg
-              className={`w-4 h-4 shrink-0 text-textMuted transition-transform ${expanded ? 'rotate-90' : ''}`}
+              className={`w-4 h-4 shrink-0 text-faint transition-transform ${expanded ? 'rotate-90' : ''}`}
               fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -483,17 +483,17 @@ function GroupedPhotoCard<T extends PendingPhoto | ApprovedPhoto>({
               <img
                 src={group.photos[0].url}
                 alt=""
-                className="w-9 h-9 rounded object-cover shrink-0 border border-border"
+                className="w-9 h-9 rounded object-cover shrink-0 border border-line"
               />
             )}
 
             {/* Title + meta */}
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-textPrimary truncate leading-tight">
+              <h3 className="text-sm font-bold text-ink truncate leading-tight">
                 {displayName || 'New Watch'}
                 {isDirty && <span className="ml-1.5 text-[10px] font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">unsaved</span>}
               </h3>
-              <p className="text-xs text-textMuted truncate">
+              <p className="text-xs text-faint truncate">
                 {group.submitterName} · {new Date(group.submittedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 {' · '}{group.photos.length} photo{group.photos.length !== 1 ? 's' : ''}
               </p>
@@ -524,8 +524,8 @@ function GroupedPhotoCard<T extends PendingPhoto | ApprovedPhoto>({
         {/* ── Expandable body ── */}
         {expanded && <>
         {/* Watch metadata — compact grid */}
-        <div className="px-3 py-2.5 sm:px-4 sm:py-3 border-t border-border">
-          <p className="text-[10px] font-semibold text-textMuted uppercase tracking-wider mb-1.5">Watch Info</p>
+        <div className="px-3 py-2.5 sm:px-4 sm:py-3 border-t border-line">
+          <p className="text-[10px] font-semibold text-faint uppercase tracking-wider mb-1.5">Watch Info</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
             <FieldInput label="Brand" value={watchMeta.brandName} onChange={(v) => onUpdateWatchMeta(group.key, 'brandName', v)} />
             <FieldInput label="Model" value={watchMeta.modelName} onChange={(v) => onUpdateWatchMeta(group.key, 'modelName', v)} />
@@ -552,7 +552,7 @@ function GroupedPhotoCard<T extends PendingPhoto | ApprovedPhoto>({
         </div>
 
         {/* Compact thumbnail grid */}
-        <div className="px-3 py-2.5 sm:px-4 sm:py-3 border-b border-border">
+        <div className="px-3 py-2.5 sm:px-4 sm:py-3 border-b border-line">
           <div ref={gridRef} className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
             {(pendingReorder ?? group.photos as (PendingPhoto | ApprovedPhoto)[]).map((photo, idx) => {
               const isActing = acting === photo.id
@@ -592,8 +592,8 @@ function GroupedPhotoCard<T extends PendingPhoto | ApprovedPhoto>({
                       : isDropTarget
                         ? 'ring-2 ring-blue-500 border-blue-500 scale-105 shadow-lg'
                         : canDrag
-                          ? 'border-border cursor-grab hover:border-blue-400 hover:ring-1 hover:ring-blue-300 hover:shadow-md'
-                          : 'border-border'
+                          ? 'border-line cursor-grab hover:border-blue-400 hover:ring-1 hover:ring-blue-300 hover:shadow-md'
+                          : 'border-line'
                   }`}
                 >
                   <button
@@ -726,7 +726,7 @@ function GroupedPhotoCard<T extends PendingPhoto | ApprovedPhoto>({
         </div>
 
         {/* Action buttons — bottom of card */}
-        <div className="px-3 py-2.5 sm:px-4 sm:py-3 bg-surfaceAlt flex flex-col gap-2">
+        <div className="px-3 py-2.5 sm:px-4 sm:py-3 bg-canvas flex flex-col gap-2">
           {/* Pending: save row (shown when dirty) */}
           {!isApproved && !isRejected && isDirty && onSaveMetadata && (
             <div className="flex items-center gap-2">
@@ -1497,7 +1497,7 @@ export default function AdminPhotosClient() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
-      <h1 className="text-xl sm:text-2xl font-bold text-textPrimary mb-6">Photo Moderation</h1>
+      <h1 className="text-xl sm:text-2xl font-bold text-ink mb-6">Photo Moderation</h1>
 
       {error && (
         <div className="mb-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs sm:text-sm">
@@ -1513,14 +1513,14 @@ export default function AdminPhotosClient() {
             placeholder="Search by brand, model, or reference #..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full text-sm border border-border rounded px-3 py-2 bg-surface text-textPrimary placeholder-textMuted focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="w-full text-sm border border-line rounded px-3 py-2 bg-surface text-ink placeholder-faint focus:outline-none focus:ring-1 focus:ring-blue-400"
             aria-label="Search watches"
           />
         </div>
         {searchQuery && (
           <button
             onClick={() => setSearchQuery('')}
-            className="px-2.5 py-2 text-xl text-textMuted hover:text-textPrimary transition-colors"
+            className="px-2.5 py-2 text-xl text-faint hover:text-ink transition-colors"
             aria-label="Clear search"
             title="Clear search"
           >
@@ -1530,13 +1530,13 @@ export default function AdminPhotosClient() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-border mb-5 overflow-x-auto">
+      <div className="flex border-b border-line mb-5 overflow-x-auto">
         <button
           onClick={() => setActiveTab('pending')}
           className={`px-3 sm:px-5 py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
             activeTab === 'pending'
               ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-textMuted hover:text-textPrimary'
+              : 'border-transparent text-faint hover:text-ink'
           }`}
         >
           Pending
@@ -1551,7 +1551,7 @@ export default function AdminPhotosClient() {
           className={`px-3 sm:px-5 py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
             activeTab === 'approved'
               ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-textMuted hover:text-textPrimary'
+              : 'border-transparent text-faint hover:text-ink'
           }`}
         >
           Approved
@@ -1566,7 +1566,7 @@ export default function AdminPhotosClient() {
           className={`px-3 sm:px-5 py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
             activeTab === 'rejected'
               ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-textMuted hover:text-textPrimary'
+              : 'border-transparent text-faint hover:text-ink'
           }`}
         >
           Rejected
@@ -1579,20 +1579,20 @@ export default function AdminPhotosClient() {
       </div>
 
       {loading ? (
-        <p className="text-textMuted text-sm">Loading...</p>
+        <p className="text-faint text-sm">Loading...</p>
       ) : (
         <>
           {activeTab === 'pending' && (
             <>
               {pendingGroups.length === 0 ? (
                 <div className="py-16 text-center">
-                  <p className="text-textSecond text-lg mb-1">All clear ✓</p>
-                  <p className="text-textMuted text-sm">No photos pending review.</p>
+                  <p className="text-muted text-lg mb-1">All clear ✓</p>
+                  <p className="text-faint text-sm">No photos pending review.</p>
                 </div>
               ) : filteredPendingGroups.length === 0 ? (
                 <div className="py-16 text-center">
-                  <p className="text-textSecond text-lg mb-1">No matches</p>
-                  <p className="text-textMuted text-sm">No watches match your search.</p>
+                  <p className="text-muted text-lg mb-1">No matches</p>
+                  <p className="text-faint text-sm">No watches match your search.</p>
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -1613,7 +1613,7 @@ export default function AdminPhotosClient() {
                           }}
                           className="w-4 h-4 accent-blue-600 cursor-pointer"
                         />
-                        <span className="text-xs font-semibold text-textMuted">
+                        <span className="text-xs font-semibold text-faint">
                           {allSelected ? 'Deselect all' : 'Select all'}
                           {selectedPhotoIds.size > 0 && ` (${selectedPhotoIds.size} selected)`}
                         </span>
@@ -1637,7 +1637,7 @@ export default function AdminPhotosClient() {
                         <div key={uid}>
                           {/* User section header */}
                           <div className="flex items-center gap-2 mb-2 px-1">
-                            <span className="text-xs font-semibold text-textMuted truncate">{userName}</span>
+                            <span className="text-xs font-semibold text-faint truncate">{userName}</span>
                             <span className="text-xs bg-amber-100 text-amber-700 font-semibold px-2 py-0.5 rounded-full shrink-0">
                               {userGroups.length} watch{userGroups.length !== 1 ? 'es' : ''} · {totalPhotos} photo{totalPhotos !== 1 ? 's' : ''}
                             </span>
@@ -1685,12 +1685,12 @@ export default function AdminPhotosClient() {
             <>
               {approvedGroups.length === 0 ? (
                 <div className="py-16 text-center">
-                  <p className="text-textSecond">No approved photos yet.</p>
+                  <p className="text-muted">No approved photos yet.</p>
                 </div>
               ) : filteredApprovedGroups.length === 0 ? (
                 <div className="py-16 text-center">
-                  <p className="text-textSecond text-lg mb-1">No matches</p>
-                  <p className="text-textMuted text-sm">No watches match your search.</p>
+                  <p className="text-muted text-lg mb-1">No matches</p>
+                  <p className="text-faint text-sm">No watches match your search.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1725,12 +1725,12 @@ export default function AdminPhotosClient() {
             <>
               {rejectedGroups.length === 0 ? (
                 <div className="py-16 text-center">
-                  <p className="text-textSecond">No rejected photos.</p>
+                  <p className="text-muted">No rejected photos.</p>
                 </div>
               ) : filteredRejectedGroups.length === 0 ? (
                 <div className="py-16 text-center">
-                  <p className="text-textSecond text-lg mb-1">No matches</p>
-                  <p className="text-textMuted text-sm">No watches match your search.</p>
+                  <p className="text-muted text-lg mb-1">No matches</p>
+                  <p className="text-faint text-sm">No watches match your search.</p>
                 </div>
               ) : (
                 <div className="space-y-3">

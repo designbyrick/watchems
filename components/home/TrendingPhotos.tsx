@@ -13,16 +13,16 @@ export default function TrendingPhotos({ photos }: TrendingPhotosProps) {
     return (
       <section className="py-12 md:py-14">
         <Container>
-          <h2 className="text-2xl sm:text-3xl font-bold text-textPrimary mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-ink mb-8">
             Trending Photos
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="aspect-square bg-surfaceAlt border border-border rounded-sm flex items-center justify-center"
+                className="aspect-square bg-canvas border border-line rounded-sm flex items-center justify-center"
               >
-                <p className="text-xs text-textMuted text-center px-2">
+                <p className="text-xs text-faint text-center px-2">
                   Be the first to upload
                 </p>
               </div>
@@ -36,7 +36,7 @@ export default function TrendingPhotos({ photos }: TrendingPhotosProps) {
   return (
     <section className="py-12 md:py-14">
       <Container>
-        <h2 className="text-2xl sm:text-3xl font-bold text-textPrimary mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-ink mb-8">
           Trending Photos
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -48,7 +48,7 @@ export default function TrendingPhotos({ photos }: TrendingPhotosProps) {
                 href={photo.slug ? `/photo/${photo.slug}` : `/photo/${photo.id}`}
                 className="group"
               >
-                <div className="relative aspect-square bg-surfaceAlt border border-border rounded-sm overflow-hidden">
+                <div className="relative aspect-square bg-canvas border border-line rounded-sm overflow-hidden">
                   <Image
                     src={photo.url}
                     alt={buildPhotoAltText(photo)}
@@ -58,7 +58,7 @@ export default function TrendingPhotos({ photos }: TrendingPhotosProps) {
                   />
                 </div>
                 <div className="mt-1.5">
-                  <p className="text-xs font-semibold text-textPrimary truncate">
+                  <p className="text-xs font-semibold text-ink truncate">
                     {watchName}
                   </p>
                 </div>

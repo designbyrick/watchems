@@ -27,10 +27,6 @@ export async function GET(req: NextRequest) {
 
   // New filter params
   const filterMovement = searchParams.get('movement')?.toLowerCase() ?? ''
-  const priceMin = searchParams.get('priceMin') ? parseInt(searchParams.get('priceMin')!) : null
-  const priceMax = searchParams.get('priceMax') ? parseInt(searchParams.get('priceMax')!) : null
-  const caseSizeMin = searchParams.get('caseSizeMin') ? parseInt(searchParams.get('caseSizeMin')!) : null
-  const caseSizeMax = searchParams.get('caseSizeMax') ? parseInt(searchParams.get('caseSizeMax')!) : null
   // Visual characteristic filters
   const filterDialColor = searchParams.get('dialColor')?.toLowerCase() ?? ''
   const filterWatchStyle = searchParams.get('watchStyle')?.toLowerCase() ?? ''
@@ -104,8 +100,6 @@ export async function GET(req: NextRequest) {
 
     const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0]
 
-    const hasActiveFilter = !!(q || brand || filterMovement || priceMin !== null || priceMax !== null || caseSizeMin !== null || caseSizeMax !== null || filterDialColor || filterWatchStyle || filterCaseMaterial || filterStrapType)
-
     // Run count query in parallel with the data query
     const [photoRecords, countResult] = await Promise.all([
       db
@@ -141,7 +135,8 @@ export async function GET(req: NextRequest) {
         .where(whereClause)
         .orderBy(desc(photos.createdAt))
         .limit(limit + 1),
-      hasActiveFilter
+      // Count on the first page only — later pages carry a cursor condition
+      !cursor
         ? db
             .select({ count: drizzleSql<number>`count(*)::int` })
             .from(photos)

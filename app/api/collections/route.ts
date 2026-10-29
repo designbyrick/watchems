@@ -7,7 +7,7 @@ import { eq, sql, desc } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
-/** GET /api/collections — list current user's collections with cover image + item count */
+/** GET /api/collections — list current user's collections with cover images + item count */
 export async function GET() {
   const { userId } = await auth()
   if (!userId) {
@@ -22,6 +22,8 @@ export async function GET() {
         createdAt: collections.createdAt,
         itemCount: sql<number>`cast(count(${collectionItems.id}) as int)`,
         coverUrl: sql<string | null>`max(coalesce(${photos.thumbnailUrl}, ${photos.url}))`,
+        // Up to 3 most recently saved images, for the board mosaic
+        coverUrls: sql<string[]>`coalesce((array_remove(array_agg(coalesce(${photos.thumbnailUrl}, ${photos.url}) order by ${collectionItems.createdAt} desc), null))[1:3], '{}')`,
       })
       .from(collections)
       .leftJoin(collectionItems, eq(collectionItems.collectionId, collections.id))

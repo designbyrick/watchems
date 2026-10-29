@@ -1,56 +1,90 @@
 'use client'
 
-import { Suspense, useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import GallerySearch from '@/components/home/GallerySearch'
+import Logo from '@/components/ui/Logo'
 
 /* Clerk is only rendered when the publishable key is configured in Vercel env vars */
 const clerkEnabled = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
+const NAV_LINKS = [
+  { href: '/', label: 'Gallery' },
+  { href: '/brands', label: 'Brands' },
+  { href: '/styles', label: 'Styles' },
+  { href: '/buying-guides', label: 'Buying guides' },
+  { href: '/dashboard/wrist-check', label: 'Wrist check' },
+]
+
+// Gallery, Brands, Upload, Boards and the account live in MobileTabBar below lg
+const MENU_LINKS = [
+  { href: '/styles', label: 'Styles' },
+  { href: '/buying-guides', label: 'Buying guides' },
+  { href: '/dashboard/wrist-check', label: 'Wrist check' },
+  { href: '/about', label: 'About' },
+]
+
+function isActive(pathname: string, href: string) {
+  if (href === '/') return pathname === '/' || pathname.startsWith('/photo/')
+  if (href === '/brands') return pathname.startsWith('/brand')
+  if (href === '/styles') return pathname.startsWith('/style')
+  if (href === '/buying-guides') return pathname.startsWith('/buying-guide')
+  return pathname.startsWith(href)
+}
+
+const dashboardIcon = (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="3" width="7.5" height="9" rx="1.5" />
+    <rect x="13.5" y="3" width="7.5" height="9" rx="1.5" />
+    <rect x="3" y="15" width="7.5" height="6" rx="1.5" />
+    <rect x="13.5" y="15" width="7.5" height="6" rx="1.5" />
+  </svg>
+)
 
 const ClerkAuth = clerkEnabled
   ? dynamic(() =>
       import('@clerk/nextjs').then((mod) => {
         const { SignedIn, SignedOut, SignInButton, UserButton } = mod
         return {
-          default: ({ avatarSize }: { avatarSize?: string }) => (
+          default: () => (
             <>
               <SignedOut>
                 <SignInButton mode="modal">
-                  <button className="text-sm text-textSecond hover:text-accent transition-colors font-medium">
-                    Sign In
+                  <button
+                    type="button"
+                    className="h-10 px-4 rounded-full border border-line text-sm font-medium text-ink hover:border-line-strong transition-colors whitespace-nowrap"
+                  >
+                    Sign in
                   </button>
                 </SignInButton>
               </SignedOut>
               <SignedIn>
-                <div className="flex items-center gap-4">
-                  <Link
-                    href="/dashboard"
-                    className="text-sm text-textSecond hover:text-accent transition-colors font-medium"
-                  >
-                    Dashboard
-                  </Link>
-                  <UserButton appearance={avatarSize ? { elements: { avatarBox: avatarSize } } : undefined} />
-                </div>
+                <UserButton
+                  appearance={{
+                    elements: {
+                      avatarBox: 'w-10 h-10',
+                      userButtonTrigger: 'rounded-full ring-1 ring-line focus:shadow-none',
+                    },
+                  }}
+                >
+                  <UserButton.MenuItems>
+                    <UserButton.Link label="My watches" labelIcon={dashboardIcon} href="/dashboard" />
+                  </UserButton.MenuItems>
+                </UserButton>
               </SignedIn>
             </>
           ),
         }
       }),
-      { ssr: false }
+      { ssr: false, loading: () => <span className="block w-10 h-10" aria-hidden="true" /> }
     )
   : () => null
 
 export default function Navigation() {
   const pathname = usePathname()
-  const isHomePage = pathname === '/'
-  const [searchExpanded, setSearchExpanded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [browseOpen, setBrowseOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-  const browseRef = useRef<HTMLDivElement>(null)
-  const handleExpandChange = useCallback((expanded: boolean) => setSearchExpanded(expanded), [])
 
   // Close mobile menu on outside click
   useEffect(() => {
@@ -64,125 +98,104 @@ export default function Navigation() {
     return () => window.removeEventListener('pointerdown', handler)
   }, [menuOpen])
 
-  // Close browse dropdown on outside click
-  useEffect(() => {
-    if (!browseOpen) return
-    const handler = (e: PointerEvent) => {
-      if (browseRef.current && !browseRef.current.contains(e.target as Node)) {
-        setBrowseOpen(false)
-      }
-    }
-    window.addEventListener('pointerdown', handler)
-    return () => window.removeEventListener('pointerdown', handler)
-  }, [browseOpen])
+  // Close menu on route change
+  useEffect(() => { setMenuOpen(false) }, [pathname])
 
-  // Close both menus on route change
-  useEffect(() => { setMenuOpen(false); setBrowseOpen(false) }, [pathname])
+  // Upload is a focused flow: logo + Cancel only
+  if (pathname.startsWith('/upload')) {
+    return (
+      <header className="sticky top-0 z-50 bg-canvas/95 backdrop-blur border-b border-line">
+        <nav aria-label="Main" className="max-w-[1320px] mx-auto px-4 sm:px-8 h-14 lg:h-[72px] flex items-center gap-8">
+          <Link href="/" aria-label="Watchems home" className="shrink-0 text-ink">
+            <Logo />
+          </Link>
+          <div className="flex-1" />
+          <Link href="/" className="h-11 flex items-center text-[15px] font-medium text-muted hover:text-ink transition-colors">
+            Cancel
+          </Link>
+        </nav>
+      </header>
+    )
+  }
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border">
-      <nav className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center gap-2 sm:gap-5">
+    <header className="sticky top-0 z-50 bg-canvas/95 backdrop-blur border-b border-line">
+      <nav aria-label="Main" className="max-w-[1320px] mx-auto px-4 sm:px-8 h-14 lg:h-[72px] flex items-center gap-8">
 
-        {/* Logo */}
-        <Link href="/" className={`shrink-0 flex items-center ${searchExpanded ? 'hidden sm:flex' : ''}`}>
-          <span className="sm:hidden text-lg font-bold text-gray-900">W</span>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Watchems" className="hidden sm:block h-6 w-auto" />
+        <Link href="/" aria-label="Watchems home" className="shrink-0 text-ink">
+          <Logo />
         </Link>
 
-        {/* Search bar — only on homepage */}
-        {isHomePage && (
-          <div className="flex-1 min-w-0">
-            <Suspense>
-              <GallerySearch onExpandChange={handleExpandChange} />
-            </Suspense>
-          </div>
-        )}
-
-        {/* Spacer when search not shown */}
-        {!isHomePage && <div className="flex-1" />}
-
-        {/* Desktop: full buttons */}
-        <div className="hidden sm:flex items-center gap-4 shrink-0">
-
-          {/* Browse dropdown */}
-          <div ref={browseRef} className="relative">
-            <button
-              type="button"
-              onClick={() => setBrowseOpen(!browseOpen)}
-              className="flex items-center gap-1 text-sm text-textSecond hover:text-accent transition-colors font-medium"
-            >
-              Explore
-              <svg xmlns="http://www.w3.org/2000/svg" className={`w-3.5 h-3.5 transition-transform ${browseOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {browseOpen && (
-              <div className="absolute left-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1.5 z-50">
-                <div className="border-t border-gray-100 my-1" />
+        {/* Desktop links */}
+        <ul className="hidden lg:flex items-center gap-6 text-[15px] font-medium">
+          {NAV_LINKS.map((link) => {
+            const active = isActive(pathname, link.href)
+            return (
+              <li key={link.href}>
                 <Link
-                  href="/buying-guides"
-                  className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  onClick={() => setBrowseOpen(false)}
+                  href={link.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`transition-colors ${active ? 'text-ink' : 'text-muted hover:text-ink'}`}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                  </svg>
-                  Buying Guides
+                  {link.label}
                 </Link>
-              </div>
-            )}
-          </div>
+              </li>
+            )
+          })}
+        </ul>
 
-          <ClerkAuth avatarSize="w-7 h-7" />
+        <div className="flex-1" />
+
+        {/* Desktop actions */}
+        <div className="hidden lg:flex items-center gap-4 shrink-0">
+          <Link
+            href="/upload"
+            className="h-11 px-[18px] rounded-full bg-ink text-white hover:bg-ink-hover transition-colors flex items-center gap-2 text-[15px] font-semibold whitespace-nowrap"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Add a wrist shot
+          </Link>
+          <ClerkAuth />
         </div>
 
-        {/* Mobile: hamburger menu */}
-        <div ref={menuRef} className={`relative sm:hidden shrink-0 ${searchExpanded ? 'hidden' : ''}`}>
+        {/* Mobile: secondary links menu */}
+        <div ref={menuRef} className="relative lg:hidden flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={() => setMenuOpen(!menuOpen)}
-            className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
-            aria-label="Menu"
+            className="w-10 h-10 rounded-full border border-line flex items-center justify-center text-ink"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
           >
             {menuOpen ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+                <path d="M6 6l12 12M18 6 6 18" />
               </svg>
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+                <path d="M4 7h16M4 12h16M4 17h16" />
               </svg>
             )}
           </button>
 
-          {/* Dropdown */}
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-              <Link
-                href="/buying-guides"
-                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                onClick={() => setMenuOpen(false)}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-                Buying Guides
-              </Link>
-              <Link
-                href="/about"
-                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                onClick={() => setMenuOpen(false)}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                About
-              </Link>
-              <div className="border-t border-gray-100 my-1" />
-              <div className="px-4 py-2.5">
-                <ClerkAuth avatarSize="w-6 h-6" />
-              </div>
+            <div className="absolute right-0 top-full mt-2 w-56 bg-surface rounded-xl border border-line shadow-md py-2 z-50">
+              {MENU_LINKS.map((link) => {
+                const active = isActive(pathname, link.href)
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    aria-current={active ? 'page' : undefined}
+                    className={`relative flex items-center h-11 px-4 text-[15px] font-medium hover:bg-canvas transition-colors ${active ? 'text-ink' : 'text-muted'}`}
+                  >
+                    {active && <span className="absolute left-0 top-2.5 bottom-2.5 w-0.5 rounded-full bg-mark" aria-hidden="true" />}
+                    {link.label}
+                  </Link>
+                )
+              })}
             </div>
           )}
         </div>

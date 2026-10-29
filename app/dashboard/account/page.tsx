@@ -6,12 +6,12 @@ export const dynamic = 'force-dynamic'
 
 export default function AccountPage() {
   return (
-    <div className="py-6 sm:py-8 px-4 sm:px-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Account Settings</h1>
-          <p className="text-gray-600 text-sm mt-1">
-            Manage your profile, email, and connected accounts.
+    <div className="px-4 sm:px-8 lg:px-10 pt-6 lg:pt-8 pb-16">
+      <div className="max-w-4xl">
+        <div className="mb-8">
+          <h1 className="text-[32px] sm:text-[40px] leading-tight font-semibold tracking-[-0.04em] text-ink">Account settings</h1>
+          <p className="mt-2 text-[15px] text-muted">
+            Manage your email, password and connected accounts.
           </p>
         </div>
 
@@ -20,7 +20,7 @@ export default function AccountPage() {
             elements: {
               rootBox: 'w-full',
               cardBox: 'w-full shadow-none',
-              card: 'w-full shadow-none border border-gray-200 rounded-lg',
+              card: 'w-full shadow-none border border-line rounded-[10px]',
               pageScrollBox: 'p-0',
             },
           }}

@@ -9,8 +9,8 @@ interface SocialActionsProps {
   photoId: string
   /** SEO slug for share URLs (falls back to photoId if not provided) */
   photoSlug?: string
-  /** 'card' = small overlay on gallery card hover, 'lightbox' = row below lightbox image */
-  variant: 'card' | 'lightbox'
+  /** 'card' = small overlay on gallery card hover, 'detail' = 52px round buttons on the photo page */
+  variant: 'card' | 'detail'
 }
 
 export default function SocialActions({ photoId, photoSlug, variant }: SocialActionsProps) {
@@ -70,34 +70,47 @@ export default function SocialActions({ photoId, photoSlug, variant }: SocialAct
     [liked, photoId, isSignedIn]
   )
 
-  const iconSize = variant === 'card' ? 14 : 16
+  const iconSize = variant === 'card' ? 14 : 20
+
+  if (variant === 'detail') {
+    return (
+      <div className="flex items-center gap-2.5" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          onClick={handleLike}
+          className={`w-[52px] h-[52px] rounded-full border border-line flex items-center justify-center transition-all hover:border-line-strong ${
+            liked ? 'text-mark' : 'text-ink'
+          } ${animating ? 'scale-110' : 'scale-100'}`}
+          aria-label={`${liked ? 'Unlike' : 'Like'}${likeCount > 0 ? ` (${likeCount} like${likeCount !== 1 ? 's' : ''})` : ''}`}
+          aria-pressed={liked}
+          title={likeCount > 0 ? `${likeCount} like${likeCount !== 1 ? 's' : ''}` : undefined}
+        >
+          <Heart size={iconSize} strokeWidth={2} fill={liked ? 'currentColor' : 'none'} />
+        </button>
+        <ShareDropdown
+          photoSlug={photoSlug ?? photoId}
+          iconSize={iconSize}
+          className="[&>button]:w-[52px] [&>button]:h-[52px] [&>button]:bg-transparent [&>button]:hover:bg-transparent [&>button]:backdrop-blur-none [&>button]:border [&>button]:border-line [&>button]:hover:border-line-strong [&>button]:text-ink"
+        />
+      </div>
+    )
+  }
 
   return (
-    <div
-      className={`flex items-center ${variant === 'card' ? 'gap-1.5' : 'gap-2'}`}
-      onClick={(e) => e.stopPropagation()}
-    >
+    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
       {/* Like */}
       <button
         type="button"
         onClick={handleLike}
-        className={`rounded-full flex items-center justify-center transition-all ${
-          variant === 'card' ? 'w-8 h-8 backdrop-blur-sm' : 'w-9 h-9'
-        } ${
-          variant === 'card'
-            ? liked
-              ? 'text-red-500 bg-black/50 hover:bg-black/70'
-              : 'text-white bg-black/50 hover:bg-black/70'
-            : liked
-              ? 'text-red-500 bg-gray-100 hover:bg-gray-200'
-              : 'text-gray-500 bg-gray-100 hover:bg-gray-200'
+        className={`rounded-full flex items-center justify-center transition-all w-8 h-8 backdrop-blur-sm bg-black/50 hover:bg-black/70 ${
+          liked ? 'text-red-500' : 'text-white'
         } ${animating ? 'scale-125' : 'scale-100'}`}
         aria-label={liked ? 'Unlike' : 'Like'}
       >
         <Heart size={iconSize} fill={liked ? 'currentColor' : 'none'} />
       </button>
       {likeCount > 0 && (
-        <span className={`text-xs font-medium ${variant === 'card' ? 'text-white drop-shadow-sm -ml-0.5 mr-0.5' : 'text-gray-600 -ml-1 mr-0.5'}`}>
+        <span className="text-xs font-medium text-white drop-shadow-sm -ml-0.5 mr-0.5">
           {likeCount}
         </span>
       )}
@@ -106,7 +119,7 @@ export default function SocialActions({ photoId, photoSlug, variant }: SocialAct
       <ShareDropdown
         photoSlug={photoSlug ?? photoId}
         iconSize={iconSize}
-        className={variant === 'card' ? '[&>button]:w-8 [&>button]:h-8' : '[&>button]:bg-gray-100 [&>button]:hover:bg-gray-200 [&>button]:text-gray-500 [&>button]:hover:text-gray-700'}
+        className="[&>button]:w-8 [&>button]:h-8"
       />
 
     </div>
