@@ -2,17 +2,17 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import EmptyState from '@/components/ui/EmptyState'
 
 interface LikedStats {
   count: number
-  coverUrl: string | null
+  coverUrls: string[]
 }
 
 interface BoardSummary {
   id: string
   name: string
   coverUrl: string | null
+  coverUrls?: string[]
   itemCount: number
   createdAt: string
 }
@@ -26,9 +26,36 @@ const SUGGESTED_BOARDS = [
   'Vintage Finds',
 ]
 
+/** 4:3 cover: one tall image on the left, two stacked on the right. Missing slots stay as quiet fills. */
+function Mosaic({ urls, alt }: { urls: string[]; alt: string }) {
+  const slots = [urls[0], urls[1], urls[2]]
+  return (
+    <div className="grid aspect-[4/3] grid-cols-[2fr_1fr] grid-rows-2 gap-[3px] overflow-hidden rounded-[10px] bg-line transition-opacity group-hover:opacity-[0.92]">
+      {slots.map((src, i) =>
+        src ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={i}
+            src={src}
+            alt={i === 0 ? alt : ''}
+            loading="lazy"
+            className={`block h-full w-full object-cover ${i === 0 ? 'row-span-2' : ''}`}
+          />
+        ) : (
+          <div key={i} className={`bg-subtle ${i === 0 ? 'row-span-2' : ''}`} />
+        )
+      )}
+    </div>
+  )
+}
+
+function countLabel(n: number) {
+  return `${n} ${n === 1 ? 'watch' : 'watches'}`
+}
+
 export default function CollectionsClient() {
   const [boards, setBoards] = useState<BoardSummary[]>([])
-  const [liked, setLiked] = useState<LikedStats>({ count: 0, coverUrl: null })
+  const [liked, setLiked] = useState<LikedStats>({ count: 0, coverUrls: [] })
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
@@ -51,10 +78,10 @@ export default function CollectionsClient() {
       }
       if (likedRes.ok) {
         const data = await likedRes.json()
-        const photos = data.photos || []
+        const photos: { thumbnailUrl: string | null; url: string }[] = data.photos || []
         setLiked({
           count: photos.length,
-          coverUrl: photos[0]?.thumbnailUrl || photos[0]?.url || null,
+          coverUrls: photos.slice(0, 3).map((p) => p.thumbnailUrl || p.url),
         })
       }
     } catch (err) {
@@ -131,268 +158,199 @@ export default function CollectionsClient() {
     }
   }
 
+  function cancelCreate() {
+    setShowCreate(false)
+    setNewName('')
+  }
+
   const existingNames = new Set(boards.map((b) => b.name.toLowerCase()))
   const availableSuggestions = SUGGESTED_BOARDS.filter((s) => !existingNames.has(s.toLowerCase()))
 
   return (
-    <div className="py-6 sm:py-8 px-4 sm:px-6">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Collections</h1>
-            <p className="text-gray-600 text-sm mt-1">
-              Save and organize watch photos into collections.
-            </p>
-          </div>
+    <div className="px-4 py-8 sm:px-8 lg:px-10 lg:pb-16">
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[32px] font-semibold leading-tight tracking-[-0.04em] text-ink sm:text-[40px]">Collections</h1>
+          <p className="mt-2 text-[15px] text-muted">Save watches into themed boards. Only you can see them.</p>
+        </div>
+        {!showCreate && (
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors shrink-0 text-center w-full sm:w-auto"
+            className="flex h-12 items-center gap-2 rounded-full bg-ink px-5 text-[15px] font-semibold text-white transition-colors hover:bg-ink-hover"
           >
-            Create Collection
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            New collection
           </button>
-        </div>
+        )}
+      </div>
 
-        {/* Create board inline form */}
-        {showCreate && (
-          <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-            <div className="flex flex-col sm:flex-row gap-3">
+      {/* Inline create form */}
+      {showCreate && (
+        <form
+          onSubmit={(e) => { e.preventDefault(); handleCreate() }}
+          className="mt-5 max-w-[640px] rounded-[10px] border border-line bg-surface p-4"
+        >
+          <div className="flex flex-wrap items-end gap-2.5">
+            <div className="min-w-0 flex-[1_1_260px]">
+              <label htmlFor="board-name" className="mb-1.5 block text-[13px] font-medium text-ink">Collection name</label>
               <input
+                id="board-name"
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="Collection name..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                onKeyDown={(e) => { if (e.key === 'Escape') cancelCreate() }}
+                placeholder="e.g. Grail divers"
                 maxLength={100}
                 autoFocus
-                onKeyDown={(e) => { if (e.key === 'Enter') handleCreate() }}
+                className="h-11 w-full rounded-md border border-line bg-surface px-3 text-[15px] text-ink placeholder:text-faint focus:border-ink focus:outline-none"
               />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleCreate()}
-                  disabled={creating || !newName.trim()}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm"
-                >
-                  {creating ? 'Creating...' : 'Create'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setShowCreate(false); setNewName('') }}
-                  className="text-gray-600 hover:text-gray-800 font-medium py-2 px-3 rounded-lg transition-colors text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
             </div>
-            {/* Suggested boards */}
-            {availableSuggestions.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-gray-100">
-                <p className="text-xs text-gray-500 mb-2">Suggestions:</p>
-                <div className="flex flex-wrap gap-2">
-                  {availableSuggestions.map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      onClick={() => handleCreate(suggestion)}
-                      disabled={creating}
-                      className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-blue-50 hover:text-blue-600 rounded-full transition-colors"
-                    >
-                      + {suggestion}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Content */}
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="aspect-[4/3] rounded-xl bg-gray-200 animate-pulse" />
-            ))}
-          </div>
-        ) : boards.length === 0 ? (
-          <>
-            {/* Liked Watches always visible */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-              <Link
-                href="/dashboard/liked"
-                className="group block rounded-xl overflow-hidden border border-gray-200 hover:border-red-300 hover:shadow-sm transition-all bg-white"
-              >
-                <div className="aspect-[4/3] bg-gradient-to-br from-red-50 to-pink-50 relative overflow-hidden">
-                  {liked.coverUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={liked.coverUrl} alt="Liked Watches" className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-red-300">
-                      <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" /></svg>
-                    </div>
-                  )}
-                </div>
-                <div className="p-3">
-                  <p className="text-sm font-semibold text-gray-900">Liked Watches</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{liked.count} {liked.count === 1 ? 'photo' : 'photos'}</p>
-                </div>
-              </Link>
-            </div>
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="p-4 sm:p-6">
-                <EmptyState
-                  icon="📋"
-                  title="No custom collections yet"
-                  message="Create a collection to organize saved watch photos. Browse the gallery and tap the bookmark icon to save."
-                  actionText="Create Your First Collection"
-                  actionStyle="blue"
-                  onAction={() => setShowCreate(true)}
-                />
-                {availableSuggestions.length > 0 && (
-                  <div className="flex flex-wrap justify-center gap-2 -mt-6 pb-4">
-                    {availableSuggestions.slice(0, 4).map((suggestion) => (
-                      <button
-                        key={suggestion}
-                        type="button"
-                        onClick={() => handleCreate(suggestion)}
-                        disabled={creating}
-                        className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-blue-50 hover:text-blue-600 rounded-full transition-colors"
-                      >
-                        + {suggestion}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {/* Liked Watches — system collection */}
-            <Link
-              href="/dashboard/liked"
-              className="group block rounded-xl overflow-hidden border border-gray-200 hover:border-red-300 hover:shadow-sm transition-all bg-white"
+            <button
+              type="button"
+              onClick={cancelCreate}
+              className="h-11 rounded-full border border-line px-4 text-sm font-semibold text-ink transition-colors hover:bg-subtle"
             >
-              <div className="aspect-[4/3] bg-gradient-to-br from-red-50 to-pink-50 relative overflow-hidden">
-                {liked.coverUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={liked.coverUrl}
-                    alt="Liked Watches"
-                    className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-red-300">
-                    <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-              <div className="p-3">
-                <p className="text-sm font-semibold text-gray-900">Liked Watches</p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {liked.count} {liked.count === 1 ? 'photo' : 'photos'}
-                </p>
-              </div>
-            </Link>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={creating || !newName.trim()}
+              className="h-11 rounded-full bg-ink px-[18px] text-sm font-semibold text-white transition-colors hover:bg-ink-hover disabled:opacity-50"
+            >
+              {creating ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+          {availableSuggestions.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
+              {availableSuggestions.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() => handleCreate(suggestion)}
+                  disabled={creating}
+                  className="h-8 rounded-full bg-subtle px-3 text-[13px] font-medium text-muted transition-colors hover:bg-line hover:text-ink"
+                >
+                  + {suggestion}
+                </button>
+              ))}
+            </div>
+          )}
+        </form>
+      )}
 
-            {boards.map((board) => (
-              <div key={board.id} className="group relative rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all bg-white">
-                {/* Rename inline form */}
+      {/* Boards */}
+      {loading ? (
+        <div className="mt-7 grid grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))] gap-x-5 gap-y-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i}>
+              <div className="aspect-[4/3] animate-pulse rounded-[10px] bg-subtle" />
+              <div className="mt-3 h-5 w-1/2 animate-pulse rounded bg-subtle" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-7 grid grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))] gap-x-5 gap-y-8">
+          {/* Liked Watches — system collection, always first */}
+          <Link href="/dashboard/liked" className="group block min-w-0">
+            <Mosaic urls={liked.coverUrls} alt="Liked Watches" />
+            <div className="mt-3 flex items-baseline justify-between gap-2">
+              <span className="truncate text-lg font-semibold tracking-[-0.02em] text-ink">Liked Watches</span>
+              <span className="shrink-0 font-mono text-xs text-muted">{countLabel(liked.count)}</span>
+            </div>
+          </Link>
+
+          {boards.map((board) => {
+            const covers = board.coverUrls ?? (board.coverUrl ? [board.coverUrl] : [])
+            return (
+              <div key={board.id} className="group relative min-w-0">
+                <Link href={`/dashboard/boards/${board.id}`} className="block">
+                  <Mosaic urls={covers} alt={board.name} />
+                </Link>
+
                 {renaming === board.id ? (
-                  <div className="p-3">
+                  <form
+                    onSubmit={(e) => { e.preventDefault(); handleRename(board.id) }}
+                    className="mt-3 flex items-center gap-2"
+                  >
                     <input
                       type="text"
                       value={renameName}
                       onChange={(e) => setRenameName(e.target.value)}
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      onKeyDown={(e) => { if (e.key === 'Escape') setRenaming(null) }}
                       maxLength={100}
                       autoFocus
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleRename(board.id); if (e.key === 'Escape') setRenaming(null) }}
+                      aria-label="Collection name"
+                      className="h-9 min-w-0 flex-1 rounded-md border border-line bg-surface px-2.5 text-[15px] text-ink focus:border-ink focus:outline-none"
                     />
-                    <div className="flex gap-2 mt-2">
-                      <button type="button" onClick={() => handleRename(board.id)} disabled={saving} className="text-xs text-blue-600 font-medium">Save</button>
-                      <button type="button" onClick={() => setRenaming(null)} className="text-xs text-gray-500 font-medium">Cancel</button>
-                    </div>
-                  </div>
+                    <button type="button" onClick={() => setRenaming(null)} className="h-9 px-2 text-[13px] font-semibold text-muted hover:text-ink">Cancel</button>
+                    <button type="submit" disabled={saving} className="h-9 rounded-full bg-ink px-3.5 text-[13px] font-semibold text-white hover:bg-ink-hover disabled:opacity-50">Save</button>
+                  </form>
                 ) : (
-                  <>
-                    <Link href={`/dashboard/boards/${board.id}`}>
-                      <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden rounded-t-xl">
-                        {board.coverUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={board.coverUrl}
-                            alt={board.name}
-                            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-300">
-                            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
-                    </Link>
-                    <div className="p-3 flex items-start justify-between gap-2">
-                      <Link href={`/dashboard/boards/${board.id}`} className="min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">{board.name}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {board.itemCount} {board.itemCount === 1 ? 'photo' : 'photos'}
-                        </p>
-                      </Link>
-                      {/* Three-dot menu */}
-                      <div className="relative shrink-0" ref={menuOpen === board.id ? menuRef : undefined}>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.preventDefault(); setMenuOpen(menuOpen === board.id ? null : board.id) }}
-                          className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
-                          aria-label="Collection options"
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                          </svg>
-                        </button>
-                        {menuOpen === board.id && (
-                          <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setRenaming(board.id)
-                                setRenameName(board.name)
-                                setMenuOpen(null)
-                              }}
-                              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                            >
-                              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-                              </svg>
-                              Rename
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => { setMenuOpen(null); handleDelete(board.id) }}
-                              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                              </svg>
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </>
+                  <Link href={`/dashboard/boards/${board.id}`} className="mt-3 flex items-baseline justify-between gap-2">
+                    <span className="truncate text-lg font-semibold tracking-[-0.02em] text-ink">{board.name}</span>
+                    <span className="shrink-0 font-mono text-xs text-muted">{countLabel(board.itemCount)}</span>
+                  </Link>
                 )}
+
+                {/* Options menu, over the cover */}
+                <div className="absolute right-2 top-2" ref={menuOpen === board.id ? menuRef : undefined}>
+                  <button
+                    type="button"
+                    onClick={() => setMenuOpen(menuOpen === board.id ? null : board.id)}
+                    className={`flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-ink shadow-sm transition-opacity hover:bg-white focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:hover)]:opacity-0 ${menuOpen === board.id ? '!opacity-100' : ''}`}
+                    aria-label={`Options for ${board.name}`}
+                    aria-expanded={menuOpen === board.id}
+                  >
+                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                      <path d="M4 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM8.5 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM13 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" />
+                    </svg>
+                  </button>
+                  {menuOpen === board.id && (
+                    <div className="absolute right-0 top-full z-50 mt-1 w-36 rounded-lg border border-line bg-surface py-1 shadow-md">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRenaming(board.id)
+                          setRenameName(board.name)
+                          setMenuOpen(null)
+                        }}
+                        className="w-full px-3 py-2 text-left text-sm text-ink hover:bg-subtle"
+                      >
+                        Rename
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setMenuOpen(null); handleDelete(board.id) }}
+                        className="w-full px-3 py-2 text-left text-sm text-mark hover:bg-subtle"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            )
+          })}
+
+          {/* Nudge when only the Liked board exists */}
+          {boards.length === 0 && !showCreate && (
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="group flex min-w-0 flex-col text-left"
+            >
+              <span className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 rounded-[10px] border border-dashed border-line-strong px-6 text-center transition-colors group-hover:border-ink">
+                <span className="text-[15px] font-semibold text-ink">Start a collection</span>
+                <span className="text-[13px] text-muted">Group saved watches by theme. Tap the bookmark on any photo to save it.</span>
+              </span>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

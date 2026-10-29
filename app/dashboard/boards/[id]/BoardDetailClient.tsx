@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import EmptyState from '@/components/ui/EmptyState'
 
 interface BoardPhoto {
   id: string
@@ -23,6 +22,10 @@ interface BoardData {
   name: string
   createdAt: string
   photos: BoardPhoto[]
+}
+
+function unslugify(slug: string) {
+  return slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
 export default function BoardDetailClient({ boardId }: { boardId: string }) {
@@ -101,16 +104,21 @@ export default function BoardDetailClient({ boardId }: { boardId: string }) {
     }
   }
 
+  const gridClass = 'mt-7 grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(232px,1fr))] sm:gap-x-5 sm:gap-y-9'
+
   if (loading) {
     return (
-      <div className="py-6 sm:py-8 px-4 sm:px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-6" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="aspect-square rounded-xl bg-gray-200 animate-pulse" />
-            ))}
-          </div>
+      <div className="px-4 py-8 sm:px-8 lg:px-10 lg:pb-16">
+        <div className="h-4 w-28 animate-pulse rounded bg-subtle" />
+        <div className="mt-4 h-10 w-64 animate-pulse rounded bg-subtle" />
+        <div className={gridClass}>
+          {[...Array(8)].map((_, i) => (
+            <div key={i} aria-hidden="true">
+              <div className="aspect-[4/5] animate-pulse rounded-md bg-subtle" />
+              <div className="mt-3 h-2.5 w-16 animate-pulse rounded bg-subtle" />
+              <div className="mt-2 h-3.5 w-3/4 animate-pulse rounded bg-subtle" />
+            </div>
+          ))}
         </div>
       </div>
     )
@@ -118,142 +126,152 @@ export default function BoardDetailClient({ boardId }: { boardId: string }) {
 
   if (error || !board) {
     return (
-      <div className="py-6 sm:py-8 px-4 sm:px-6">
-        <div className="max-w-5xl mx-auto">
-          <EmptyState
-            icon="404"
-            title="Collection not found"
-            message="This collection doesn't exist or you don't have access."
-            actionUrl="/dashboard/boards"
-            actionText="Back to Collections"
-          />
+      <div className="px-4 py-8 sm:px-8 lg:px-10 lg:pb-16">
+        <div className="mx-auto max-w-md py-16 text-center">
+          <h1 className="text-2xl font-semibold tracking-[-0.03em] text-ink">Collection not found</h1>
+          <p className="mt-2 text-[15px] text-muted">This collection doesn&apos;t exist or you don&apos;t have access.</p>
+          <Link
+            href="/dashboard/boards"
+            className="mt-6 inline-flex h-11 items-center rounded-full bg-ink px-5 text-sm font-semibold text-white hover:bg-ink-hover"
+          >
+            Back to collections
+          </Link>
         </div>
       </div>
     )
   }
 
+  const count = board.photos.length
+
   return (
-    <div className="py-6 sm:py-8 px-4 sm:px-6">
-      <div className="max-w-5xl mx-auto">
-        {/* Back link */}
-        <Link
-          href="/dashboard/boards"
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors mb-4"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          All Collections
-        </Link>
+    <div className="px-4 py-8 sm:px-8 lg:px-10 lg:pb-16">
+      {/* Back link */}
+      <Link
+        href="/dashboard/boards"
+        className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[1px] text-muted transition-colors hover:text-ink"
+      >
+        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+        Collections
+      </Link>
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="flex-1 min-w-0">
-            {editing ? (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  maxLength={100}
-                  autoFocus
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') setEditing(false) }}
-                />
-                <button
-                  type="button"
-                  onClick={handleRename}
-                  disabled={saving}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEditing(false); setEditName(board.name) }}
-                  className="text-sm text-gray-500 hover:text-gray-700"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-gray-900 truncate">{board.name}</h1>
-                <button
-                  type="button"
-                  onClick={() => setEditing(true)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors shrink-0"
-                  aria-label="Rename collection"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-                  </svg>
-                </button>
-              </div>
-            )}
-            <p className="text-gray-500 text-sm mt-1">
-              {board.photos.length} {board.photos.length === 1 ? 'photo' : 'photos'}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleDeleteBoard}
-            disabled={deleting}
-            className="text-sm text-red-500 hover:text-red-700 font-medium transition-colors shrink-0"
-          >
-            {deleting ? 'Deleting...' : 'Delete Collection'}
-          </button>
-        </div>
-
-        {/* Photos grid */}
-        {board.photos.length === 0 ? (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="p-4 sm:p-6">
-              <EmptyState
-                icon="📌"
-                title="This collection is empty"
-                message="Save photos from the gallery by tapping the bookmark icon on any photo."
-                actionUrl="/"
-                actionText="Browse Gallery"
+      {/* Header */}
+      <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          {editing ? (
+            <form
+              onSubmit={(e) => { e.preventDefault(); handleRename() }}
+              className="flex max-w-[640px] flex-wrap items-center gap-2"
+            >
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Escape') { setEditing(false); setEditName(board.name) } }}
+                maxLength={100}
+                autoFocus
+                aria-label="Collection name"
+                className="h-12 min-w-0 flex-[1_1_240px] rounded-md border border-line bg-surface px-3 text-xl font-semibold text-ink focus:border-ink focus:outline-none"
               />
+              <button
+                type="button"
+                onClick={() => { setEditing(false); setEditName(board.name) }}
+                className="h-11 rounded-full border border-line px-4 text-sm font-semibold text-ink hover:bg-subtle"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="h-11 rounded-full bg-ink px-[18px] text-sm font-semibold text-white hover:bg-ink-hover disabled:opacity-50"
+              >
+                Save
+              </button>
+            </form>
+          ) : (
+            <div className="flex items-center gap-2">
+              <h1 className="min-w-0 break-words text-[32px] font-semibold leading-tight tracking-[-0.04em] text-ink sm:text-[40px]">{board.name}</h1>
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-faint transition-colors hover:bg-subtle hover:text-ink"
+                aria-label="Rename collection"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                </svg>
+              </button>
             </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {board.photos.map((photo) => (
-              <div key={photo.id} className="group relative rounded-xl overflow-hidden border border-gray-100 hover:border-gray-300 transition-colors bg-white">
-                <Link href={`/photo/${photo.slug ?? photo.id}`}>
-                  <div className="aspect-square bg-gray-50">
+          )}
+          <p className="mt-2 font-mono text-xs text-muted">
+            {count} {count === 1 ? 'watch' : 'watches'} · Only you can see this
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleDeleteBoard}
+          disabled={deleting}
+          className="h-11 shrink-0 rounded-full border border-line px-4 text-sm font-semibold text-mark transition-colors hover:border-mark disabled:opacity-50"
+        >
+          {deleting ? 'Deleting…' : 'Delete collection'}
+        </button>
+      </div>
+
+      {/* Photos grid */}
+      {count === 0 ? (
+        <div className="mt-7 flex flex-col items-center rounded-[10px] border border-dashed border-line-strong px-6 py-16 text-center">
+          <p className="text-[17px] font-semibold text-ink">This collection is empty</p>
+          <p className="mt-1.5 max-w-sm text-sm text-muted">Tap the bookmark on any photo in the gallery to save it here.</p>
+          <Link
+            href="/"
+            className="mt-5 inline-flex h-11 items-center rounded-full bg-ink px-5 text-sm font-semibold text-white hover:bg-ink-hover"
+          >
+            Browse the gallery
+          </Link>
+        </div>
+      ) : (
+        <div className={gridClass}>
+          {board.photos.map((photo) => {
+            const title = photo.modelName || photo.referenceNumber || unslugify(photo.watchId)
+            return (
+              <article key={photo.id} className="group relative min-w-0">
+                <Link href={`/photo/${photo.slug ?? photo.id}`} className="block">
+                  <div className="aspect-[4/5] overflow-hidden rounded-md bg-surface">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={photo.thumbnailUrl || photo.url}
-                      alt={`${photo.brandName || 'Watch'} ${photo.modelName || ''} by ${photo.userName}`}
-                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                      alt={`${photo.brandName || 'Watch'} ${photo.modelName || ''} by ${photo.userName}`.replace(/\s+/g, ' ')}
+                      className="block h-full w-full object-cover transition-transform duration-[350ms] ease-out group-hover:scale-[1.035]"
                       loading="lazy"
                     />
                   </div>
-                </Link>
-                <div className="p-2 flex items-center justify-between gap-1">
-                  <p className="text-xs text-gray-700 truncate flex-1">
-                    {[photo.brandName, photo.modelName].filter(Boolean).join(' ') || 'Watch photo'}
+                  {photo.brandName && (
+                    <p className="mt-2 truncate font-mono text-[10.5px] uppercase tracking-[0.8px] text-muted sm:mt-3 sm:text-[11px] sm:tracking-[1px]">
+                      {photo.brandName}
+                    </p>
+                  )}
+                  <p className={`${photo.brandName ? 'mt-[3px] sm:mt-1' : 'mt-2 sm:mt-3'} text-[15px] font-semibold leading-[1.25] tracking-[-0.2px] text-ink sm:text-[17px]`}>
+                    {title}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => handleRemovePhoto(photo.id)}
-                    disabled={removing === photo.id}
-                    className="text-gray-300 hover:text-red-500 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
-                    aria-label="Remove from collection"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => handleRemovePhoto(photo.id)}
+                  disabled={removing === photo.id}
+                  className="absolute right-2.5 top-2.5 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-ink shadow-sm transition-opacity hover:bg-white focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-50 [@media(hover:hover)]:opacity-0"
+                  aria-label="Remove from collection"
+                  title="Remove from collection"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
+                    <path d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </article>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
