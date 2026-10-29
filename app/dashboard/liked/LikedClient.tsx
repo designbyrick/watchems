@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import EmptyState from '@/components/ui/EmptyState'
+import DashboardEmpty from '../DashboardEmpty'
 
 interface LikedPhoto {
   likeId: string
@@ -47,72 +47,65 @@ export default function LikedClient() {
   }
 
   return (
-    <div className="py-6 sm:py-8 px-4 sm:px-6">
-      <div className="max-w-5xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Liked Watches</h1>
-          <p className="text-gray-600 text-sm mt-1">
-            Photos you liked across the gallery.
-          </p>
-        </div>
+    <div className="px-4 sm:px-8 lg:px-10 pt-6 lg:pt-8 pb-16">
+      <h1 className="text-[32px] sm:text-[40px] leading-tight font-semibold tracking-[-0.04em] text-ink">Liked</h1>
+      <p className="mt-2 text-[15px] text-muted">Wrist shots you liked across the gallery.</p>
 
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="aspect-square rounded-xl bg-gray-200 animate-pulse" />
-            ))}
-          </div>
-        ) : photos.length === 0 ? (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="p-4 sm:p-6">
-              <EmptyState
-                icon="❤️"
-                title="No liked watches yet"
-                message="Tap the heart icon on any photo in the gallery to save it here."
-                actionUrl="/"
-                actionText="Browse Gallery"
-                actionStyle="blue"
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {photos.map((photo) => (
-              <div key={photo.likeId} className="group relative rounded-xl overflow-hidden border border-gray-100 hover:border-gray-300 transition-colors bg-white">
-                <Link href={`/photo/${photo.slug ?? photo.photoId}`}>
-                  <div className="aspect-square bg-gray-50">
+      {loading ? (
+        <div className="mt-8 grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-x-3 gap-y-6 sm:gap-x-[18px] sm:gap-y-7">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="aspect-[4/5] rounded-md bg-subtle animate-pulse" />
+          ))}
+        </div>
+      ) : photos.length === 0 ? (
+        <DashboardEmpty
+          title="No liked watches yet"
+          message="Tap the heart on any wrist shot in the gallery and it shows up here."
+          actionUrl="/"
+          actionText="Browse the gallery"
+        />
+      ) : (
+        <div className="mt-8 grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-x-3 gap-y-6 sm:gap-x-[18px] sm:gap-y-7">
+          {photos.map((photo) => {
+            const name = [photo.brandName, photo.modelName].filter(Boolean).join(' ') || 'Watch'
+            return (
+              <article key={photo.likeId} className="group relative min-w-0">
+                <Link
+                  href={`/photo/${photo.slug ?? photo.photoId}`}
+                  className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-4 focus-visible:ring-offset-canvas"
+                >
+                  <div className="aspect-[4/5] overflow-hidden rounded-md bg-surface">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={photo.thumbnailUrl || photo.url}
-                      alt={`${photo.brandName || 'Watch'} ${photo.modelName || ''}`}
-                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                      alt={name}
+                      className="block w-full h-full object-cover transition-transform duration-[350ms] ease-out group-hover:scale-[1.035]"
                       loading="lazy"
                     />
                   </div>
+                  {photo.brandName && (
+                    <p className="mt-2.5 font-mono text-[11px] tracking-[1px] uppercase text-muted truncate">{photo.brandName}</p>
+                  )}
+                  <p className={`${photo.brandName ? 'mt-[3px]' : 'mt-2.5'} text-base leading-snug font-semibold text-ink`}>
+                    {photo.modelName || name}
+                  </p>
+                  <p className="mt-0.5 text-[13px] text-faint truncate">by {photo.userName}</p>
                 </Link>
-                <div className="p-2 flex items-center justify-between gap-1">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-900 truncate">
-                      {[photo.brandName, photo.modelName].filter(Boolean).join(' ') || 'Watch'}
-                    </p>
-                    <p className="text-[11px] text-gray-500 truncate">by {photo.userName}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleUnlike(photo.photoId)}
-                    className="text-red-400 hover:text-red-600 transition-colors shrink-0"
-                    aria-label="Unlike"
-                  >
-                    <svg className="w-4 h-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                <button
+                  type="button"
+                  onClick={() => handleUnlike(photo.photoId)}
+                  className="absolute top-2.5 right-2.5 w-11 h-11 rounded-full bg-surface/95 text-mark hover:bg-surface flex items-center justify-center shadow-sm transition-colors"
+                  aria-label={`Unlike ${name}`}
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                  </svg>
+                </button>
+              </article>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
