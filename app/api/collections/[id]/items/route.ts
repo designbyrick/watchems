@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import crypto from 'crypto'
 import { db } from '@/lib/db'
-import { collectionItems, collections } from '@/lib/db/schema'
+import { collectionItems, collections, photos } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
@@ -28,10 +28,26 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   }
 
   try {
-    const body = await req.json()
-    const photoId = typeof body.photoId === 'string' ? body.photoId : ''
+    let body: unknown
+    try {
+      body = await req.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+    const rawPhotoId = (body as { photoId?: unknown } | null)?.photoId
+    const photoId = typeof rawPhotoId === 'string' ? rawPhotoId : ''
     if (!photoId) {
       return NextResponse.json({ error: 'photoId is required' }, { status: 400 })
+    }
+
+    // Only approved photos can be saved to a board
+    const photo = await db
+      .select({ id: photos.id })
+      .from(photos)
+      .where(and(eq(photos.id, photoId), eq(photos.status, 'approved')))
+      .limit(1)
+    if (photo.length === 0) {
+      return NextResponse.json({ error: 'Photo not found' }, { status: 404 })
     }
 
     await db.insert(collectionItems).values({

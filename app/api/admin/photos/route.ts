@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!checkAdmin(userId)) {
-    return NextResponse.json({ error: 'Forbidden', yourUserId: userId }, { status: 403 })
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   const statusParam = req.nextUrl.searchParams.get('status')
@@ -125,7 +125,15 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!checkAdmin(userId)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const body = (await req.json()) as { action: 'approve' | 'bulk-approve' | 'user-approve' | 'delete' | 'reject' | 'delete-approved' | 'restore' | 'delete-pending'; watchId: string; photoId: string; photoIds?: string[]; submitterUserId?: string; rejectionReasonId?: string; rejectionNote?: string }
+  let body: { action: 'approve' | 'bulk-approve' | 'user-approve' | 'delete' | 'reject' | 'delete-approved' | 'restore' | 'delete-pending'; watchId: string; photoId: string; photoIds?: string[]; submitterUserId?: string; rejectionReasonId?: string; rejectionNote?: string }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
   const { action, watchId, photoId, photoIds, submitterUserId, rejectionReasonId, rejectionNote } = body
 
   if (!['approve', 'bulk-approve', 'user-approve', 'delete', 'reject', 'delete-approved', 'restore', 'delete-pending'].includes(action)) {
@@ -367,9 +375,17 @@ export async function PATCH(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!checkAdmin(userId)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const body = (await req.json()) as {
+  let body: {
     photoId: string
     fields: Record<string, string | undefined>
+  }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
   const { photoId, fields } = body
 
@@ -435,7 +451,15 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const body = (await req.json()) as { watchId: string; photoIds: string[] }
+  let body: { watchId: string; photoIds: string[] }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
   const { watchId, photoIds } = body
 
   if (!watchId || !Array.isArray(photoIds) || photoIds.length === 0) {
