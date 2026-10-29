@@ -64,11 +64,19 @@ export async function checkIdentifyRateLimit(userId: string) {
 /**
  * IP-based rate limiter for public read endpoints.
  * 60 requests per minute per IP.
+ *
+ * Fails open: browsing the gallery is harmless, so if Redis is missing or
+ * unreachable visitors still get photos instead of a broken page.
  */
 export async function checkReadRateLimit(request: NextRequest) {
   const limiter = getLimiter('ratelimit:read', 60, '1 m')
-  if (!limiter) return unconfiguredResult()
-  return limiter.limit(getClientIp(request))
+  if (!limiter) return { success: true as const }
+  try {
+    return await limiter.limit(getClientIp(request))
+  } catch (error) {
+    console.error('[ratelimit] read limiter unavailable, allowing request:', error)
+    return { success: true as const }
+  }
 }
 
 /** Public quiz email subscribe: 5 per 10 minutes per IP. */
