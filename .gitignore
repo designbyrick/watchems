@@ -42,3 +42,12 @@ next-env.d.ts
 data/pending-photos.json
 data/approved-photos.json
 public/images/user-uploads/
+
+# build/log leftovers
+*.log
+_build*.txt
+build*.txt
+
+# Claude Code (local worktrees + personal settings)
+.claude/worktrees/
+.claude/settings.local.json

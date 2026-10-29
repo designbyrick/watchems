@@ -21,10 +21,11 @@ Read this before doing anything.
 - **Auth**: Clerk (`@clerk/nextjs`)
 - **Storage**: Cloudflare R2 for photo files (`lib/r2.ts`)
 - **Email**: Resend for transactional emails (`lib/email.ts`)
-  - Templates stored as HTML files in `lib/email-templates/`
-  - `photo-approved.html` — single photo approval (uses `{{firstName}}`, `{{slug}}`, `{{imageUrl}}`, `{{brand}}`, `{{model}}`, `{{reference}}`)
-  - `photo-rejected.html` — rejection with reason
+  - Single-photo approval and rejection use **Resend hosted templates** (managed in the Resend dashboard), sent with `template: { id: TEMPLATES.x, variables }`
+  - `watch-photo-live` (`TEMPLATES.photoApproved`) — `sendPhotoApprovedEmail()`; variables `firstName`, `slug`, `imageUrl`, `brand`, `model`, `reference`
+  - `photo-rejected` (`TEMPLATES.photoRejected`) — `sendPhotoRejectedEmail()`; adds `reasonLabel`, `reasonDescription`, `customNote`, `photoCountNote`
   - Bulk approval (2+ photos) uses inline HTML in `sendPhotoBulkApprovedEmail()`
+  - `lib/email-templates/*.html` are NOT read by any code — they're reference copies of the hosted templates. Editing them changes nothing; edit the template in Resend (and keep variable names in sync with `lib/email.ts`)
 - **AI**: Google Gemini for watch identification (`lib/gemini.ts` or similar)
 - **Rate limiting**: `lib/ratelimit.ts`
 - **Buying Guides**: Static editorial data in `lib/buyingGuideData.ts` (typed `BuyingGuideData[]`). New guides are generated via `scripts/generate-guide.mjs` using `scripts/guide-instructions.md` as the prompt template. Guide components live in `components/guide/`.
