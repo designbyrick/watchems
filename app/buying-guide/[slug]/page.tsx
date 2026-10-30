@@ -11,10 +11,11 @@ import BuyingGuideTemplate from '@/components/guide/BuyingGuideTemplate'
 import { getGuideConfig } from '@/lib/guides'
 
 interface Props {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
-export function generateMetadata({ params }: Props): Metadata {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params
   const guide = getGuideConfig(params.slug)
   if (!guide) return { title: 'Not Found | Watchems' }
 
@@ -28,7 +29,8 @@ export function generateMetadata({ params }: Props): Metadata {
   }
 }
 
-export default function BuyingGuidePage({ params }: Props) {
+export default async function BuyingGuidePage(props: Props) {
+  const params = await props.params
   const guide = getGuideConfig(params.slug)
   if (!guide) notFound()
   return <BuyingGuideTemplate config={guide} />

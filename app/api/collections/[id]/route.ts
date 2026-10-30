@@ -7,10 +7,8 @@ import { eq, and, desc } from 'drizzle-orm'
 export const dynamic = 'force-dynamic'
 
 /** GET /api/collections/[id] — get collection details + all photos */
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const collectionId = params.id
   const { userId } = await auth()
   if (!userId) {
@@ -43,7 +41,7 @@ export async function GET(
       })
       .from(collectionItems)
       .innerJoin(photos, eq(photos.id, collectionItems.photoId))
-      .where(eq(collectionItems.collectionId, collectionId))
+      .where(and(eq(collectionItems.collectionId, collectionId), eq(photos.status, 'approved')))
       .orderBy(desc(collectionItems.createdAt))
 
     return NextResponse.json({
@@ -59,10 +57,8 @@ export async function GET(
 }
 
 /** PATCH /api/collections/[id] — rename a collection */
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const collectionId = params.id
   const { userId } = await auth()
   if (!userId) {
@@ -80,8 +76,14 @@ export async function PATCH(
   }
 
   try {
-    const body = await req.json()
-    const name = typeof body.name === 'string' ? body.name.trim() : ''
+    let body: unknown
+    try {
+      body = await req.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+    const rawName = (body as { name?: unknown } | null)?.name
+    const name = typeof rawName === 'string' ? rawName.trim() : ''
     if (!name || name.length > 100) {
       return NextResponse.json({ error: 'Name is required (max 100 chars)' }, { status: 400 })
     }
@@ -95,10 +97,8 @@ export async function PATCH(
 }
 
 /** DELETE /api/collections/[id] — delete a collection and all its items */
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const collectionId = params.id
   const { userId } = await auth()
   if (!userId) {

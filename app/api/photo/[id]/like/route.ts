@@ -8,10 +8,8 @@ import { eq, and, sql } from 'drizzle-orm'
 export const dynamic = 'force-dynamic'
 
 /** GET /api/photos/[id]/like — returns { liked: boolean, count: number } */
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const photoId = params.id
   try {
     const { userId } = await auth()
@@ -41,10 +39,8 @@ export async function GET(
 }
 
 /** POST /api/photos/[id]/like — toggle like (requires auth) */
-export async function POST(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const photoId = params.id
   const { userId } = await auth()
   if (!userId) {

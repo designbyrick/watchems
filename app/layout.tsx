@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
 import Script from 'next/script'
+import { headers } from 'next/headers'
 import { ClerkProvider } from '@clerk/nextjs'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Analytics } from '@vercel/analytics/next'
@@ -8,6 +9,7 @@ import './globals.css'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import MobileTabBar from '@/components/MobileTabBar'
+import { serializeJsonLd } from '@/lib/jsonLd'
 
 const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
@@ -71,19 +73,20 @@ const organizationJsonLd = {
   sameAs: [],
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children, nonce }: { children: React.ReactNode; nonce?: string }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationJsonLd) }}
         />
         {/* Bootstrap dataLayer immediately so gtag() calls before the GA script
             loads are queued rather than lost — prevents (not set) attribution.
             Do NOT call gtag('config') here — the Script tag below handles that
             when the library loads, avoiding a duplicate page_view. */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());`,
           }}
@@ -93,8 +96,9 @@ function Shell({ children }: { children: React.ReactNode }) {
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-T077JWH4E5"
           strategy="afterInteractive"
+          nonce={nonce}
         />
-        <Script id="ga4-config" strategy="afterInteractive">
+        <Script id="ga4-config" strategy="afterInteractive" nonce={nonce}>
           {`gtag('config','G-T077JWH4E5');`}
         </Script>
         <Navigation />
@@ -108,10 +112,17 @@ function Shell({ children }: { children: React.ReactNode }) {
   )
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Per-request CSP nonce set by middleware.ts. Reading headers() makes every
+  // page render dynamically — that's the cost of a nonce-based CSP.
+  const nonce = (await headers()).get('x-nonce') ?? undefined
+
   if (hasClerk) {
     return (
       <ClerkProvider
+        // `dynamic` makes Clerk read the nonce from the request and put it on
+        // the clerk-js <script> it injects.
+        dynamic
         appearance={{
           elements: {
             footer: {
@@ -130,9 +141,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           },
         }}
       >
-        <Shell>{children}</Shell>
+        <Shell nonce={nonce}>{children}</Shell>
       </ClerkProvider>
     )
   }
-  return <Shell>{children}</Shell>
+  return <Shell nonce={nonce}>{children}</Shell>
 }

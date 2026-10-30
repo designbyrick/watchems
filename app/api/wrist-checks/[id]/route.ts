@@ -7,10 +7,8 @@ import { eq, and } from 'drizzle-orm'
 export const dynamic = 'force-dynamic'
 
 /** DELETE /api/wrist-checks/[id] — remove a wrist check entry */
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const entryId = params.id
   const { userId } = await auth()
   if (!userId) {

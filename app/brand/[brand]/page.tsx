@@ -11,16 +11,18 @@ import { brands as brandDataList } from '@/lib/brandData'
 import { toWatchSlug } from '@/lib/normalizeWatch'
 import { getAllGuides } from '@/lib/buyingGuides'
 import BrandPhotoCard from './BrandPhotoCard'
+import { serializeJsonLd } from '@/lib/jsonLd'
 
 interface BrandPageProps {
-  params: { brand: string }
-  searchParams: { model?: string | string[] }
+  params: Promise<{ brand: string }>
+  searchParams: Promise<{ model?: string | string[] }>
 }
 
 const GRID_LIMIT = 48
 const CHIP_LIMIT = 8
 
-export async function generateMetadata({ params }: BrandPageProps): Promise<Metadata> {
+export async function generateMetadata(props: BrandPageProps): Promise<Metadata> {
+  const params = await props.params
   const brand = decodeURIComponent(params.brand)
 
   const stats = await db
@@ -82,7 +84,9 @@ export async function generateMetadata({ params }: BrandPageProps): Promise<Meta
   }
 }
 
-export default async function BrandPage({ params, searchParams }: BrandPageProps) {
+export default async function BrandPage(props: BrandPageProps) {
+  const params = await props.params
+  const searchParams = await props.searchParams
   const brand = decodeURIComponent(params.brand)
 
   // Stats + guard
@@ -223,26 +227,26 @@ export default async function BrandPage({ params, searchParams }: BrandPageProps
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(collectionPageJsonLd) }}
       />
       {faqJsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
         />
       )}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(speakableJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(speakableJsonLd) }}
       />
       {organisationJsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organisationJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(organisationJsonLd) }}
         />
       )}
 

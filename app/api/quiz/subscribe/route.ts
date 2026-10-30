@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getRedis } from '@/lib/redis'
+import { checkSubscribeRateLimit } from '@/lib/ratelimit'
 
 interface SubscribeBody {
   email: string
@@ -13,18 +14,28 @@ interface SubscribeBody {
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const body: SubscribeBody = await request.json()
+    const { success } = await checkSubscribeRateLimit(request)
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Try again later.' },
+        { status: 429 }
+      )
+    }
 
-    if (!body.email) {
+    const body: Partial<SubscribeBody> | null = await request.json()
+
+    if (typeof body?.email !== 'string' || !body.email.trim()) {
       return NextResponse.json(
         { error: 'Email is required' },
         { status: 400 }
       )
     }
 
-    // Basic email validation
+    const email = body.email.trim().toLowerCase()
+
+    // Basic email validation (254 = RFC 5321 max address length)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(body.email)) {
+    if (email.length > 254 || !emailRegex.test(email)) {
       return NextResponse.json(
         { error: 'Invalid email format' },
         { status: 400 }
@@ -40,7 +51,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Store email in Redis set
-    await redis.sadd('quiz:emails', body.email)
+    await redis.sadd('quiz:emails', email)
 
     return NextResponse.json(
       { success: true, message: 'Email saved' },

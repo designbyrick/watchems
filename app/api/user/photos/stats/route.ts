@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { db } from '@/lib/db'
 import { photos, photoLikes, collectionItems } from '@/lib/db/schema'
-import { eq, sql } from 'drizzle-orm'
+import { eq, and, ne, sql } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +22,7 @@ export async function GET() {
       })
       .from(photoLikes)
       .innerJoin(photos, eq(photos.id, photoLikes.photoId))
-      .where(eq(photos.userId, userId))
+      .where(and(eq(photos.userId, userId), ne(photos.status, 'deleted')))
       .groupBy(photoLikes.photoId)
 
     // Get save counts per photo (how many users saved it to collections)
@@ -33,7 +33,7 @@ export async function GET() {
       })
       .from(collectionItems)
       .innerJoin(photos, eq(photos.id, collectionItems.photoId))
-      .where(eq(photos.userId, userId))
+      .where(and(eq(photos.userId, userId), ne(photos.status, 'deleted')))
       .groupBy(collectionItems.photoId)
 
     const likes: Record<string, number> = {}

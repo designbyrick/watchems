@@ -133,20 +133,24 @@ function GroupCard({ group, stats }: { group: WatchGroup; stats: PhotoStats }) {
     setSaving(true)
     setEditError(null)
     try {
-      await Promise.all(
+      const statuses = await Promise.all(
         group.photos.map((photo) =>
           fetch(`/api/user/photos/${photo.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ fields }),
-          }).then((res) => {
-            if (!res.ok) throw new Error('Save failed')
+          }).then(async (res) => {
+            const data = await res.json().catch(() => ({}))
+            if (!res.ok) throw new Error(data.error ?? 'Save failed')
+            return data.status as string | undefined
           })
         )
       )
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
       setEditing(false)
+      // Identity edits on approved photos are sent back for review
+      if (statuses.includes('pending_review')) router.refresh()
     } catch (e) {
       setEditError(e instanceof Error ? e.message : 'Save failed')
     } finally {

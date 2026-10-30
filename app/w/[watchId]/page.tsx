@@ -10,16 +10,18 @@ import { photos } from '@/lib/db/schema'
 import { eq, and, asc, desc } from 'drizzle-orm'
 import { buildPhotoAltText } from '@/lib/photoAlt'
 import { isValidSlug } from '@/lib/validation'
+import { serializeJsonLd } from '@/lib/jsonLd'
 
 // Hub pages only earn their own URL when there are enough photos to be useful.
 // Below this threshold we redirect to the gallery filter instead.
 const MIN_PHOTOS_FOR_HUB = 3
 
 interface WatchPageProps {
-  params: { watchId: string }
+  params: Promise<{ watchId: string }>
 }
 
-export async function generateMetadata({ params }: WatchPageProps): Promise<Metadata> {
+export async function generateMetadata(props: WatchPageProps): Promise<Metadata> {
+  const params = await props.params;
   if (!isValidSlug(params.watchId)) return { title: 'Watch Photos | Watchems' }
 
   const rows = await db
@@ -71,7 +73,8 @@ export async function generateMetadata({ params }: WatchPageProps): Promise<Meta
   }
 }
 
-export default async function WatchHubPage({ params }: WatchPageProps) {
+export default async function WatchHubPage(props: WatchPageProps) {
+  const params = await props.params;
   if (!isValidSlug(params.watchId)) notFound()
 
   const allPhotos = await db
@@ -134,11 +137,11 @@ export default async function WatchHubPage({ params }: WatchPageProps) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(collectionPageJsonLd) }}
       />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">

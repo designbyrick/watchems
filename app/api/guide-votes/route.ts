@@ -4,12 +4,14 @@ import { db } from '@/lib/db'
 import { guideVotes } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
+import { VOTABLE_GUIDE_SLUGS, isValidWatchKey } from '@/lib/validation'
 
 // GET /api/guide-votes?slug=under-500
 // Returns vote counts per watchKey for a guide
 export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get('slug')
   if (!slug) return NextResponse.json({ error: 'Missing slug' }, { status: 400 })
+  if (!VOTABLE_GUIDE_SLUGS.has(slug)) return NextResponse.json({ error: 'Unknown guide' }, { status: 400 })
 
   const { userId } = await auth()
 
@@ -47,9 +49,21 @@ export async function POST(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { guideSlug, watchKey } = await req.json() as { guideSlug: string; watchKey: string }
-  if (!guideSlug || !watchKey) {
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+  const { guideSlug, watchKey } = (body && typeof body === 'object' ? body : {}) as { guideSlug?: unknown; watchKey?: unknown }
+  if (typeof guideSlug !== 'string' || typeof watchKey !== 'string' || !guideSlug || !watchKey) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+  }
+  if (!VOTABLE_GUIDE_SLUGS.has(guideSlug)) {
+    return NextResponse.json({ error: 'Unknown guide' }, { status: 400 })
+  }
+  if (!isValidWatchKey(watchKey)) {
+    return NextResponse.json({ error: 'Invalid watchKey' }, { status: 400 })
   }
 
   // Check for existing vote

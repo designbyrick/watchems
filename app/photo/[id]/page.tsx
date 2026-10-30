@@ -13,9 +13,10 @@ import { getStyleByDbValue } from '@/lib/styleData'
 import SaveToBoard from '@/components/SaveToBoard'
 import SocialActions from '@/components/home/SocialActions'
 import PhotoViewer from '@/components/photo/PhotoViewer'
+import { serializeJsonLd } from '@/lib/jsonLd'
 
 interface PhotoPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -98,7 +99,8 @@ function unslugify(slug: string) {
 }
 
 // Generate dynamic metadata
-export async function generateMetadata({ params }: PhotoPageProps): Promise<Metadata> {
+export async function generateMetadata(props: PhotoPageProps): Promise<Metadata> {
+  const params = await props.params;
   const param = params.id
   const isUUID = UUID_REGEX.test(param)
 
@@ -165,7 +167,8 @@ export async function generateMetadata({ params }: PhotoPageProps): Promise<Meta
   }
 }
 
-export default async function PhotoPage({ params }: PhotoPageProps) {
+export default async function PhotoPage(props: PhotoPageProps) {
+  const params = await props.params;
   const param = params.id
   const isUUID = UUID_REGEX.test(param)
 
@@ -362,17 +365,17 @@ export default async function PhotoPage({ params }: PhotoPageProps) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(imageJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(imageJsonLd) }}
       />
       {productJsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(productJsonLd) }}
         />
       )}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
       <main className="max-w-[1320px] mx-auto px-4 sm:px-8 pt-5 sm:pt-9 pb-16 sm:pb-[72px]">
         <nav aria-label="Breadcrumb" className="mb-4 sm:mb-6 flex items-center gap-2 font-mono text-[11px] sm:text-xs tracking-[1px] uppercase text-muted whitespace-nowrap overflow-hidden">
