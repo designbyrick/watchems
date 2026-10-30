@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import sharp from 'sharp'
 import { checkIdentifyRateLimit } from '@/lib/ratelimit'
+import { checkAdmin } from '@/lib/admin'
 import { ACCEPTED_TYPES } from '@/lib/photos'
 
 const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
@@ -40,6 +41,11 @@ export async function POST(request: NextRequest) {
         { error: 'Authentication required' },
         { status: 401 }
       )
+    }
+
+    // AI identification is admin-only for now
+    if (!checkAdmin(userId)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const { success } = await checkIdentifyRateLimit(userId)
