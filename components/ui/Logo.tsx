@@ -9,11 +9,12 @@ export function LogoGlyph({ className = 'w-[26px] h-[26px]' }: { className?: str
   )
 }
 
+/** Original Watchems wordmark (pre-redesign), served from public/logo.svg. */
 export default function Logo() {
   return (
-    <span className="flex items-center gap-2.5">
-      <LogoGlyph className="w-6 h-6 lg:w-[26px] lg:h-[26px]" />
-      <span className="text-[20px] lg:text-[21px] font-bold tracking-[-0.6px] leading-none">watchems</span>
+    <span className="flex items-center">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/logo.svg" alt="Watchems" className="h-6 lg:h-[26px] w-auto" />
     </span>
   )
 }
