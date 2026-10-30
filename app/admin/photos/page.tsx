@@ -19,8 +19,11 @@ export default async function AdminPhotosPage() {
 
   if (!checkAdmin(userId)) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-        <p className="text-red-400">Access denied.</p>
+      <div className="px-4 sm:px-8 lg:px-10 pt-6 lg:pt-8 pb-16">
+        <div role="alert" className="max-w-[720px] rounded-[10px] border border-line bg-surface px-5 py-6 shadow-[inset_2px_0_0_theme(colors.mark)]">
+          <p className="font-mono text-[11px] tracking-[1px] uppercase text-mark">Access denied</p>
+          <p className="mt-1.5 text-[15px] text-muted">This area is for Watchems admins only.</p>
+        </div>
       </div>
     )
   }

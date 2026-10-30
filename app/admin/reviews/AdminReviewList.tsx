@@ -21,8 +21,9 @@ const EDIT_FIELDS: { key: keyof Photo; label: string }[] = [
 
 interface AdminModerationProps {
   initialReviews: Review[]
-  initialPendingPhotos: PendingPhoto[]
-  initialApprovedPhotos: ApprovedPhoto[]
+  /** Omit both photo lists to show reviews only (photos are moderated in /admin/photos) */
+  initialPendingPhotos?: PendingPhoto[]
+  initialApprovedPhotos?: ApprovedPhoto[]
 }
 
 export default function AdminReviewList({
@@ -31,8 +32,9 @@ export default function AdminReviewList({
   initialApprovedPhotos,
 }: AdminModerationProps) {
   const [reviews, setReviews] = useState<Review[]>(initialReviews)
-  const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>(initialPendingPhotos)
-  const [approvedPhotos, setApprovedPhotos] = useState<ApprovedPhoto[]>(initialApprovedPhotos)
+  const showPhotos = initialPendingPhotos !== undefined || initialApprovedPhotos !== undefined
+  const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>(initialPendingPhotos ?? [])
+  const [approvedPhotos, setApprovedPhotos] = useState<ApprovedPhoto[]>(initialApprovedPhotos ?? [])
   const [error, setError] = useState<string>('')
   const [processing, setProcessing] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -157,217 +159,236 @@ export default function AdminReviewList({
     }
   }
 
+  const pillPrimary = 'h-11 inline-flex items-center justify-center rounded-full bg-ink px-5 text-sm font-semibold text-white hover:bg-ink-hover transition-colors disabled:opacity-50'
+  const pillSecondary = 'h-11 inline-flex items-center justify-center rounded-full border border-line-strong bg-surface px-5 text-sm font-medium text-ink hover:bg-subtle transition-colors disabled:opacity-50'
+  const monoLabel = 'font-mono text-[11px] tracking-[1px] uppercase'
+  const formatDate = (iso: string, withTime = false) =>
+    new Date(iso).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+    })
+
   const EditPanel = ({ photoId }: { photoId: string }) => (
-    <div className="bg-gray-50 border border-gray-200 rounded p-3 mt-3">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+    <div className="mt-3 rounded-[10px] border border-line bg-surface p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-3">
         {EDIT_FIELDS.map(({ key, label }) => (
-          <label key={key} className="flex flex-col text-xs text-gray-600">
-            {label}
+          <label key={key} className="flex flex-col gap-1">
+            <span className="font-mono text-[10.5px] tracking-[0.8px] uppercase text-muted">{label}</span>
             <input
               type="text"
               value={editFields[key] ?? ''}
               onChange={(e) => setEditFields((prev) => ({ ...prev, [key]: e.target.value }))}
-              className="mt-0.5 text-sm px-2 py-1 rounded border border-gray-300 text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="w-full h-10 text-sm bg-surface border border-line rounded-md px-3 text-ink focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink"
             />
           </label>
         ))}
       </div>
-      <div className="flex gap-2 mt-3">
-        <button
-          onClick={() => saveEdit(photoId)}
-          disabled={saving}
-          className="bg-blue-600 text-white px-4 py-1 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
+      <div className="flex gap-2 mt-4">
+        <button type="button" onClick={() => saveEdit(photoId)} disabled={saving} className={pillPrimary}>
           {saving ? 'Saving…' : 'Save'}
         </button>
-        <button
-          onClick={cancelEdit}
-          disabled={saving}
-          className="bg-gray-200 text-gray-700 px-4 py-1 rounded text-sm font-medium hover:bg-gray-300 disabled:opacity-50 transition-colors"
-        >
+        <button type="button" onClick={cancelEdit} disabled={saving} className={pillSecondary}>
           Cancel
         </button>
       </div>
     </div>
   )
 
+  const sectionHeader = (title: string, count: number) => (
+    <div className="flex items-baseline gap-3 pb-3 border-b border-line">
+      <h2 className="text-lg font-semibold text-ink">{title}</h2>
+      <span className="font-mono text-xs text-muted">{count}</span>
+    </div>
+  )
+
+  const emptyRow = (message: string) => (
+    <p className="py-10 text-center text-[15px] text-muted border-b border-line">{message}</p>
+  )
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="px-4 sm:px-8 lg:px-10 pt-6 lg:pt-8 pb-16">
 
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Moderation Queue</h1>
-            <p className="text-gray-600 mt-1">
-              {pendingPhotos.length} photo{pendingPhotos.length !== 1 ? 's' : ''} · {reviews.length} review{reviews.length !== 1 ? 's' : ''} pending
-            </p>
-          </div>
-          <Link href="/admin" className="text-blue-600 hover:underline text-sm">← Back to Admin</Link>
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[32px] sm:text-[40px] leading-tight font-semibold tracking-[-0.04em] text-ink">
+            {showPhotos ? 'Moderation queue' : 'Review moderation'}
+          </h1>
+          <p className="mt-2 font-mono text-xs text-muted">
+            {showPhotos && <>{pendingPhotos.length} photo{pendingPhotos.length !== 1 ? 's' : ''} · </>}
+            {reviews.length} review{reviews.length !== 1 ? 's' : ''} pending
+          </p>
         </div>
+        <Link href="/admin" className={pillSecondary}>Back to admin</Link>
+      </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">{error}</div>
+      {error && (
+        <div role="alert" className="mt-6 border-l-2 border-mark bg-surface rounded-r-md px-4 py-3 text-sm text-ink">{error}</div>
+      )}
+
+      {/* ── Pending Reviews ── */}
+      <section className="mt-10">
+        {sectionHeader('Pending reviews', reviews.length)}
+
+        {reviews.length === 0 ? (
+          emptyRow('No pending reviews to moderate')
+        ) : (
+          <ul>
+            {reviews.map((review) => (
+              <li key={review.id} className="py-5 border-b border-line flex flex-col md:flex-row md:items-start gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className={`${monoLabel} text-muted truncate`}>
+                    {review.watchSlug} · {review.rating}/5
+                  </p>
+                  <h3 className="mt-1 text-base font-semibold text-ink">{review.title}</h3>
+                  <p className="mt-0.5 font-mono text-xs text-muted truncate">User {review.userId}</p>
+                  <p className="mt-3 text-[15px] leading-relaxed text-ink">{review.body}</p>
+                  {(review.pros.length > 0 || review.cons.length > 0) && (
+                    <div className="mt-4 grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <h4 className={`${monoLabel} text-muted mb-1.5`}>Pros</h4>
+                        <ul className="text-sm text-ink space-y-1">
+                          {review.pros.map((p, i) => <li key={i} className="pl-3 border-l border-line">{p}</li>)}
+                        </ul>
+                      </div>
+                      <div>
+                        <h4 className={`${monoLabel} text-muted mb-1.5`}>Cons</h4>
+                        <ul className="text-sm text-ink space-y-1">
+                          {review.cons.map((c, i) => <li key={i} className="pl-3 border-l border-mark">{c}</li>)}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleApproveReview(review)}
+                    disabled={processing === review.id}
+                    className={pillPrimary}
+                  >
+                    {processing === review.id ? 'Processing…' : 'Approve'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRejectReview(review)}
+                    disabled={processing === review.id}
+                    className={pillSecondary}
+                  >
+                    Reject
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
+      </section>
 
-        {/* ── Pending Photos ── */}
-        <section className="mb-12">
-          <h2 className="text-xl font-semibold mb-4">
-            📸 Pending Photos <span className="text-gray-400 font-normal text-base">({pendingPhotos.length})</span>
-          </h2>
+      {showPhotos && <>
+      {/* ── Pending Photos ── */}
+      <section className="mt-12">
+        {sectionHeader('Pending photos', pendingPhotos.length)}
 
-          {pendingPhotos.length === 0 ? (
-            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
-              No photos pending review
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {pendingPhotos.map((photo) => (
-                <div key={photo.id} className="bg-white rounded-lg border border-gray-200 p-4">
-                  <div className="flex gap-4 items-start">
-                    <div className="shrink-0 w-32 h-32 bg-gray-100 rounded overflow-hidden border border-gray-200">
+        {pendingPhotos.length === 0 ? (
+          emptyRow('No photos pending review')
+        ) : (
+          <ul>
+            {pendingPhotos.map((photo) => (
+              <li key={photo.id} className="py-4 border-b border-line">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="w-16 aspect-[4/5] shrink-0 bg-subtle rounded-md overflow-hidden">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={photo.url} alt="Pending submission" className="w-full h-full object-cover" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900">{photo.watchId}</p>
-                      <p className="text-sm text-gray-500 mt-0.5">
-                        By {photo.userName} · {new Date(photo.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                      <div className="flex gap-2 mt-3">
-                        <button
-                          onClick={() => handlePhotoAction('approve', photo)}
-                          disabled={processing === photo.id}
-                          className="bg-green-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
-                        >
-                          {processing === photo.id ? 'Processing…' : 'Approve'}
-                        </button>
-                        <button
-                          onClick={() => handlePhotoAction('delete', photo)}
-                          disabled={processing === photo.id}
-                          className="bg-red-500 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-red-600 disabled:opacity-50 transition-colors"
-                        >
-                          {processing === photo.id ? 'Processing…' : 'Reject'}
-                        </button>
-                        <button
-                          onClick={() => editingId === photo.id ? cancelEdit() : openEdit(photo)}
-                          className="bg-gray-100 text-gray-700 px-4 py-1.5 rounded text-sm font-medium hover:bg-gray-200 transition-colors border border-gray-300"
-                        >
-                          {editingId === photo.id ? 'Close' : 'Edit'}
-                        </button>
-                      </div>
+                    <div className="min-w-0">
+                      <p className={`${monoLabel} text-muted truncate`}>{photo.watchId}</p>
+                      <p className="mt-[3px] text-base font-semibold text-ink truncate">{photo.userName}</p>
+                      <p className="mt-0.5 font-mono text-xs text-muted">{formatDate(photo.createdAt, true)}</p>
                     </div>
                   </div>
-                  {editingId === photo.id && <EditPanel photoId={photo.id} />}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* ── Pending Reviews ── */}
-        <section className="mb-12">
-          <h2 className="text-xl font-semibold mb-4">
-            ✍️ Pending Reviews <span className="text-gray-400 font-normal text-base">({reviews.length})</span>
-          </h2>
-
-          {reviews.length === 0 ? (
-            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
-              No pending reviews to moderate
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {reviews.map((review) => (
-                <div key={review.id} className="bg-white rounded-lg border border-gray-200 p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="font-semibold text-lg">{review.title}</h3>
-                      <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
-                        <span>Watch: {review.watchSlug}</span>
-                        <span>Rating: {review.rating}/5</span>
-                        <span>User: {review.userId}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-gray-700 mb-4">{review.body}</p>
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div>
-                      <h4 className="text-sm font-semibold text-green-700 mb-1">Pros</h4>
-                      <ul className="text-sm text-gray-700 space-y-1">{review.pros.map((p, i) => <li key={i}>✓ {p}</li>)}</ul>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-red-700 mb-1">Cons</h4>
-                      <ul className="text-sm text-gray-700 space-y-1">{review.cons.map((c, i) => <li key={i}>✗ {c}</li>)}</ul>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap gap-2 shrink-0">
                     <button
-                      onClick={() => handleApproveReview(review)}
-                      disabled={processing === review.id}
-                      className="flex-1 bg-green-600 text-white py-2 rounded font-medium hover:bg-green-700 disabled:bg-gray-400 transition-colors"
+                      type="button"
+                      onClick={() => handlePhotoAction('approve', photo)}
+                      disabled={processing === photo.id}
+                      className={pillPrimary}
                     >
-                      {processing === review.id ? 'Processing…' : 'Approve'}
+                      {processing === photo.id ? 'Processing…' : 'Approve'}
                     </button>
                     <button
-                      onClick={() => handleRejectReview(review)}
-                      disabled={processing === review.id}
-                      className="flex-1 bg-red-600 text-white py-2 rounded font-medium hover:bg-red-700 disabled:bg-gray-400 transition-colors"
+                      type="button"
+                      onClick={() => handlePhotoAction('delete', photo)}
+                      disabled={processing === photo.id}
+                      className={pillSecondary}
                     >
-                      {processing === review.id ? 'Processing…' : 'Reject'}
+                      Reject
                     </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* ── Approved Photos (Gallery) ── */}
-        <section>
-          <h2 className="text-xl font-semibold mb-4">
-            🖼 Gallery — Approved <span className="text-gray-400 font-normal text-base">({approvedPhotos.length})</span>
-          </h2>
-
-          {approvedPhotos.length === 0 ? (
-            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
-              No approved photos yet
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {approvedPhotos.map((photo) => (
-                <div key={photo.id} className="bg-white rounded-lg border border-gray-200 p-3 flex flex-col">
-                  <div className="w-full aspect-square bg-gray-100 rounded overflow-hidden border border-gray-100 mb-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={photo.url} alt={`Approved — ${photo.watchId}`} className="w-full h-full object-cover" />
-                  </div>
-                  <p className="text-xs font-semibold text-gray-900 truncate">{photo.watchId}</p>
-                  <p className="text-xs text-gray-500 truncate">By {photo.userName}</p>
-                  <p className="text-xs text-gray-400">{new Date(photo.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                  <div className="flex gap-1 mt-2">
                     <button
+                      type="button"
                       onClick={() => editingId === photo.id ? cancelEdit() : openEdit(photo)}
-                      className="flex-1 bg-gray-100 text-gray-700 px-3 py-1 rounded text-xs font-medium hover:bg-gray-200 transition-colors border border-gray-300"
+                      className={pillSecondary}
                     >
                       {editingId === photo.id ? 'Close' : 'Edit'}
                     </button>
-                    <button
-                      onClick={() => handleDeleteApproved(photo)}
-                      disabled={processing === photo.id}
-                      className="flex-1 bg-red-500 text-white px-3 py-1 rounded text-xs font-medium hover:bg-red-600 disabled:opacity-50 transition-colors"
-                    >
-                      {processing === photo.id ? 'Deleting…' : 'Delete'}
-                    </button>
                   </div>
-                  {editingId === photo.id && <EditPanel photoId={photo.id} />}
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
+                {editingId === photo.id && <EditPanel photoId={photo.id} />}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-      </div>
+      {/* ── Approved Photos (Gallery) ── */}
+      <section className="mt-12">
+        {sectionHeader('Gallery, approved', approvedPhotos.length)}
+
+        {approvedPhotos.length === 0 ? (
+          emptyRow('No approved photos yet')
+        ) : (
+          <div className="mt-5 grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-x-3 gap-y-7 sm:gap-x-[18px]">
+            {approvedPhotos.map((photo) => (
+              <article key={photo.id} className="min-w-0 flex flex-col">
+                <div className="relative w-full aspect-[4/5] bg-surface rounded-md overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photo.url} alt={`Approved — ${photo.watchId}`} className="w-full h-full object-cover" />
+                  <span className="absolute left-2.5 top-2.5 h-[26px] rounded-full flex items-center px-2.5 bg-surface text-ink font-mono text-[10.5px] tracking-[0.8px] uppercase">
+                    Live
+                  </span>
+                </div>
+                <p className={`mt-2.5 ${monoLabel} text-muted truncate`}>{photo.watchId}</p>
+                <p className="mt-[3px] text-sm font-semibold text-ink truncate">{photo.userName}</p>
+                <p className="mt-0.5 font-mono text-xs text-muted">{formatDate(photo.createdAt)}</p>
+                <div className="flex gap-2 mt-3">
+                  <button
+                    type="button"
+                    onClick={() => editingId === photo.id ? cancelEdit() : openEdit(photo)}
+                    className={`${pillSecondary} flex-1 px-3`}
+                  >
+                    {editingId === photo.id ? 'Close' : 'Edit'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteApproved(photo)}
+                    disabled={processing === photo.id}
+                    className={`${pillSecondary} flex-1 px-3 !text-mark`}
+                  >
+                    {processing === photo.id ? 'Deleting…' : 'Delete'}
+                  </button>
+                </div>
+                {editingId === photo.id && <EditPanel photoId={photo.id} />}
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+      </>}
+
     </div>
   )
 }
