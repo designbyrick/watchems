@@ -149,7 +149,7 @@ export const under500: BuyingGuideConfig = {
   summary: 'What watch buyers actually recommend under $500.',
   tier: 'Under $500',
   lastVerified: 'May 2026',
-  seoTitle: 'Best Watches Under $500 (2026) — 20 Picks, Ranked | Watchems',
+  seoTitle: 'Best Watches Under $500 (2026) — 20 Picks, Ranked',
   seoDescription: 'The 20 most recommended watches under $500, ranked by community consensus across r/Watches, WatchUSeek, and 17 sources. Verified prices, full specs, honest trade-offs.',
   breadcrumbLabel: 'Under $500',
   heroImage: '/images/guides/under-500-hero.png',

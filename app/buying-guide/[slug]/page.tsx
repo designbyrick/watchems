@@ -16,7 +16,7 @@ interface Props {
 
 export function generateMetadata({ params }: Props): Metadata {
   const guide = getGuideConfig(params.slug)
-  if (!guide) return { title: 'Not Found | Watchems' }
+  if (!guide) return { title: 'Not Found' }
 
   const url = `https://watchems.com/buying-guide/${guide.slug}`
   return {

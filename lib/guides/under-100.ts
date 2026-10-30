@@ -93,7 +93,7 @@ export const under100: BuyingGuideConfig = {
   summary: 'What watch buyers actually recommend under $100.',
   tier: 'Under $100',
   lastVerified: 'May 2026',
-  seoTitle: 'Best Watches Under $100 (2026) — 20 Picks, Ranked | Watchems',
+  seoTitle: 'Best Watches Under $100 (2026) — 20 Picks, Ranked',
   seoDescription: 'The 20 most recommended watches under $100, ranked by community consensus across r/Watches, WatchUSeek, and enthusiast forums. Verified prices, full specs, honest trade-offs.',
   breadcrumbLabel: 'Under $100',
   heroImage: '/images/guides/under-100-hero.png',

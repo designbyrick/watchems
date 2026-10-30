@@ -1,6 +1,8 @@
 import { clerkMiddleware } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { neon } from '@neondatabase/serverless'
+import { brandSlug } from '@/lib/brandSlug'
 
 /**
  * Redirect legacy root-level comparison URLs to /compare/ equivalents.
@@ -54,7 +56,63 @@ function compareCanonicalRedirect(req: NextRequest): NextResponse | null {
   return NextResponse.redirect(url, { status: 301 })
 }
 
-export default clerkMiddleware((_auth, req) => {
+/**
+ * Canonicalize /brand/ URLs to the lowercase hyphenated slug.
+ * e.g. /brand/Grand%20Seiko → 301 → /brand/grand-seiko
+ * Keeps one indexable URL per brand regardless of how links were cased/encoded.
+ */
+function brandCanonicalRedirect(req: NextRequest): NextResponse | null {
+  const match = req.nextUrl.pathname.match(/^\/brand\/([^/]+)\/?$/)
+  if (!match) return null
+
+  let raw: string
+  try {
+    raw = decodeURIComponent(match[1])
+  } catch {
+    return null
+  }
+  const slug = brandSlug(raw)
+  if (!slug || slug === match[1]) return null
+
+  const url = req.nextUrl.clone()
+  url.pathname = `/brand/${slug}`
+  return NextResponse.redirect(url, { status: 301 })
+}
+
+/**
+ * Soft-deleted photos answer 410 Gone so Google drops them from the index.
+ * App Router pages can't set a 410 status themselves (only notFound()/redirect()),
+ * so the status lookup happens here. Any lookup failure falls through to the page.
+ */
+async function deletedPhotoGone(req: NextRequest): Promise<NextResponse | null> {
+  const match = req.nextUrl.pathname.match(/^\/photo\/([^/]+)\/?$/)
+  if (!match || !process.env.DATABASE_URL) return null
+
+  let param: string
+  try {
+    param = decodeURIComponent(match[1])
+  } catch {
+    return null
+  }
+
+  try {
+    const sql = neon(process.env.DATABASE_URL, { fetchOptions: { cache: 'no-store' } })
+    const rows = await sql`select status from photos where slug = ${param} or id = ${param} limit 1`
+    if (rows[0]?.status !== 'deleted') return null
+  } catch {
+    return null
+  }
+
+  return new NextResponse(
+    '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><title>Photo removed</title><p>This photo has been removed. <a href="/">Back to the gallery</a></p>',
+    {
+      status: 410,
+      headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'noindex' },
+    }
+  )
+}
+
+export default clerkMiddleware(async (_auth, req) => {
   // Only activate Clerk middleware when the keys are present (e.g. in production).
   // Without this guard, every request fails with MIDDLEWARE_INVOCATION_FAILED when
   // the Clerk env vars are not set.
@@ -70,7 +128,15 @@ export default clerkMiddleware((_auth, req) => {
   const canonicalRedirect = compareCanonicalRedirect(req)
   if (canonicalRedirect) return canonicalRedirect
 
-  // 3. Proceed to next middleware/route
+  // 3. Brand slug canonicalization (case/space variants → lowercase hyphenated slug)
+  const brandRedirect = brandCanonicalRedirect(req)
+  if (brandRedirect) return brandRedirect
+
+  // 4. Soft-deleted photo pages → 410 Gone
+  const gone = await deletedPhotoGone(req)
+  if (gone) return gone
+
+  // 5. Proceed to next middleware/route
   if (!hasClerk) return NextResponse.next()
   return NextResponse.next()
 })
