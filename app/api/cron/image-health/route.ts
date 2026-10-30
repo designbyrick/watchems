@@ -10,8 +10,8 @@ import { sendImageHealthAlertEmail, type ImageHealthCheckResult } from '@/lib/em
 
 /**
  * Image Health Monitoring Cron Job
- * Vercel Cron runs it once a day (Hobby plan limit, see vercel.json); an
- * external pinger (cron-job.org) calls it every 15 minutes with the same
+ * Vercel Cron runs it once a day (Hobby plan limit, see vercel.json) and
+ * .github/workflows/image-health.yml calls it every 15 minutes with the same
  * `Authorization: Bearer $CRON_SECRET` header. See MONITORING_CRON.md.
  * Loads the most recent approved photo and checks that it is served both
  * directly from Cloudflare R2 and through the Next.js image optimizer.
@@ -126,9 +126,10 @@ export async function GET(request: NextRequest) {
       alert = 'recovered'
       nextState = { failingSince: null, lastAlertAt: null }
     }
-  } else if (failing && now.getUTCMinutes() < 15) {
-    // No Redis: can't track streaks, so alert at most once per hour
-    // (only runs in the first 15 minutes of each hour send)
+  } else if (failing && now.getUTCMinutes() < 30) {
+    // No Redis: can't track streaks, so only runs in the first half of each
+    // hour send. GitHub Actions schedules drift, so a narrower window could
+    // be skipped entirely; this caps it at ~2 alerts per hour.
     alert = 'failing'
   }
 

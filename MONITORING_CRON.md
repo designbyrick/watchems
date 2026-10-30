@@ -99,17 +99,15 @@ This document describes the monitoring infrastructure for Watchems, including cr
 - Loads the newest approved photo from the `photos` table
 - HEAD-requests its R2 URL and GET-requests `https://watchems.com/_next/image?url=…&w=640&q=75`
 - On any non-200, emails `IMAGE_HEALTH_ALERT_EMAIL` (default gusman.design4@gmail.com) via Resend
-- Alerts once when a failure streak starts, a reminder every 6h while it continues, and once on recovery (state in Upstash Redis key `image-health:state`; without Redis, at most one alert per hour)
+- Alerts once when a failure streak starts, a reminder every 6h while it continues, and once on recovery (state in Upstash Redis key `image-health:state`; production has no Upstash yet, so it falls back to at most ~2 alerts per hour)
 - Returns `200` when healthy, `503` when failing, `401` without a valid secret
 
 **Schedule:** the Vercel project is on the **Hobby** plan, which only allows daily crons. So:
 - `vercel.json` runs it daily at 09:00 UTC (backup)
-- [cron-job.org](https://cron-job.org) (free) calls it **every 15 minutes** — this is what gives early warning:
-  - URL: `https://watchems.com/api/cron/image-health`, method GET
-  - Header: `Authorization: Bearer <CRON_SECRET>`
-- On a Pro plan, change the `vercel.json` schedule to `*/15 * * * *` and drop the external pinger
+- GitHub Actions (`.github/workflows/image-health.yml`) calls it **every 15 minutes** with `Authorization: Bearer <CRON_SECRET>` — this is what gives early warning. The repo is public, so Actions minutes are free. GitHub schedules can drift by several minutes.
+- On a Pro plan, change the `vercel.json` schedule to `*/15 * * * *` and delete the workflow
 
-**Env vars (Vercel):** `CRON_SECRET` (required; Vercel Cron sends it automatically), `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, optional `IMAGE_HEALTH_ALERT_EMAIL`.
+**Secrets:** `CRON_SECRET` must be set both in Vercel (Production) and as a GitHub repository secret. **Env vars (Vercel):** `CRON_SECRET` (Vercel Cron sends it automatically), `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, optional `IMAGE_HEALTH_ALERT_EMAIL`.
 
 ---
 
