@@ -329,3 +329,67 @@ export async function sendPhotoBulkApprovedEmail(
     return { success: false, error: (err as Error).message }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Ops alert: photo/image delivery health (sent by /api/cron/image-health)
+// ---------------------------------------------------------------------------
+
+export interface ImageHealthCheckResult {
+  label: string
+  url: string
+  status: number | null
+  error?: string
+}
+
+export async function sendImageHealthAlertEmail(
+  to: string,
+  data: { kind: 'failing' | 'recovered'; checks: ImageHealthCheckResult[]; failingSince?: string }
+): Promise<{ success: boolean; error?: string }> {
+  const resend = getResend()
+  if (!resend) {
+    console.warn('[Resend] Missing RESEND_API_KEY — skipping image health alert')
+    return { success: false, error: 'Resend not configured' }
+  }
+
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'Watchems <onboarding@resend.dev>'
+  const subject = data.kind === 'failing'
+    ? '[Watchems] ALERT: photos are not loading (R2 / image optimizer)'
+    : '[Watchems] Resolved: photos are loading again'
+
+  const rows = data.checks
+    .map((c) => {
+      const ok = c.status === 200
+      const result = c.status !== null ? `HTTP ${c.status}` : `Error: ${c.error ?? 'unknown'}`
+      return `<tr>
+        <td style="padding:6px 12px 6px 0;font-weight:700;">${c.label}</td>
+        <td style="padding:6px 12px 6px 0;color:${ok ? '#16a34a' : '#dc2626'};font-weight:700;">${result}</td>
+        <td style="padding:6px 0;font-size:12px;word-break:break-all;"><a href="${c.url}">${c.url}</a></td>
+      </tr>`
+    })
+    .join('')
+
+  const intro = data.kind === 'failing'
+    ? `<p>The image health check could not load a recent approved photo. Visitors are probably seeing alt text instead of photos.</p>
+       <p>Likely causes: Cloudflare R2 subscription/billing, the r2.dev public bucket access being disabled, or Vercel image optimization limits.</p>
+       <p>Check: <a href="https://dash.cloudflare.com">Cloudflare dashboard → R2</a> and <a href="https://vercel.com/dashboard">Vercel → Usage</a>.</p>`
+    : `<p>Photos are loading again${data.failingSince ? ` (failing since ${data.failingSince})` : ''}.</p>`
+
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#0f172a;">
+    ${intro}
+    <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:12px;">${rows}</table>
+    <p style="margin-top:16px;color:#64748b;font-size:12px;">Sent by /api/cron/image-health at ${new Date().toISOString()}</p>
+  </div>`
+
+  try {
+    const { error } = await resend.emails.send({ from: fromEmail, to, subject, html })
+    if (error) {
+      console.error(`[Resend] Failed to send image health alert to ${to}:`, error)
+      return { success: false, error: error.message }
+    }
+    console.log(`[Resend] Image health alert (${data.kind}) sent to ${to}`)
+    return { success: true }
+  } catch (err) {
+    console.error('[Resend] Error sending image health alert:', err)
+    return { success: false, error: (err as Error).message }
+  }
+}

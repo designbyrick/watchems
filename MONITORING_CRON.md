@@ -89,6 +89,30 @@ This document describes the monitoring infrastructure for Watchems, including cr
 
 ---
 
+### Image Health Check (R2 + image optimizer)
+
+**Endpoint:** `/api/cron/image-health`
+
+**Why:** on 2026-10-29 the Cloudflare R2 subscription was silently removed. Every r2.dev photo URL returned 403, `/_next/image` returned 502, and nobody noticed until visitors saw only alt text.
+
+**What it does:**
+- Loads the newest approved photo from the `photos` table
+- HEAD-requests its R2 URL and GET-requests `https://watchems.com/_next/image?url=…&w=640&q=75`
+- On any non-200, emails `IMAGE_HEALTH_ALERT_EMAIL` (default gusman.design4@gmail.com) via Resend
+- Alerts once when a failure streak starts, a reminder every 6h while it continues, and once on recovery (state in Upstash Redis key `image-health:state`; without Redis, at most one alert per hour)
+- Returns `200` when healthy, `503` when failing, `401` without a valid secret
+
+**Schedule:** the Vercel project is on the **Hobby** plan, which only allows daily crons. So:
+- `vercel.json` runs it daily at 09:00 UTC (backup)
+- [cron-job.org](https://cron-job.org) (free) calls it **every 15 minutes** — this is what gives early warning:
+  - URL: `https://watchems.com/api/cron/image-health`, method GET
+  - Header: `Authorization: Bearer <CRON_SECRET>`
+- On a Pro plan, change the `vercel.json` schedule to `*/15 * * * *` and drop the external pinger
+
+**Env vars (Vercel):** `CRON_SECRET` (required; Vercel Cron sends it automatically), `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, optional `IMAGE_HEALTH_ALERT_EMAIL`.
+
+---
+
 ### 2. Google Search Console Metrics
 
 **Endpoint:** `/api/cron/gsc-metrics`
