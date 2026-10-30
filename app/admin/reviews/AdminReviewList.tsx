@@ -21,8 +21,9 @@ const EDIT_FIELDS: { key: keyof Photo; label: string }[] = [
 
 interface AdminModerationProps {
   initialReviews: Review[]
-  initialPendingPhotos: PendingPhoto[]
-  initialApprovedPhotos: ApprovedPhoto[]
+  /** Omit both photo lists to show reviews only (photos are moderated in /admin/photos) */
+  initialPendingPhotos?: PendingPhoto[]
+  initialApprovedPhotos?: ApprovedPhoto[]
 }
 
 export default function AdminReviewList({
@@ -31,8 +32,9 @@ export default function AdminReviewList({
   initialApprovedPhotos,
 }: AdminModerationProps) {
   const [reviews, setReviews] = useState<Review[]>(initialReviews)
-  const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>(initialPendingPhotos)
-  const [approvedPhotos, setApprovedPhotos] = useState<ApprovedPhoto[]>(initialApprovedPhotos)
+  const showPhotos = initialPendingPhotos !== undefined || initialApprovedPhotos !== undefined
+  const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>(initialPendingPhotos ?? [])
+  const [approvedPhotos, setApprovedPhotos] = useState<ApprovedPhoto[]>(initialApprovedPhotos ?? [])
   const [error, setError] = useState<string>('')
   const [processing, setProcessing] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -213,9 +215,12 @@ export default function AdminReviewList({
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[32px] sm:text-[40px] leading-tight font-semibold tracking-[-0.04em] text-ink">Moderation queue</h1>
+          <h1 className="text-[32px] sm:text-[40px] leading-tight font-semibold tracking-[-0.04em] text-ink">
+            {showPhotos ? 'Moderation queue' : 'Review moderation'}
+          </h1>
           <p className="mt-2 font-mono text-xs text-muted">
-            {pendingPhotos.length} photo{pendingPhotos.length !== 1 ? 's' : ''} · {reviews.length} review{reviews.length !== 1 ? 's' : ''} pending
+            {showPhotos && <>{pendingPhotos.length} photo{pendingPhotos.length !== 1 ? 's' : ''} · </>}
+            {reviews.length} review{reviews.length !== 1 ? 's' : ''} pending
           </p>
         </div>
         <Link href="/admin" className={pillSecondary}>Back to admin</Link>
@@ -283,6 +288,7 @@ export default function AdminReviewList({
         )}
       </section>
 
+      {showPhotos && <>
       {/* ── Pending Photos ── */}
       <section className="mt-12">
         {sectionHeader('Pending photos', pendingPhotos.length)}
@@ -381,6 +387,7 @@ export default function AdminReviewList({
           </div>
         )}
       </section>
+      </>}
 
     </div>
   )
