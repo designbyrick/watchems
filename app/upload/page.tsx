@@ -6,7 +6,7 @@ import UploadClient from './UploadClient'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Upload Your Watch Photo | Watchems',
+  title: 'Upload Your Watch Photo',
   description: 'Share a photo of your watch. Real wrist shots from real owners.',
   robots: {
     index: false,

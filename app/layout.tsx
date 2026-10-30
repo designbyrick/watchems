@@ -36,25 +36,25 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL('https://watchems.com'),
   title: {
-    default: 'Watchems - Head-to-Head Watch Comparisons & Reviews',
+    default: 'Watchems — Real Wrist Shots of Watches from Real Owners',
     template: '%s | Watchems',
   },
   description:
-    'Community-driven watch comparisons, honest reviews, and personalized recommendations. Compare any two watches side-by-side with real community ratings.',
-  keywords: ['watch comparison', 'compare watches', 'rolex vs omega', 'seiko vs hamilton', 'rolex vs tudor', 'best watches 2026', 'watch reviews', 'watch recommendations', 'best watches under 500', 'head to head watch comparison'],
+    'A visual library of real wrist shots submitted by watch owners. Browse Rolex, Omega, Seiko, Tudor and more by brand, model, style and price — see how a watch really looks on the wrist.',
+  keywords: ['watch wrist shots', 'wrist shots', 'watch photos', 'watches on the wrist', 'real watch photos', 'watch photo gallery', 'owner watch photos', 'wrist check'],
   openGraph: {
     type: 'website',
     siteName: 'Watchems',
-    title: 'Watchems - Head-to-Head Watch Comparisons & Reviews',
-    description: 'Community-driven watch comparisons, honest reviews, and personalized recommendations.',
+    title: 'Watchems — Real Wrist Shots of Watches from Real Owners',
+    description: 'A visual library of real wrist shots submitted by watch owners. Browse by brand, model, style and price.',
     url: 'https://watchems.com',
-    images: [{ url: 'https://watchems.com/api/og?title=Watchems&subtitle=Head-to-Head+Watch+Comparisons+%26+Reviews', width: 1200, height: 630 }],
+    images: [{ url: 'https://watchems.com/api/og?title=Watchems&subtitle=Real+Wrist+Shots+from+Real+Owners', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Watchems - Head-to-Head Watch Comparisons & Reviews',
-    description: 'Community-driven watch comparisons, honest reviews, and personalized recommendations.',
-    images: ['https://watchems.com/api/og?title=Watchems&subtitle=Head-to-Head+Watch+Comparisons+%26+Reviews'],
+    title: 'Watchems — Real Wrist Shots of Watches from Real Owners',
+    description: 'A visual library of real wrist shots submitted by watch owners. Browse by brand, model, style and price.',
+    images: ['https://watchems.com/api/og?title=Watchems&subtitle=Real+Wrist+Shots+from+Real+Owners'],
   },
   verification: {
     google: 'uJXK23x_lAigHXvAoywJqmmZAaZXeEpAntrOo_KV4gM',
@@ -64,9 +64,11 @@ export const metadata: Metadata = {
 const organizationJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
+  '@id': 'https://watchems.com/#organization',
   name: 'Watchems',
   url: 'https://watchems.com',
-  logo: 'https://watchems.com/logo.svg',
+  // Same raster logo as the home page's Organization block so Google sees one consistent entity
+  logo: 'https://watchems.com/icon.png',
   description: 'Community watch photo gallery. Real wrist shots from real owners — browse by brand, style, and price.',
   sameAs: [],
 }

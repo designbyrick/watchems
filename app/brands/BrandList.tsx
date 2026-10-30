@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { brandPath } from '@/lib/brandSlug'
 
 interface Brand {
   brandName: string
@@ -71,7 +72,7 @@ export default function BrandList({ brands }: { brands: Brand[] }) {
                 {letterBrands.map((brand) => (
                   <li key={brand.brandName}>
                     <Link
-                      href={`/brand/${encodeURIComponent(brand.brandName.toLowerCase())}`}
+                      href={brandPath(brand.brandName)}
                       className="group flex items-center justify-between gap-4 py-3.5 px-1 border-b border-line hover:bg-[#FAFAF9] transition-colors"
                     >
                       <span className="text-[17px] font-semibold text-ink truncate">{brand.brandName}</span>
