@@ -19,7 +19,7 @@ interface StylePageProps {
 
 export async function generateMetadata({ params }: StylePageProps): Promise<Metadata> {
   const styleEntry = getStyleBySlug(params.style)
-  if (!styleEntry) return { title: 'Style Not Found | Watchems' }
+  if (!styleEntry) return { title: 'Style Not Found' }
 
   const stats = await db
     .select({ photoCount: sql<number>`count(*)::int` })
@@ -38,13 +38,12 @@ export async function generateMetadata({ params }: StylePageProps): Promise<Meta
   const photoCount = stats?.photoCount ?? 0
   const imageUrl = repPhoto?.thumbnailUrl ?? repPhoto?.url ?? ''
 
-  const title = `${styleEntry.name} on the Wrist — Real Owner Photos | Watchems`
+  const title = `${styleEntry.name} on the Wrist — Real Owner Photos`
   const description = `Browse ${photoCount} real owner photos of ${styleEntry.name.toLowerCase()} worn on the wrist. Community-submitted wrist shots — no affiliate links, just real watches on real wrists.`
 
   return {
     title,
     description,
-    robots: { index: false, follow: false },
     alternates: {
       canonical: `https://watchems.com/style/${styleEntry.slug}`,
     },
@@ -77,6 +76,8 @@ export default async function StylePage({ params }: StylePageProps) {
     .then((r) => r[0])
 
   if (!stats || stats.photoCount < MIN_PHOTOS_FOR_HUB) {
+    // Temporary (307) on purpose: the hub becomes valid once more photos are approved,
+    // and a permanent redirect would stay cached by browsers and search engines.
     redirect(`/?watchStyle=${encodeURIComponent(styleEntry.dbValue)}`)
   }
 
@@ -182,7 +183,7 @@ export default async function StylePage({ params }: StylePageProps) {
         />
       )}
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
 
         {/* Breadcrumb */}
         <nav className="text-xs text-gray-400 mb-6 flex items-center gap-1.5">
@@ -312,7 +313,7 @@ export default async function StylePage({ params }: StylePageProps) {
           </Link>
         </div>
 
-      </main>
+      </div>
     </>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Image from 'next/image'
 import { trackEvent } from '@/lib/gtag'
 
 export interface ViewerPhoto {
@@ -60,14 +61,16 @@ export default function PhotoViewer({ photos, initialIndex, track }: PhotoViewer
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative overflow-hidden rounded-[10px] bg-surface">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+      <div className="relative overflow-hidden rounded-[10px] bg-surface aspect-[4/5] lg:aspect-auto lg:h-[720px]">
+        {/* Optimized via /_next/image (AVIF/WebP, srcset); priority = preload + fetchpriority="high" for LCP */}
+        <Image
           key={active.id}
           src={active.url}
           alt={active.alt}
-          className="block w-full aspect-[4/5] lg:aspect-auto lg:h-[720px] object-cover"
-          fetchPriority="high"
+          fill
+          priority
+          sizes="(min-width: 1024px) 720px, 100vw"
+          className="object-cover"
         />
         {total > 1 && (
           <span className="absolute left-4 top-4 h-8 rounded-full bg-[rgba(14,15,15,0.72)] text-[#EDEBE5] flex items-center px-3 font-mono text-[11px] tracking-[1px] uppercase">
