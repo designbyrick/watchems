@@ -119,7 +119,7 @@ export default function UploadNudge({ photos, totalCount }: Props) {
           </h2>
           <p className="mt-3 text-[15px] leading-relaxed text-muted">
             One photo helps someone decide if a watch fits their wrist. Snap it,
-            upload it and we&apos;ll identify the model for you.
+            upload it and add the model details.
           </p>
 
           <ul className="mt-5 space-y-2 text-sm text-ink">

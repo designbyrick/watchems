@@ -142,7 +142,7 @@ function defaultMeta(): WatchMeta {
 
 const MAX_PHOTOS = 20
 
-export default function UploadClient() {
+export default function UploadClient({ aiEnabled = false }: { aiEnabled?: boolean }) {
   const { isSignedIn, isLoaded } = useUser()
   const [items, setItems] = useState<PhotoItem[]>([])
   const [meta, setMeta] = useState<WatchMeta>(defaultMeta())
@@ -900,7 +900,7 @@ export default function UploadClient() {
                 )}
 
                 <p className="text-[13px] leading-normal text-muted">
-                  Up to {MAX_PHOTOS} photos{hasItems ? ` (${items.length} added)` : ''}. The first one is used to identify the watch.
+                  Up to {MAX_PHOTOS} photos{hasItems ? ` (${items.length} added)` : ''}.{aiEnabled && ' The first one is used to identify the watch.'}
                   {' '}GPS location, camera info and all EXIF metadata are removed automatically.
                 </p>
               </section>
@@ -935,7 +935,7 @@ export default function UploadClient() {
                         ? 'Identification failed'
                         : 'Watch'}
                     </span>
-                    {primaryItem && meta.identifyStatus === 'idle' && (
+                    {aiEnabled && primaryItem && meta.identifyStatus === 'idle' && (
                       <button
                         type="button"
                         onClick={() => identifyPrimary(primaryItem.id)}
@@ -947,7 +947,7 @@ export default function UploadClient() {
                         Auto-fill with AI
                       </button>
                     )}
-                    {primaryItem && (meta.identifyStatus === 'done' || meta.identifyStatus === 'error') && (
+                    {aiEnabled && primaryItem && (meta.identifyStatus === 'done' || meta.identifyStatus === 'error') && (
                       <button
                         type="button"
                         onClick={resetIdentify}
@@ -969,6 +969,8 @@ export default function UploadClient() {
                         ? 'Fill in the details manually.'
                         : meta.aiIdentified && aiFilledCount > 0
                         ? 'Check and correct anything the AI got wrong before submitting. Highlighted fields need a ✓ or ✕.'
+                        : !aiEnabled
+                        ? 'Brand is required. Fill in as much detail as you know.'
                         : hasItems
                         ? 'Brand is required. Auto-fill with AI or type the details yourself.'
                         : 'Brand is required. Add a photo first to auto-fill the rest with AI.'}
