@@ -14,10 +14,8 @@ interface ApproveRejectBody {
  * PATCH /api/admin/reviews/[id]
  * Approve or reject a pending review (admin only)
  */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-): Promise<NextResponse> {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const params = await props.params;
   try {
     const { userId } = await auth()
 

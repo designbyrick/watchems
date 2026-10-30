@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import crypto from 'crypto'
 import { db } from '@/lib/db'
 import { collections, collectionItems, photos } from '@/lib/db/schema'
-import { eq, sql, desc } from 'drizzle-orm'
+import { eq, and, sql, desc } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,14 +20,15 @@ export async function GET() {
         id: collections.id,
         name: collections.name,
         createdAt: collections.createdAt,
-        itemCount: sql<number>`cast(count(${collectionItems.id}) as int)`,
+        // Count joined photos, not items, so deleted/unapproved photos aren't counted
+        itemCount: sql<number>`cast(count(${photos.id}) as int)`,
         coverUrl: sql<string | null>`max(coalesce(${photos.thumbnailUrl}, ${photos.url}))`,
         // Up to 3 most recently saved images, for the board mosaic
         coverUrls: sql<string[]>`coalesce((array_remove(array_agg(coalesce(${photos.thumbnailUrl}, ${photos.url}) order by ${collectionItems.createdAt} desc), null))[1:3], '{}')`,
       })
       .from(collections)
       .leftJoin(collectionItems, eq(collectionItems.collectionId, collections.id))
-      .leftJoin(photos, eq(photos.id, collectionItems.photoId))
+      .leftJoin(photos, and(eq(photos.id, collectionItems.photoId), eq(photos.status, 'approved')))
       .where(eq(collections.userId, userId))
       .groupBy(collections.id)
       .orderBy(desc(collections.createdAt))
@@ -47,8 +48,14 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json()
-    const name = typeof body.name === 'string' ? body.name.trim() : ''
+    let body: unknown
+    try {
+      body = await req.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+    const rawName = (body as { name?: unknown } | null)?.name
+    const name = typeof rawName === 'string' ? rawName.trim() : ''
     if (!name || name.length > 100) {
       return NextResponse.json({ error: 'Collection name is required (max 100 chars)' }, { status: 400 })
     }

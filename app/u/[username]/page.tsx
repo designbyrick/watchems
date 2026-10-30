@@ -18,9 +18,8 @@ async function getUserByUsername(username: string) {
   return result.data[0] ?? null
 }
 
-export async function generateMetadata(
-  { params }: { params: { username: string } }
-): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ username: string }> }): Promise<Metadata> {
+  const params = await props.params;
   try {
     const user = await getUserByUsername(params.username)
     if (!user) {
@@ -44,7 +43,8 @@ export async function generateMetadata(
   }
 }
 
-export default async function PublicProfilePage({ params }: { params: { username: string } }) {
+export default async function PublicProfilePage(props: { params: Promise<{ username: string }> }) {
+  const params = await props.params;
   const user = await getUserByUsername(params.username)
 
   if (!user) {

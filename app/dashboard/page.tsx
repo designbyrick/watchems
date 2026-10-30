@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { photos } from '@/lib/db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { eq, and, ne, desc } from 'drizzle-orm'
 import MyWatchesView from './MyWatchesView'
 
 export const dynamic = 'force-dynamic'
@@ -20,11 +20,10 @@ export const metadata: Metadata = {
   },
 }
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: { status?: string }
+export default async function DashboardPage(props: {
+  searchParams: Promise<{ status?: string }>
 }) {
+  const searchParams = await props.searchParams
   const { userId } = await auth()
 
   if (!userId) {
@@ -34,7 +33,7 @@ export default async function DashboardPage({
   const sortedPhotos = await db
     .select()
     .from(photos)
-    .where(eq(photos.userId, userId))
+    .where(and(eq(photos.userId, userId), ne(photos.status, 'deleted')))
     .orderBy(desc(photos.createdAt))
 
   return <MyWatchesView photos={sortedPhotos} status={searchParams.status} />

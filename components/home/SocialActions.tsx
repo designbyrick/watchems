@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Heart } from 'lucide-react'
-import { useUser } from '@clerk/nextjs'
+import { useIsSignedIn } from '@/lib/useIsSignedIn'
 import ShareDropdown from './ShareDropdown'
 
 interface SocialActionsProps {
@@ -14,7 +14,7 @@ interface SocialActionsProps {
 }
 
 export default function SocialActions({ photoId, photoSlug, variant }: SocialActionsProps) {
-  const { isSignedIn } = useUser()
+  const isSignedIn = useIsSignedIn()
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
   const [animating, setAnimating] = useState(false)

@@ -20,7 +20,10 @@ function parsePage(raw: string): number | null {
   return Number.isSafeInteger(n) && n >= 1 ? n : null
 }
 
-export function generateMetadata({ params }: { params: { n: string } }): Metadata {
+type GalleryPageProps = { params: Promise<{ n: string }> }
+
+export async function generateMetadata(props: GalleryPageProps): Promise<Metadata> {
+  const params = await props.params
   const page = parsePage(params.n)
   const url = `https://watchems.com/page/${params.n}`
   const title = `Watch Photo Gallery, Page ${page ?? params.n}`
@@ -32,7 +35,8 @@ export function generateMetadata({ params }: { params: { n: string } }): Metadat
   }
 }
 
-export default async function GalleryPage({ params }: { params: { n: string } }) {
+export default async function GalleryPage(props: GalleryPageProps) {
+  const params = await props.params
   const page = parsePage(params.n)
   if (page === null) notFound()
   if (page === 1) permanentRedirect('/')
