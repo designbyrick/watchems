@@ -138,7 +138,7 @@ async function deletedPhotoGone(req: NextRequest): Promise<NextResponse | null> 
   )
 }
 
-export default clerkMiddleware(async (_auth, req) => {
+async function handle(req: NextRequest): Promise<NextResponse> {
   // 1. Legacy root-level comparison URL redirect (redirect old indexed URLs)
   const legacyRedirect = legacyRootLevelRedirect(req)
   if (legacyRedirect) return legacyRedirect
@@ -167,7 +167,13 @@ export default clerkMiddleware(async (_auth, req) => {
   const res = NextResponse.next({ request: { headers: requestHeaders } })
   res.headers.set('Content-Security-Policy', csp)
   return res
-})
+}
+
+// Clerk throws on every request when its keys are missing (e.g. Preview
+// deployments without Clerk env vars), so only wrap the handler when they exist.
+const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && !!process.env.CLERK_SECRET_KEY
+
+export default hasClerk ? clerkMiddleware((_auth, req) => handle(req)) : handle
 
 export const config = {
   matcher: [
