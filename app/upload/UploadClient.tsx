@@ -150,6 +150,7 @@ export default function UploadClient() {
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [globalError, setGlobalError] = useState('')
+  const [identifyError, setIdentifyError] = useState<'rate_limited' | 'ai_unavailable' | 'failed'>('failed')
   const [success, setSuccess] = useState(false)
   const [successPreviews, setSuccessPreviews] = useState<string[]>([])
   const [partialSuccess, setPartialSuccess] = useState('')
@@ -197,12 +198,19 @@ export default function UploadClient() {
     if (!file) return
 
     patchMeta({ identifyStatus: 'identifying' })
+    setIdentifyError('failed')
 
     try {
       const formData = new FormData()
       formData.append('photo', file)
       const res = await fetch('/api/photos/identify', { method: 'POST', body: formData })
-      if (!res.ok) throw new Error('Identification failed')
+      if (!res.ok) {
+        const body = await res.json().catch(() => null) as { code?: string } | null
+        setIdentifyError(
+          res.status === 429 ? 'rate_limited' : body?.code === 'ai_unavailable' ? 'ai_unavailable' : 'failed'
+        )
+        throw new Error('Identification failed')
+      }
       const data = await res.json()
 
       const metaPatch: Partial<WatchMeta> = {
@@ -932,7 +940,11 @@ export default function UploadClient() {
                         : meta.identifyStatus === 'identifying'
                         ? 'Identifying watch…'
                         : meta.identifyStatus === 'error'
-                        ? 'Identification failed'
+                        ? identifyError === 'rate_limited'
+                          ? 'Too many attempts'
+                          : identifyError === 'ai_unavailable'
+                          ? 'AI unavailable'
+                          : 'Identification failed'
                         : 'Watch'}
                     </span>
                     {primaryItem && meta.identifyStatus === 'idle' && (
@@ -966,7 +978,11 @@ export default function UploadClient() {
                   <div className="px-[18px] pb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[13px] text-muted">
                     <span>
                       {meta.identifyStatus === 'error'
-                        ? 'Fill in the details manually.'
+                        ? identifyError === 'rate_limited'
+                          ? 'Too many AI attempts. Try again in an hour, or fill in the details manually.'
+                          : identifyError === 'ai_unavailable'
+                          ? 'AI identification is temporarily unavailable. Fill in the details manually.'
+                          : 'Fill in the details manually.'
                         : meta.aiIdentified && aiFilledCount > 0
                         ? 'Check and correct anything the AI got wrong before submitting. Highlighted fields need a ✓ or ✕.'
                         : hasItems

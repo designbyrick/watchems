@@ -14,6 +14,21 @@ export async function checkRateLimit(userId: string) {
 }
 
 /**
+ * AI watch identification limiter, separate from submissions so retries
+ * don't block the user from submitting. 20 requests per hour per user.
+ */
+export async function checkIdentifyRateLimit(userId: string) {
+  const redis = getRedis()
+  if (!redis) return { success: true as const }
+  const limiter = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(20, '1 h'),
+    prefix: 'ratelimit:identify',
+  })
+  return limiter.limit(userId)
+}
+
+/**
  * IP-based rate limiter for public read endpoints.
  * 60 requests per minute per IP.
  */
