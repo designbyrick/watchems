@@ -15,11 +15,11 @@ export function Badge({
     winner:
       'bg-winnerBg text-winner font-medium text-xs tracking-wider px-2.5 py-0.5 rounded-full uppercase',
     loser:
-      'bg-surfaceAlt text-textMuted font-medium text-xs tracking-wider px-2.5 py-0.5 rounded-full uppercase',
+      'bg-canvas text-faint font-medium text-xs tracking-wider px-2.5 py-0.5 rounded-full uppercase',
     accent:
-      'bg-accentLight text-accent font-medium text-xs tracking-wider px-2.5 py-0.5 rounded-full uppercase',
+      'bg-subtle text-ink font-medium text-xs tracking-wider px-2.5 py-0.5 rounded-full uppercase',
     neutral:
-      'bg-surfaceAlt text-textSecond font-medium text-xs tracking-wider px-2.5 py-0.5 rounded-full uppercase',
+      'bg-canvas text-muted font-medium text-xs tracking-wider px-2.5 py-0.5 rounded-full uppercase',
   }[variant];
 
   return <span className={`${variantClass} ${className}`}>{children}</span>;

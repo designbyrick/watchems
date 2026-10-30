@@ -51,21 +51,21 @@ export default function BestForBox({ w1, w2 }: { w1: Watch; w2: Watch }) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-      <div className="relative bg-surface border-l-4 border-l-accent border border-border rounded-sm p-5">
-        <span className="absolute -top-3 left-4 bg-accent text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full">
+      <div className="relative bg-surface border-l-4 border-l-ink border border-line rounded-sm p-5">
+        <span className="absolute -top-3 left-4 bg-ink text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full">
           Best For
         </span>
-        <p className="text-xs text-textMuted font-semibold uppercase tracking-wider mt-1 mb-1">{w1.brand}</p>
-        <p className="text-sm font-bold text-textPrimary mb-2">{w1.name}</p>
-        <p className="text-sm text-textSecond leading-relaxed">{bestFor1}</p>
+        <p className="text-xs text-faint font-semibold uppercase tracking-wider mt-1 mb-1">{w1.brand}</p>
+        <p className="text-sm font-bold text-ink mb-2">{w1.name}</p>
+        <p className="text-sm text-muted leading-relaxed">{bestFor1}</p>
       </div>
-      <div className="relative bg-surface border-l-4 border-l-borderStrong border border-border rounded-sm p-5">
-        <span className="absolute -top-3 left-4 bg-borderStrong text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full">
+      <div className="relative bg-surface border-l-4 border-l-line-strong border border-line rounded-sm p-5">
+        <span className="absolute -top-3 left-4 bg-line-strong text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full">
           Best For
         </span>
-        <p className="text-xs text-textMuted font-semibold uppercase tracking-wider mt-1 mb-1">{w2.brand}</p>
-        <p className="text-sm font-bold text-textPrimary mb-2">{w2.name}</p>
-        <p className="text-sm text-textSecond leading-relaxed">{bestFor2}</p>
+        <p className="text-xs text-faint font-semibold uppercase tracking-wider mt-1 mb-1">{w2.brand}</p>
+        <p className="text-sm font-bold text-ink mb-2">{w2.name}</p>
+        <p className="text-sm text-muted leading-relaxed">{bestFor2}</p>
       </div>
     </div>
   )

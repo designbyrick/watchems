@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import Link from 'next/link'
 import {
   format,
   startOfMonth,
@@ -11,8 +12,8 @@ import {
   subMonths,
   isToday,
   isFuture,
+  isSameMonth,
 } from 'date-fns'
-import EmptyState from '@/components/ui/EmptyState'
 
 interface WristCheckEntry {
   id: string
@@ -35,76 +36,28 @@ interface UserWatch {
   url: string
 }
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-const DONUT_COLORS = [
-  '#3B82F6', // blue
-  '#10B981', // emerald
-  '#F59E0B', // amber
-  '#EF4444', // red
-  '#8B5CF6', // violet
-  '#EC4899', // pink
-  '#14B8A6', // teal
-  '#F97316', // orange
-]
+function watchName(w: { brandName: string | null; modelName: string | null }) {
+  return [w.brandName, w.modelName].filter(Boolean).join(' ') || 'Watch'
+}
 
-function DonutChart({ items, total }: { items: { count: number; name: string }[]; total: number }) {
-  const size = 160
-  const strokeWidth = 28
-  const radius = (size - strokeWidth) / 2
-  const circumference = 2 * Math.PI * radius
-  const cx = size / 2
-  const cy = size / 2
-
-  let accumulated = 0
-
+function ChevronIcon({ dir }: { dir: 'left' | 'right' }) {
   return (
-    <div className="flex justify-center">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {/* Background circle */}
-        <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#f3f4f6" strokeWidth={strokeWidth} />
-        {/* Segments */}
-        {items.map((item, i) => {
-          const pct = total > 0 ? item.count / total : 0
-          const dashLength = pct * circumference
-          const dashOffset = circumference - accumulated * circumference
-          accumulated += pct
-          return (
-            <circle
-              key={item.name}
-              cx={cx}
-              cy={cy}
-              r={radius}
-              fill="none"
-              stroke={DONUT_COLORS[i % DONUT_COLORS.length]}
-              strokeWidth={strokeWidth}
-              strokeDasharray={`${dashLength} ${circumference - dashLength}`}
-              strokeDashoffset={dashOffset}
-              strokeLinecap="butt"
-              transform={`rotate(-90 ${cx} ${cy})`}
-            />
-          )
-        })}
-        {/* Center text */}
-        <text x={cx} y={cy - 6} textAnchor="middle" className="fill-gray-900 text-2xl font-bold" fontSize="24">
-          {total}
-        </text>
-        <text x={cx} y={cy + 12} textAnchor="middle" className="fill-gray-500" fontSize="10">
-          checks
-        </text>
-      </svg>
-    </div>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={dir === 'left' ? 'm15 18-6-6 6-6' : 'm9 6 6 6-6 6'} />
+    </svg>
   )
 }
 
 export default function WristCheckClient() {
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [currentMonth, setCurrentMonth] = useState(() => new Date())
   const [entries, setEntries] = useState<WristCheckEntry[]>([])
   const [watches, setWatches] = useState<UserWatch[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [selectedDate, setSelectedDate] = useState<string | null>(() => format(new Date(), 'yyyy-MM-dd'))
   const [saving, setSaving] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const pickerRef = useRef<HTMLElement>(null)
 
   const monthKey = format(currentMonth, 'yyyy-MM')
 
@@ -132,402 +85,236 @@ export default function WristCheckClient() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    if (!selectedDate) return
-    const handler = (e: PointerEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setSelectedDate(null)
-      }
-    }
-    window.addEventListener('pointerdown', handler)
-    return () => window.removeEventListener('pointerdown', handler)
-  }, [selectedDate])
+  function changeMonth(next: Date) {
+    setCurrentMonth(next)
+    // Keep today selected when returning to the current month; otherwise wait for a pick
+    setSelectedDate(isSameMonth(next, new Date()) ? format(new Date(), 'yyyy-MM-dd') : null)
+  }
 
-  async function handleAddWatch(photoId: string, date: string) {
+  function selectDay(dateStr: string) {
+    setSelectedDate(dateStr)
+    // On stacked layouts the picker sits below the calendar, so bring it into view
+    if (window.matchMedia('(max-width: 1023px)').matches) {
+      pickerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
+  // Group entries by date. A day can hold several entries; the first one is the day's watch.
+  const entriesByDate = new Map<string, WristCheckEntry[]>()
+  for (const entry of entries) {
+    if (!entriesByDate.has(entry.date)) entriesByDate.set(entry.date, [])
+    entriesByDate.get(entry.date)!.push(entry)
+  }
+
+  const selectedEntries = selectedDate ? entriesByDate.get(selectedDate) || [] : []
+  const selectedEntry = selectedEntries[0] ?? null
+
+  /** Pick a watch for the selected day: the same watch again clears it, another one replaces it. */
+  async function handlePick(watch: UserWatch) {
+    if (!selectedDate || saving) return
     setSaving(true)
     try {
-      const res = await fetch('/api/wrist-checks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ photoId, date }),
-      })
-      if (res.ok) {
-        await fetchData()
+      if (selectedEntry) {
+        await fetch(`/api/wrist-checks/${selectedEntry.id}`, { method: 'DELETE' })
       }
+      if (selectedEntry?.photoId !== watch.photoId) {
+        await fetch('/api/wrist-checks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ photoId: watch.photoId, date: selectedDate }),
+        })
+      }
+      await fetchData()
     } catch (err) {
-      console.error('Failed to add wrist check:', err)
+      console.error('Failed to update wrist check:', err)
     } finally {
       setSaving(false)
     }
   }
 
-  async function handleRemoveEntry(entryId: string) {
-    try {
-      await fetch(`/api/wrist-checks/${entryId}`, { method: 'DELETE' })
-      setEntries((prev) => prev.filter((e) => e.id !== entryId))
-    } catch (err) {
-      console.error('Failed to remove wrist check:', err)
-    }
-  }
-
-  // Calendar grid
+  // Calendar grid, Monday first
   const monthStart = startOfMonth(currentMonth)
-  const monthEnd = endOfMonth(currentMonth)
-  const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
-  const startDayOfWeek = getDay(monthStart)
+  const days = eachDayOfInterval({ start: monthStart, end: endOfMonth(currentMonth) })
+  const leadingBlanks = (getDay(monthStart) + 6) % 7
 
-  // Group entries by date
-  const entriesByDate = new Map<string, WristCheckEntry[]>()
+  // Wear count for the month
+  const wearCountByWatch = new Map<string, { count: number; name: string }>()
   for (const entry of entries) {
-    const key = entry.date
-    if (!entriesByDate.has(key)) entriesByDate.set(key, [])
-    entriesByDate.get(key)!.push(entry)
+    const item = wearCountByWatch.get(entry.watchId) ?? { count: 0, name: watchName(entry) }
+    item.count++
+    wearCountByWatch.set(entry.watchId, item)
   }
+  const wearList = Array.from(wearCountByWatch.entries())
+    .map(([watchId, v]) => ({ watchId, ...v }))
+    .sort((a, b) => b.count - a.count)
+  const maxCount = wearList[0]?.count ?? 1
 
-  // Stats
-  const wearCountByWatch = new Map<string, { count: number; name: string; thumb: string | null }>()
-  for (const entry of entries) {
-    const key = entry.watchId
-    if (!wearCountByWatch.has(key)) {
-      wearCountByWatch.set(key, {
-        count: 0,
-        name: [entry.brandName, entry.modelName].filter(Boolean).join(' ') || 'Watch',
-        thumb: entry.thumbnailUrl || entry.url,
-      })
-    }
-    wearCountByWatch.get(key)!.count++
-  }
-  const wearList = Array.from(wearCountByWatch.values()).sort((a, b) => b.count - a.count)
+  const selectedLabel = selectedDate
+    ? `${selectedDate === format(new Date(), 'yyyy-MM-dd') ? 'Today · ' : ''}${format(new Date(selectedDate + 'T12:00:00'), 'MMMM d')}`
+    : format(currentMonth, 'MMMM yyyy')
 
   return (
-    <div className="py-6 sm:py-8 px-4 sm:px-6">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Wrist Check</h1>
-        <p className="text-gray-600 text-sm mb-6">Track which watch you wear each day.</p>
+    <div className="px-4 py-8 sm:px-8 lg:px-10 lg:pb-16">
+      <h1 className="text-[32px] font-semibold leading-tight tracking-[-0.04em] text-ink sm:text-[40px]">Wrist Check</h1>
+      <p className="mt-2 text-[15px] text-muted">Daily wear log. Pick a day, then the watch you wore.</p>
 
-        {watches.length === 0 && !loading ? (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="p-4 sm:p-6">
-              <EmptyState
-                icon="⌚"
-                title="No watches yet"
-                message="Upload and get a watch photo approved to start tracking your wrist checks."
-                actionUrl="/upload"
-                actionText="Upload a Watch"
-                actionStyle="blue"
-              />
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="flex flex-col lg:flex-row gap-6 mb-6">
-            {/* Calendar */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 flex-1 min-w-0">
-              {/* Month navigation */}
-              <div className="flex items-center justify-between mb-4">
+      {watches.length === 0 && !loading ? (
+        <div className="mt-7 flex max-w-2xl flex-col items-center rounded-[10px] border border-dashed border-line-strong px-6 py-16 text-center">
+          <p className="text-[17px] font-semibold text-ink">No watches to log yet</p>
+          <p className="mt-1.5 max-w-sm text-sm text-muted">Once one of your wrist shots is approved, it shows up here so you can log the days you wear it.</p>
+          <Link
+            href="/upload"
+            className="mt-5 inline-flex h-11 items-center rounded-full bg-ink px-5 text-sm font-semibold text-white hover:bg-ink-hover"
+          >
+            Add a wrist shot
+          </Link>
+        </div>
+      ) : (
+        <div className="mt-7 flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-7">
+          {/* Calendar */}
+          <section
+            aria-label={format(currentMonth, 'MMMM yyyy')}
+            className="min-w-0 rounded-[10px] border border-line bg-surface p-3 sm:p-5 lg:flex-[2_1_520px]"
+          >
+            <div className="mb-3.5 flex items-center justify-between">
+              <h2 className="text-xl font-semibold tracking-[-0.02em] text-ink">{format(currentMonth, 'MMMM yyyy')}</h2>
+              <div className="flex gap-1.5">
                 <button
                   type="button"
-                  onClick={() => { setCurrentMonth(subMonths(currentMonth, 1)); setSelectedDate(null) }}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  onClick={() => changeMonth(subMonths(currentMonth, 1))}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-line text-ink transition-colors hover:bg-subtle"
                   aria-label="Previous month"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                  </svg>
+                  <ChevronIcon dir="left" />
                 </button>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {format(currentMonth, 'MMMM yyyy')}
-                </h2>
                 <button
                   type="button"
-                  onClick={() => { setCurrentMonth(addMonths(currentMonth, 1)); setSelectedDate(null) }}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  onClick={() => changeMonth(addMonths(currentMonth, 1))}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-line text-ink transition-colors hover:bg-subtle"
                   aria-label="Next month"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
+                  <ChevronIcon dir="right" />
                 </button>
               </div>
+            </div>
 
-              {/* Weekday headers */}
-              <div className="grid grid-cols-7 gap-1 mb-1">
-                {WEEKDAYS.map((day) => (
-                  <div key={day} className="text-center text-xs font-medium text-gray-400 py-1">
-                    {day}
-                  </div>
+            <div className="mb-1.5 grid grid-cols-7 gap-1 font-mono text-[10px] uppercase tracking-[1px] text-muted sm:gap-1.5 sm:text-[11px]" aria-hidden="true">
+              {WEEKDAYS.map((d) => <span key={d}>{d}</span>)}
+            </div>
+
+            {loading ? (
+              <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+                {[...Array(35)].map((_, i) => (
+                  <div key={i} className="aspect-square animate-pulse rounded-md bg-subtle" />
                 ))}
               </div>
-
-              {/* Day cells */}
-              {loading ? (
-                <div className="grid grid-cols-7 gap-1">
-                  {[...Array(35)].map((_, i) => (
-                    <div key={i} className="aspect-square rounded-lg bg-gray-100 animate-pulse" />
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-7 gap-1">
-                  {/* Empty cells before first day */}
-                  {[...Array(startDayOfWeek)].map((_, i) => (
-                    <div key={`empty-${i}`} className="aspect-square" />
-                  ))}
-
-                  {days.map((day) => {
-                    const dateStr = format(day, 'yyyy-MM-dd')
-                    const dayEntries = entriesByDate.get(dateStr) || []
-                    const isTodayDate = isToday(day)
-                    const isFutureDate = isFuture(day)
-                    const isSelected = selectedDate === dateStr
-
-                    return (
-                      <div key={dateStr} className="relative">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!isFutureDate) setSelectedDate(isSelected ? null : dateStr)
-                          }}
-                          disabled={isFutureDate}
-                          className={`w-full aspect-square p-1 rounded-lg border transition-all flex flex-col items-start ${
-                            isSelected
-                              ? 'border-blue-400 bg-blue-50 ring-2 ring-blue-200'
-                              : isTodayDate
-                              ? 'border-blue-300 bg-blue-50/50'
-                              : dayEntries.length > 0
-                              ? 'border-gray-200 bg-white hover:border-blue-300'
-                              : 'border-gray-100 hover:border-gray-300 hover:bg-gray-50'
-                          } ${isFutureDate ? 'opacity-40 cursor-default' : 'cursor-pointer'}`}
-                        >
-                          <span className={`text-xs font-medium ${
-                            isTodayDate ? 'text-blue-600' : 'text-gray-700'
-                          }`}>
-                            {format(day, 'd')}
-                          </span>
-                          {dayEntries.length > 0 && (
-                            <div className="flex flex-wrap gap-0.5 mt-auto w-full justify-start">
-                              {dayEntries.slice(0, 3).map((entry) => (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  key={entry.id}
-                                  src={entry.thumbnailUrl || entry.url}
-                                  alt={entry.brandName || 'Watch'}
-                                  className="w-4 h-4 sm:w-5 sm:h-5 rounded-full object-cover border border-white"
-                                />
-                              ))}
-                              {dayEntries.length > 3 && (
-                                <span className="text-[9px] text-gray-400 self-center">+{dayEntries.length - 3}</span>
-                              )}
-                            </div>
-                          )}
-                        </button>
-
-                        {/* Desktop dropdown popover — hidden on mobile */}
-                        {isSelected && (
-                          <div
-                            className="hidden sm:block absolute z-50 top-full mt-1 bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-72"
-                            style={{ left: '50%', transform: 'translateX(-50%)' }}
-                            ref={dropdownRef}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <p className="text-xs font-semibold text-gray-900">
-                                {format(new Date(dateStr + 'T12:00:00'), 'EEE, MMM d')}
-                              </p>
-                              <button type="button" onClick={() => setSelectedDate(null)} className="text-gray-400 hover:text-gray-600">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </div>
-                            {dayEntries.length > 0 && (
-                              <div className="mb-2 space-y-1">
-                                {dayEntries.map((entry) => (
-                                  <div key={entry.id} className="flex items-center gap-2 bg-blue-50 rounded-lg px-2 py-1.5">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={entry.thumbnailUrl || entry.url} alt={entry.brandName || 'Watch'} className="w-7 h-7 rounded-full object-cover shrink-0" />
-                                    <span className="text-xs font-medium text-gray-900 truncate flex-1">
-                                      {[entry.brandName, entry.modelName].filter(Boolean).join(' ') || 'Watch'}
-                                    </span>
-                                    <button type="button" onClick={() => handleRemoveEntry(entry.id)} className="text-gray-400 hover:text-red-500 shrink-0" aria-label="Remove">
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                      </svg>
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            <div className="max-h-48 overflow-y-auto space-y-0.5">
-                              {watches.map((watch) => {
-                                const alreadyLogged = dayEntries.some((e) => e.photoId === watch.photoId)
-                                return (
-                                  <button
-                                    key={watch.photoId}
-                                    type="button"
-                                    onClick={() => !alreadyLogged && handleAddWatch(watch.photoId, dateStr)}
-                                    disabled={saving || alreadyLogged}
-                                    className={`w-full flex items-center gap-2 p-1.5 rounded-lg transition-colors text-left ${alreadyLogged ? 'opacity-40 cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
-                                  >
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={watch.thumbnailUrl || watch.url} alt={watch.brandName || 'Watch'} className="w-8 h-8 rounded-lg object-cover shrink-0" />
-                                    <div className="min-w-0 flex-1">
-                                      <p className="text-xs font-medium text-gray-900 truncate">{watch.brandName || 'Watch'}</p>
-                                      {watch.modelName && <p className="text-[11px] text-gray-500 truncate">{watch.modelName}</p>}
-                                    </div>
-                                    {alreadyLogged && (
-                                      <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                      </svg>
-                                    )}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Mobile bottom sheet watch picker */}
-            {selectedDate && (() => {
-              const dayEntries = entriesByDate.get(selectedDate) || []
-              return (
-                <div className="sm:hidden">
-                  <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setSelectedDate(null)} />
-                  <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl p-4 pb-8 max-h-[70vh] overflow-y-auto">
-                    <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm font-semibold text-gray-900">
-                        {format(new Date(selectedDate + 'T12:00:00'), 'EEEE, MMM d')}
-                      </p>
-                      <button type="button" onClick={() => setSelectedDate(null)} className="text-gray-400 hover:text-gray-600 p-1">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                    {dayEntries.length > 0 && (
-                      <div className="mb-3 space-y-1.5">
-                        <p className="text-xs text-gray-500">Wearing:</p>
-                        {dayEntries.map((entry) => (
-                          <div key={entry.id} className="flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-2">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={entry.thumbnailUrl || entry.url} alt={entry.brandName || 'Watch'} className="w-8 h-8 rounded-full object-cover shrink-0" />
-                            <span className="text-sm font-medium text-gray-900 truncate flex-1">
-                              {[entry.brandName, entry.modelName].filter(Boolean).join(' ') || 'Watch'}
-                            </span>
-                            <button type="button" onClick={() => handleRemoveEntry(entry.id)} className="text-gray-400 hover:text-red-500 shrink-0 p-1" aria-label="Remove">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <p className="text-xs text-gray-500 mb-2">{dayEntries.length > 0 ? 'Add another watch:' : 'Select a watch:'}</p>
-                    <div className="space-y-1">
-                      {watches.map((watch) => {
-                        const alreadyLogged = dayEntries.some((e) => e.photoId === watch.photoId)
-                        return (
-                          <button
-                            key={watch.photoId}
-                            type="button"
-                            onClick={() => !alreadyLogged && handleAddWatch(watch.photoId, selectedDate)}
-                            disabled={saving || alreadyLogged}
-                            className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors text-left ${alreadyLogged ? 'opacity-40 cursor-default' : 'hover:bg-gray-50 active:bg-gray-100 cursor-pointer'}`}
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={watch.thumbnailUrl || watch.url} alt={watch.brandName || 'Watch'} className="w-10 h-10 rounded-lg object-cover shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-gray-900 truncate">{watch.brandName || 'Watch'}</p>
-                              {watch.modelName && <p className="text-xs text-gray-500 truncate">{watch.modelName}</p>}
-                            </div>
-                            {alreadyLogged && (
-                              <svg className="w-5 h-5 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )
-            })()}
-
-            {/* Right side — Stats + Donut chart */}
-            <div className="lg:w-72 shrink-0 space-y-4">
-              {/* Donut chart */}
-              {wearList.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Wear Count</p>
-                  <DonutChart items={wearList} total={entries.length} />
-                  {/* Legend */}
-                  <div className="mt-4 space-y-2">
-                    {wearList.map((item, i) => (
-                      <div key={item.name} className="flex items-center gap-2">
-                        <span
-                          className="w-3 h-3 rounded-full shrink-0"
-                          style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }}
-                        />
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
+            ) : (
+              <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+                {[...Array(leadingBlanks)].map((_, i) => (
+                  <span key={`blank-${i}`} className="aspect-square" />
+                ))}
+                {days.map((day) => {
+                  const dateStr = format(day, 'yyyy-MM-dd')
+                  const entry = entriesByDate.get(dateStr)?.[0]
+                  const future = isFuture(day)
+                  const selected = selectedDate === dateStr
+                  const ring = selected ? 'border-mark' : future ? 'border-canvas' : 'border-line'
+                  return (
+                    <button
+                      key={dateStr}
+                      type="button"
+                      onClick={() => selectDay(dateStr)}
+                      disabled={future}
+                      aria-pressed={selected}
+                      aria-label={`${format(day, 'MMMM d')}${isToday(day) ? ', today' : ''}${entry ? `, ${watchName(entry)}` : ''}`}
+                      className={`relative aspect-square overflow-hidden rounded-md border-2 bg-canvas p-0 text-ink transition-colors ${ring} ${future ? 'cursor-default' : 'hover:border-ink'} ${selected ? 'hover:!border-mark' : ''}`}
+                    >
+                      {entry && (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={item.thumb || ''}
-                          alt={item.name}
-                          className="w-5 h-5 rounded-full object-cover shrink-0"
+                          src={entry.thumbnailUrl || entry.url}
+                          alt=""
+                          className="absolute inset-0 h-full w-full object-cover"
                         />
-                        <span className="text-xs text-gray-900 truncate flex-1">{item.name}</span>
-                        <span className="text-xs text-gray-500 shrink-0">{item.count}d</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                      )}
+                      <span
+                        className={`absolute left-0.5 top-0.5 rounded-sm px-1 py-px font-mono text-[11px] font-medium leading-tight sm:left-1.5 sm:top-[5px] sm:text-xs ${entry ? 'bg-white/90' : ''} ${future ? 'text-faint' : 'text-ink'} ${isToday(day) && !entry ? 'underline decoration-mark decoration-2 underline-offset-2' : ''}`}
+                      >
+                        {format(day, 'd')}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </section>
 
-            </div>
-
-            {/* Third column — Unworn watches */}
-            {(() => {
-              const wornWatchIds = new Set(entries.map((e) => e.watchId))
-              const unworn = watches.filter((w) => !wornWatchIds.has(w.watchId))
-              if (unworn.length === 0) return null
-              return (
-                <div className="lg:w-56 shrink-0">
-                  <div className="bg-white rounded-xl border border-gray-200 p-4 max-h-[400px] overflow-y-auto">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 sticky top-0 bg-white pb-1">
-                      Not Worn in {format(currentMonth, 'MMMM')}
-                    </p>
-                    <div className="space-y-2">
-                      {unworn.map((watch) => (
-                        <div key={watch.photoId} className="flex items-center gap-2">
+          <aside className="flex min-w-0 flex-col gap-5 lg:flex-[1_1_300px]">
+            {/* Day picker */}
+            <section ref={pickerRef} className="scroll-mt-24 rounded-[10px] border border-line bg-surface p-5">
+              <p className="font-mono text-[11px] uppercase tracking-[1px] text-muted">{selectedLabel}</p>
+              <h2 className="mb-3.5 mt-1.5 text-xl font-semibold tracking-[-0.02em] text-ink">What did you wear?</h2>
+              {selectedDate ? (
+                <>
+                  <div className="grid max-h-[360px] grid-cols-3 gap-2 overflow-y-auto">
+                    {watches.map((watch) => {
+                      const chosen = selectedEntry?.photoId === watch.photoId
+                      return (
+                        <button
+                          key={watch.photoId}
+                          type="button"
+                          onClick={() => handlePick(watch)}
+                          disabled={saving}
+                          aria-pressed={chosen}
+                          aria-label={watchName(watch)}
+                          title={chosen ? `${watchName(watch)} (tap again to clear)` : watchName(watch)}
+                          className={`aspect-square overflow-hidden rounded-md border-2 p-0 transition-colors disabled:opacity-60 ${chosen ? 'border-mark' : 'border-transparent hover:border-ink'}`}
+                        >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={watch.thumbnailUrl || watch.url}
-                            alt={watch.brandName || 'Watch'}
-                            className="w-6 h-6 rounded-full object-cover shrink-0 opacity-50 grayscale"
-                          />
-                          <span className="text-xs text-gray-400 truncate">
-                            {[watch.brandName, watch.modelName].filter(Boolean).join(' ') || 'Watch'}
-                          </span>
-                          <span className="text-[10px] text-gray-300 shrink-0">0d</span>
-                        </div>
-                      ))}
-                    </div>
+                          <img src={watch.thumbnailUrl || watch.url} alt="" className="block h-full w-full object-cover" />
+                        </button>
+                      )
+                    })}
                   </div>
-                </div>
-              )
-            })()}
-            </div>
-          </>
-        )}
-      </div>
+                  <p className="mt-3 text-sm font-medium text-ink">
+                    {selectedEntry ? watchName(selectedEntry) : 'Nothing logged yet'}
+                  </p>
+                  {selectedEntries.length > 1 && (
+                    <p className="mt-1 font-mono text-xs text-muted">+{selectedEntries.length - 1} more logged this day</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-muted">Pick a day on the calendar.</p>
+              )}
+            </section>
+
+            {/* Wear count */}
+            <section className="rounded-[10px] border border-line bg-surface p-5">
+              <h2 className="mb-3.5 text-xl font-semibold tracking-[-0.02em] text-ink">Wear Count</h2>
+              {wearList.length === 0 ? (
+                <p className="text-sm text-muted">Nothing logged in {format(currentMonth, 'MMMM')} yet.</p>
+              ) : (
+                <ol className="flex flex-col gap-3">
+                  {wearList.map((item, i) => (
+                    <li key={item.watchId}>
+                      <div className="flex justify-between gap-2 text-sm">
+                        <span className="min-w-0 truncate font-medium text-ink">{item.name}</span>
+                        <span className="shrink-0 font-mono text-ink">{item.count} {item.count === 1 ? 'day' : 'days'}</span>
+                      </div>
+                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-subtle">
+                        <div
+                          className={`h-full rounded-full ${i === 0 ? 'bg-mark' : 'bg-ink'}`}
+                          style={{ width: `${Math.round((item.count / maxCount) * 100)}%` }}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </section>
+          </aside>
+        </div>
+      )}
     </div>
   )
 }

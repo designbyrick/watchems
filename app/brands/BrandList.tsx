@@ -30,65 +30,64 @@ export default function BrandList({ brands }: { brands: Brand[] }) {
   return (
     <>
       {/* Search */}
-      <div className="relative mb-8">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-          </svg>
-        </div>
+      <div className="mt-6 relative w-full max-w-sm">
+        <svg className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+        </svg>
         <input
-          type="text"
-          placeholder="Search brands..."
+          type="search"
+          aria-label="Search brands"
+          placeholder="Search brands"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="w-full max-w-sm pl-9 pr-4 h-10 text-sm rounded-lg border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300"
+          className="w-full h-11 pl-10 pr-10 rounded-full border border-line bg-surface text-[15px] text-ink placeholder:text-faint focus:outline-none focus:border-ink [&::-webkit-search-cancel-button]:hidden"
         />
         {query && (
           <button
             type="button"
             onClick={() => setQuery('')}
-            className="absolute left-[calc(max(100%,_theme(maxWidth.sm))_-_2rem)] top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg font-semibold"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-subtle"
             aria-label="Clear search"
           >
-            ×
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
           </button>
         )}
       </div>
 
       {/* Results count when filtering */}
       {query && (
-        <p className="text-xs text-gray-400 mb-4">
+        <p className="mt-4 font-mono text-xs tracking-[1px] uppercase text-muted">
           {filtered.length} brand{filtered.length !== 1 ? 's' : ''} matching &ldquo;{query}&rdquo;
         </p>
       )}
 
       {/* Alphabetical list */}
       {grouped.length > 0 ? (
-        <div className="space-y-6">
+        <div className="mt-8 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
           {grouped.map(([letter, letterBrands]) => (
-            <div key={letter}>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">{letter}</p>
-              <div className="divide-y divide-gray-50">
+            <section key={letter} aria-label={letter} className="min-w-0">
+              <h2 className="pb-2.5 border-b border-line font-mono text-xs tracking-[1px] uppercase text-muted">{letter}</h2>
+              <ul>
                 {letterBrands.map((brand) => (
-                  <Link
-                    key={brand.brandName}
-                    href={`/brand/${encodeURIComponent(brand.brandName.toLowerCase())}`}
-                    className="flex items-center justify-between py-2.5 hover:text-accent transition-colors group"
-                  >
-                    <span className="text-sm font-medium text-gray-800 group-hover:text-accent transition-colors">
-                      {brand.brandName}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {brand.photoCount} photo{brand.photoCount !== 1 ? 's' : ''}
-                    </span>
-                  </Link>
+                  <li key={brand.brandName}>
+                    <Link
+                      href={`/brand/${encodeURIComponent(brand.brandName.toLowerCase())}`}
+                      className="group flex items-center justify-between gap-4 py-3.5 px-1 border-b border-line hover:bg-[#FAFAF9] transition-colors"
+                    >
+                      <span className="text-[17px] font-semibold text-ink truncate">{brand.brandName}</span>
+                      <span className="flex items-center gap-3 shrink-0 font-mono text-[13px] text-muted">
+                        {brand.photoCount}<span className="sr-only"> wrist shots</span>
+                        <svg className="text-ink" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
+                      </span>
+                    </Link>
+                  </li>
                 ))}
-              </div>
-            </div>
+              </ul>
+            </section>
           ))}
         </div>
       ) : (
-        <p className="text-sm text-gray-400">No brands found.</p>
+        <p className="mt-8 text-[15px] text-muted">No brands found.</p>
       )}
     </>
   )

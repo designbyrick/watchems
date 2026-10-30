@@ -38,8 +38,8 @@ export default function WatchImageZoom({ src, alt, watchName, containerClassName
           loading="eager"
         />
         {/* Magnifier badge */}
-        <span className="absolute bottom-2 right-2 bg-white/80 border border-border rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm pointer-events-none">
-          <svg className="w-3.5 h-3.5 text-textSecond" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <span className="absolute bottom-2 right-2 bg-white/80 border border-line rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm pointer-events-none">
+          <svg className="w-3.5 h-3.5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="8" strokeWidth="2" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35" />
           </svg>
@@ -61,10 +61,10 @@ export default function WatchImageZoom({ src, alt, watchName, containerClassName
               alt={alt}
               className="max-w-[80vw] max-h-[80vh] object-contain rounded-sm shadow-lg"
             />
-            <p className="text-textPrimary font-semibold text-lg">{watchName}</p>
+            <p className="text-ink font-semibold text-lg">{watchName}</p>
             <button
               onClick={close}
-              className="text-textMuted hover:text-textPrimary text-sm transition-colors"
+              className="text-faint hover:text-ink text-sm transition-colors"
             >
               Close ×
             </button>

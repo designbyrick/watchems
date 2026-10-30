@@ -81,45 +81,64 @@ export default function CropModal({ imageSrc, onConfirm, onCancel }: CropModalPr
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-2 sm:p-4">
-      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-sm sm:max-w-lg shadow-lg">
-        <h2 className="text-xl font-bold text-textPrimary mb-4">Crop your photo</h2>
-
-        <div className="mb-4">
-          <ReactCrop
-            crop={crop}
-            onChange={(c) => setCrop(c)}
-            onComplete={(c) => setCompletedCrop(c)}
-            aspect={undefined}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              ref={imgRef}
-              src={imageSrc.startsWith('/') || imageSrc.startsWith('data:') || imageSrc.startsWith('blob:')
-                ? imageSrc
-                : `/api/image-proxy?url=${encodeURIComponent(imageSrc)}`}
-              alt="Image to crop"
-              onLoad={handleImageLoad}
-              style={{ maxHeight: '60vh' }}
-              className="rounded-lg w-full object-contain"
-            />
-          </ReactCrop>
-        </div>
-
-        <div className="flex gap-3">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="crop-title"
+      className="fixed inset-0 bg-ink/70 z-[60] flex items-center justify-center p-3 sm:p-4"
+    >
+      <div className="bg-surface rounded-[10px] border border-line w-full max-w-sm sm:max-w-lg shadow-lg overflow-hidden">
+        <div className="flex items-center gap-3 px-[18px] py-3.5 border-b border-line">
+          <p className="font-mono text-xs tracking-[1px] uppercase text-muted">Primary photo</p>
+          <div className="flex-1" />
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 px-4 py-2 bg-neutral hover:bg-neutral/80 text-textPrimary rounded-lg font-medium transition-colors"
+            aria-label="Close"
+            className="-mr-2 w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-subtle transition-colors"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+          </button>
+        </div>
+
+        <div className="p-[18px]">
+          <h2 id="crop-title" className="text-[22px] font-semibold tracking-[-0.4px] text-ink mb-4">Crop your photo</h2>
+          <div className="rounded-lg overflow-hidden bg-subtle flex justify-center">
+            <ReactCrop
+              crop={crop}
+              onChange={(c) => setCrop(c)}
+              onComplete={(c) => setCompletedCrop(c)}
+              aspect={undefined}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                ref={imgRef}
+                src={imageSrc.startsWith('/') || imageSrc.startsWith('data:') || imageSrc.startsWith('blob:')
+                  ? imageSrc
+                  : `/api/image-proxy?url=${encodeURIComponent(imageSrc)}`}
+                alt="Image to crop"
+                onLoad={handleImageLoad}
+                style={{ maxHeight: '60vh' }}
+                className="w-full object-contain"
+              />
+            </ReactCrop>
+          </div>
+        </div>
+
+        <div className="flex gap-2.5 justify-end px-[18px] pb-[18px]">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="h-11 px-5 rounded-full border border-line hover:border-line-strong text-ink text-sm font-semibold transition-colors"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleCrop}
-            className="flex-1 px-4 py-2 bg-accent hover:bg-accentHover text-white rounded-lg font-medium transition-colors"
+            className="h-11 px-5 rounded-full bg-ink hover:bg-ink-hover text-white text-sm font-semibold transition-colors"
           >
-            Crop & Use Photo
+            Crop and use photo
           </button>
         </div>
       </div>

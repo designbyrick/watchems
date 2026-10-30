@@ -10,37 +10,32 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        navy: {
-          DEFAULT: '#0f172a',
-          light: '#1e293b',
-          medium: '#334155',
+        // Graphite palette — see design canvas "Graphite · Geist"
+        canvas: '#F6F6F5',      // page background
+        surface: '#FFFFFF',     // cards, inputs, menus
+        subtle: '#EEEEEC',      // hover fills, skeletons, quiet chips
+        line: {
+          DEFAULT: '#E4E4E2',   // hairline borders and dividers
+          strong: '#D2D2CF',
         },
-        gold: {
-          DEFAULT: '#8A8A8A',
-          light: '#ADADAD',
-          dark: '#5C5C5C',
+        ink: {
+          DEFAULT: '#161616',   // primary text and primary buttons
+          hover: '#3A3A38',
         },
-        slate: {
-          950: '#020617',
-        },
-        accent: '#5C5C5C',
-        accentHover: '#404040',
-        accentLight: '#F0F0F0',
+        muted: '#5A5A58',       // secondary text
+        faint: '#767674',       // tertiary text, mono labels on white
+        mark: '#C2410C',        // accent: small marks only (active tab, selected ring, logo tick)
         winner: '#16A34A',
         winnerBg: '#F0FDF4',
-        surface: '#FFFFFF',
-        surfaceAlt: '#FAFAFA',
-        border: '#F0F0F0',
-        borderStrong: '#E8E8E8',
-        textPrimary: '#444444',
-        textSecond: '#777777',
-        textMuted: '#AAAAAA',
-        neutral: '#F9F9F9',
       },
       fontFamily: {
-        sans: ['var(--font-dm-sans)', 'DM Sans', 'system-ui', 'sans-serif'],
-        heading: ['Satoshi', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-geist-sans)', 'Geist', 'system-ui', 'sans-serif'],
+        heading: ['var(--font-geist-sans)', 'Geist', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-geist-mono)', 'Geist Mono', 'ui-monospace', 'monospace'],
         serif: ['Georgia', 'serif'],
+      },
+      letterSpacing: {
+        display: '-0.043em', // 56px / -2.4px on the canvas H1
       },
       borderRadius: {
         sm: '4px',

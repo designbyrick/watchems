@@ -77,15 +77,15 @@ export default async function PublicProfilePage({ params }: { params: { username
     .join('')
 
   return (
-    <main className="min-h-screen bg-surfaceAlt text-textPrimary">
+    <main className="min-h-screen bg-canvas text-ink">
       <div className="max-w-[80rem] mx-auto px-4 py-12">
         {/* Back link */}
-        <Link href="/" className="text-sm text-textMuted hover:text-textPrimary mb-8 inline-block">
+        <Link href="/" className="text-sm text-faint hover:text-ink mb-8 inline-block">
           &larr; Back to home
         </Link>
 
         {/* User header */}
-        <div className="bg-surface border border-borderStrong rounded-2xl p-8 mb-12 shadow-sm">
+        <div className="bg-surface border border-line-strong rounded-2xl p-8 mb-12 shadow-sm">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             {/* Avatar */}
             <div className="flex-shrink-0">
@@ -95,10 +95,10 @@ export default async function PublicProfilePage({ params }: { params: { username
                   alt={displayName}
                   width={120}
                   height={120}
-                  className="w-28 h-28 rounded-full object-cover border-2 border-borderStrong"
+                  className="w-28 h-28 rounded-full object-cover border-2 border-line-strong"
                 />
               ) : (
-                <div className="w-28 h-28 rounded-full bg-gradient-to-br from-accent to-accentHover flex items-center justify-center text-white text-4xl font-bold border-2 border-borderStrong">
+                <div className="w-28 h-28 rounded-full bg-gradient-to-br from-ink to-ink-hover flex items-center justify-center text-white text-4xl font-bold border-2 border-line-strong">
                   {initials || '?'}
                 </div>
               )}
@@ -107,19 +107,19 @@ export default async function PublicProfilePage({ params }: { params: { username
             {/* User info */}
             <div className="flex-1 text-center sm:text-left">
               <h1 className="text-3xl sm:text-4xl font-bold mb-2">{displayName}</h1>
-              <p className="text-textMuted mb-4">Watch Collector</p>
-              <div className="flex flex-wrap gap-6 justify-center sm:justify-start text-sm text-textSecond">
+              <p className="text-faint mb-4">Watch Collector</p>
+              <div className="flex flex-wrap gap-6 justify-center sm:justify-start text-sm text-muted">
                 <div>
-                  <span className="font-semibold text-textPrimary">{photoCount}</span>{' '}
+                  <span className="font-semibold text-ink">{photoCount}</span>{' '}
                   photo{photoCount !== 1 ? 's' : ''} uploaded
                 </div>
                 <div>
-                  <span className="font-semibold text-textPrimary">{photoCount}</span>{' '}
+                  <span className="font-semibold text-ink">{photoCount}</span>{' '}
                   approved photo{photoCount !== 1 ? 's' : ''}
                 </div>
                 <div>
                   Member since{' '}
-                  <span className="font-semibold text-textPrimary">
+                  <span className="font-semibold text-ink">
                     {memberSince.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </span>
                 </div>
@@ -130,7 +130,7 @@ export default async function PublicProfilePage({ params }: { params: { username
                     <Link
                       key={brand}
                       href={`/brand/${encodeURIComponent(brand.toLowerCase())}`}
-                      className="text-xs px-2.5 py-1 rounded-full border border-borderStrong text-textMuted hover:text-textPrimary hover:border-accent transition-colors"
+                      className="text-xs px-2.5 py-1 rounded-full border border-line-strong text-faint hover:text-ink hover:border-ink transition-colors"
                     >
                       {brand}
                     </Link>

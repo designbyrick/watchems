@@ -40,7 +40,7 @@ export default function Callout({ type = 'info', title, children }: CalloutProps
           {title && (
             <p className={`font-semibold ${titleColor} text-sm mb-1`}>{title}</p>
           )}
-          <div className="text-sm text-textSecond leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0">
+          <div className="text-sm text-muted leading-relaxed [&>p]:mb-2 [&>p:last-child]:mb-0">
             {children}
           </div>
         </div>

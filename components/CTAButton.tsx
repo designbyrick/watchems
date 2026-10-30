@@ -26,11 +26,11 @@ interface CTAButtonProps {
 
 const priorityStyles: Record<CTAPriority, string> = {
   primary:
-    'bg-accent text-white font-bold rounded-md hover:bg-accentHover shadow-sm transition-colors',
+    'bg-ink text-white font-bold rounded-md hover:bg-ink-hover shadow-sm transition-colors',
   secondary:
-    'bg-accentLight text-accent font-semibold rounded-md hover:bg-accentLight border border-borderStrong transition-colors',
+    'bg-subtle text-ink font-semibold rounded-md hover:bg-subtle border border-line-strong transition-colors',
   tertiary:
-    'text-accent font-medium hover:underline underline-offset-2 transition-colors',
+    'text-ink font-medium hover:underline underline-offset-2 transition-colors',
 };
 
 const sizeStyles: Record<CTASize, string> = {

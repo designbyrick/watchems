@@ -12,10 +12,10 @@ export default function UploadCTA({ photos }: UploadCTAProps) {
     <section className="bg-gray-50 py-12 md:py-14">
       <Container>
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-textPrimary mb-3">
+          <h2 className="text-2xl sm:text-3xl font-bold text-ink mb-3">
             Your watch deserves a page.
           </h2>
-          <p className="text-textSecond mb-6">
+          <p className="text-muted mb-6">
             Upload a photo. Help other buyers see the real thing.
           </p>
 
@@ -25,7 +25,7 @@ export default function UploadCTA({ photos }: UploadCTAProps) {
               ? photos.slice(0, 3).map((photo) => (
                   <div
                     key={photo.id}
-                    className="relative w-20 h-20 rounded-sm overflow-hidden border border-border"
+                    className="relative w-20 h-20 rounded-sm overflow-hidden border border-line"
                   >
                     <Image
                       src={photo.url}
@@ -39,7 +39,7 @@ export default function UploadCTA({ photos }: UploadCTAProps) {
               : Array.from({ length: 3 }).map((_, i) => (
                   <div
                     key={i}
-                    className="w-20 h-20 rounded-sm bg-surfaceAlt border border-border"
+                    className="w-20 h-20 rounded-sm bg-canvas border border-line"
                   />
                 ))}
           </div>
