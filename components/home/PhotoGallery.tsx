@@ -36,7 +36,17 @@ interface PhotoItem {
   betweenLugs?: string | null
   thickness?: string | null
   waterResistance?: string | null
-  sortOrder?: number
+  sortOrder?: number | null
+}
+
+export interface InitialGallery {
+  photos: PhotoItem[]
+  nextCursor: string | null
+  totalCount: number | null
+  /** 1-based server page these photos came from (`/` is page 1, `/page/[n]` otherwise) */
+  page: number
+  pageSize: number
+  totalPages: number
 }
 
 interface PhotosResponse {
@@ -113,6 +123,104 @@ function TileSkeleton() {
 
 function unslugify(slug: string) {
   return slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+}
+
+function galleryPageHref(page: number) {
+  return page <= 1 ? '/' : `/page/${page}`
+}
+
+function PhotoTile({ group, eager, withSave }: { group: WatchGroup; eager: boolean; withSave: boolean }) {
+  const primary = group.photos[0]
+  const { brand, model, ref } = getWatchLabel(group)
+  const title = model || ref || unslugify(group.watchId)
+  return (
+    <article className="group relative min-w-0">
+      <Link
+        href={`/photo/${primary.slug ?? primary.id}`}
+        className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-4 focus-visible:ring-offset-canvas rounded-md"
+      >
+        <div className="aspect-[4/5] overflow-hidden rounded-md bg-surface">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={primary.thumbnailUrl || primary.url}
+            alt={buildPhotoAltText(primary)}
+            className="block w-full h-full object-cover transition-transform duration-[350ms] ease-out group-hover:scale-[1.035]"
+            loading={eager ? 'eager' : 'lazy'}
+          />
+        </div>
+        {brand && (
+          <p className="mt-2 sm:mt-3 font-mono text-[10.5px] sm:text-[11px] tracking-[0.8px] sm:tracking-[1px] uppercase text-muted truncate">
+            {brand}
+          </p>
+        )}
+        <p className={`${brand ? 'mt-[3px] sm:mt-1' : 'mt-2 sm:mt-3'} text-[15px] sm:text-[17px] leading-[1.25] font-semibold tracking-[-0.2px] text-ink`}>
+          {title}
+        </p>
+      </Link>
+      {withSave && (
+        <div className="absolute top-2.5 right-2.5 z-10">
+          <SaveToBoard photoId={primary.id} variant="tile" />
+        </div>
+      )}
+    </article>
+  )
+}
+
+/**
+ * Real links between gallery pages. Crawlers and no-JS visitors follow them;
+ * with JS the "next" link is intercepted by the infinite scroll.
+ */
+function GalleryPager({ prevHref, nextHref, onNext }: {
+  prevHref: string | null
+  nextHref: string | null
+  onNext?: (e: React.MouseEvent<HTMLAnchorElement>) => void
+}) {
+  if (!prevHref && !nextHref) return null
+  return (
+    <nav aria-label="Gallery pages" className="flex justify-center gap-3 pt-10">
+      {prevHref && (
+        <a href={prevHref} rel="prev" className="inline-flex items-center h-11 px-6 rounded-full border border-line text-sm font-medium text-ink hover:border-ink transition-colors">
+          Previous page
+        </a>
+      )}
+      {nextHref && (
+        <a href={nextHref} rel="next" onClick={onNext} className="inline-flex items-center h-11 px-6 rounded-full border border-line text-sm font-medium text-ink hover:border-ink transition-colors">
+          Load more watches
+        </a>
+      )}
+    </nav>
+  )
+}
+
+/**
+ * Server-rendered first paint of the gallery (no useSearchParams), shown as the
+ * Suspense fallback so the static HTML carries real photos, alt text and links.
+ */
+function StaticGallery({ initial }: { initial: InitialGallery }) {
+  const groups = groupByWatch(initial.photos)
+  return (
+    <section className="max-w-[1320px] mx-auto px-4 sm:px-8 pb-16 sm:pb-[72px]">
+      {/* Reserves the filter bar's space until the interactive filters mount */}
+      <div aria-hidden="true" className="mt-4 sm:mt-10 h-[59px] sm:h-[61px] border-b border-line" />
+      <div className="flex justify-between items-baseline gap-4 my-4 sm:my-5 font-mono text-[11px] sm:text-xs tracking-[1px] uppercase text-muted">
+        <span>
+          {initial.totalCount === null
+            ? '\u00a0'
+            : `${initial.totalCount} wrist shot${initial.totalCount !== 1 ? 's' : ''}${initial.page > 1 ? ` · page ${initial.page} of ${initial.totalPages}` : ''}`}
+        </span>
+        <span><span className="sm:hidden">Newest</span><span className="hidden sm:inline">Newest first</span></span>
+      </div>
+      <TileGrid>
+        {groups.map((group, groupIdx) => (
+          <PhotoTile key={group.key} group={group} eager={groupIdx < 6} withSave={false} />
+        ))}
+      </TileGrid>
+      <GalleryPager
+        prevHref={initial.page > 1 ? galleryPageHref(initial.page - 1) : null}
+        nextHref={initial.page < initial.totalPages ? galleryPageHref(initial.page + 1) : null}
+      />
+    </section>
+  )
 }
 
 const POPULAR_BRANDS = ['Rolex', 'Omega', 'Seiko', 'Tudor', 'Hamilton']
@@ -223,7 +331,7 @@ function DidYouMean({ query, serverSuggestions, onSearch, onBrand }: {
   )
 }
 
-function PhotoGalleryContent({ userId }: { userId?: string }) {
+function PhotoGalleryContent({ userId, initial }: { userId?: string; initial?: InitialGallery }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const activeWatchId = searchParams.get('watch')
@@ -242,11 +350,17 @@ function PhotoGalleryContent({ userId }: { userId?: string }) {
 
   const hasActiveSearch = !!(activeQuery || activeWatchId || activeBrand || activeMovement || activePriceMin || activePriceMax || activeCaseSizeMin || activeCaseSizeMax || activeDialColor || activeWatchStyle || activeCaseMaterial || activeStrapType)
 
-  const [photos, setPhotos] = useState<PhotoItem[]>([])
-  const [nextCursor, setNextCursor] = useState<string | null>(null)
-  const [totalCount, setTotalCount] = useState<number | null>(null)
+  const filterKey = [activeWatchId, activeQuery, activeBrand, activeMovement, activePriceMin, activePriceMax, activeCaseSizeMin, activeCaseSizeMax, activeDialColor, activeWatchStyle, activeCaseMaterial, activeStrapType].join('|')
+  // Server-rendered photos only apply to the unfiltered gallery
+  const useInitial = !!initial && initial.photos.length > 0 && !hasActiveSearch
+
+  const [photos, setPhotos] = useState<PhotoItem[]>(useInitial ? initial!.photos : [])
+  const [nextCursor, setNextCursor] = useState<string | null>(useInitial ? initial!.nextCursor : null)
+  const [totalCount, setTotalCount] = useState<number | null>(useInitial ? initial!.totalCount : null)
   const [suggestions, setSuggestions] = useState<string[] | undefined>(undefined)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!useInitial)
+  // Filter combination currently on screen; the initial fetch is skipped when the server already sent it
+  const loadedKeyRef = useRef<string | null>(useInitial ? filterKey : null)
   const [loadingMore, setLoadingMore] = useState(false)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
@@ -282,8 +396,10 @@ function PhotoGalleryContent({ userId }: { userId?: string }) {
   const groups = useMemo(() => groupByWatch(photos), [photos])
 
   useEffect(() => {
+    if (loadedKeyRef.current === filterKey) return
     // Debounce rapid filter changes (e.g. clicking multiple chips quickly)
     const timer = setTimeout(() => {
+      loadedKeyRef.current = filterKey
       // Abort any in-flight request before starting a new one
       abortRef.current?.abort()
       const controller = new AbortController()
@@ -329,26 +445,35 @@ function PhotoGalleryContent({ userId }: { userId?: string }) {
       clearTimeout(timer)
       abortRef.current?.abort()
     }
-  }, [fetchPhotos, activeWatchId, activeQuery, activeBrand, activeMovement, activePriceMin, activePriceMax, activeCaseSizeMin, activeCaseSizeMax, activeDialColor, activeWatchStyle, activeCaseMaterial, activeStrapType])
+  }, [fetchPhotos, filterKey, activeWatchId, activeQuery, activeBrand, activeMovement, activePriceMin, activePriceMax, activeCaseSizeMin, activeCaseSizeMax, activeDialColor, activeWatchStyle, activeCaseMaterial, activeStrapType])
+
+  const loadMore = useCallback(() => {
+    if (!nextCursor || loadingMore) return
+    setLoadingMore(true)
+    fetchPhotos(nextCursor).then((data) => {
+      setPhotos((prev) => mergePhotosDedupe(prev, data.photos))
+      setNextCursor(data.nextCursor)
+      setLoadingMore(false)
+    }).catch(() => setLoadingMore(false))
+  }, [nextCursor, loadingMore, fetchPhotos])
 
   useEffect(() => {
     if (!sentinelRef.current) return
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting && nextCursor && !loadingMore) {
-          setLoadingMore(true)
-          fetchPhotos(nextCursor).then((data) => {
-            setPhotos((prev) => mergePhotosDedupe(prev, data.photos))
-            setNextCursor(data.nextCursor)
-            setLoadingMore(false)
-          }).catch(() => setLoadingMore(false))
-        }
+        if (entries[0]?.isIntersecting) loadMore()
       },
       { rootMargin: '400px' }
     )
     observer.observe(sentinelRef.current)
     return () => observer.disconnect()
-  }, [nextCursor, loadingMore, fetchPhotos])
+  }, [loadMore])
+
+  // Crawlable page links for the unfiltered gallery; the next page is the first server page not yet on screen
+  const showPager = !!initial && !userId && !hasActiveSearch && !loading
+  const nextServerPage = initial ? initial.page + Math.max(1, Math.floor(photos.length / initial.pageSize)) : 0
+  const nextPageHref = showPager && nextCursor && initial && nextServerPage <= initial.totalPages ? galleryPageHref(nextServerPage) : null
+  const prevPageHref = showPager && initial && initial.page > 1 ? galleryPageHref(initial.page - 1) : null
 
 
   // A dropdown selection (?open=1) goes straight to the first matching photo page
@@ -399,40 +524,9 @@ function PhotoGalleryContent({ userId }: { userId?: string }) {
         )
       ) : (
         <TileGrid>
-          {groups.map((group, groupIdx) => {
-            const primary = group.photos[0]
-            const { brand, model, ref } = getWatchLabel(group)
-            const title = model || ref || unslugify(group.watchId)
-            return (
-              <article key={group.key} className="group relative min-w-0">
-                <Link
-                  href={`/photo/${primary.slug ?? primary.id}`}
-                  className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-4 focus-visible:ring-offset-canvas rounded-md"
-                >
-                  <div className="aspect-[4/5] overflow-hidden rounded-md bg-surface">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={primary.thumbnailUrl || primary.url}
-                      alt={buildPhotoAltText(primary)}
-                      className="block w-full h-full object-cover transition-transform duration-[350ms] ease-out group-hover:scale-[1.035]"
-                      loading={groupIdx < 6 ? 'eager' : 'lazy'}
-                    />
-                  </div>
-                  {brand && (
-                    <p className="mt-2 sm:mt-3 font-mono text-[10.5px] sm:text-[11px] tracking-[0.8px] sm:tracking-[1px] uppercase text-muted truncate">
-                      {brand}
-                    </p>
-                  )}
-                  <p className={`${brand ? 'mt-[3px] sm:mt-1' : 'mt-2 sm:mt-3'} text-[15px] sm:text-[17px] leading-[1.25] font-semibold tracking-[-0.2px] text-ink`}>
-                    {title}
-                  </p>
-                </Link>
-                <div className="absolute top-2.5 right-2.5 z-10">
-                  <SaveToBoard photoId={primary.id} variant="tile" />
-                </div>
-              </article>
-            )
-          })}
+          {groups.map((group, groupIdx) => (
+            <PhotoTile key={group.key} group={group} eager={groupIdx < 6} withSave />
+          ))}
         </TileGrid>
       )}
 
@@ -442,20 +536,36 @@ function PhotoGalleryContent({ userId }: { userId?: string }) {
           <div className="w-6 h-6 border-2 border-muted border-t-transparent rounded-full animate-spin" />
         </div>
       )}
+      {!loadingMore && (
+        <GalleryPager
+          prevHref={prevPageHref}
+          nextHref={nextPageHref}
+          onNext={(e) => {
+            // Plain clicks load in place; modified clicks still open the page
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+            e.preventDefault()
+            loadMore()
+          }}
+        />
+      )}
     </section>
   )
 }
 
-export default function PhotoGallery({ userId }: { userId?: string }) {
+export default function PhotoGallery({ userId, initial }: { userId?: string; initial?: InitialGallery }) {
   return (
     <Suspense fallback={
-      <div className="max-w-[1320px] mx-auto px-4 sm:px-8 pb-16 pt-6">
-        <TileGrid>
-          {Array.from({ length: 12 }).map((_, i) => <TileSkeleton key={i} />)}
-        </TileGrid>
-      </div>
+      initial && initial.photos.length > 0 ? (
+        <StaticGallery initial={initial} />
+      ) : (
+        <div className="max-w-[1320px] mx-auto px-4 sm:px-8 pb-16 pt-6">
+          <TileGrid>
+            {Array.from({ length: 12 }).map((_, i) => <TileSkeleton key={i} />)}
+          </TileGrid>
+        </div>
+      )
     }>
-      <PhotoGalleryContent userId={userId} />
+      <PhotoGalleryContent userId={userId} initial={initial} />
     </Suspense>
   )
 }
