@@ -39,66 +39,64 @@ export default function AdminPhotoList({ initialPhotos, watchNames }: Props) {
 
   if (photos.length === 0) {
     return (
-      <div className="card p-8 text-center text-muted">
+      <div className="rounded-[10px] border border-dashed border-line-strong px-6 py-14 text-center text-[15px] text-muted">
         No pending photos.
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
-      {msg && <p className="text-sm text-ink">{msg}</p>}
-      {photos.map((p) => (
-        <div key={p.id} className="card p-5">
-          <div className="flex gap-4">
-            <div className="relative w-24 h-24 bg-canvas rounded-sm overflow-hidden shrink-0">
-              <Image
-                src={p.url}
-                alt="Pending photo"
-                fill
-                className="object-cover"
-                sizes="96px"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-ink text-xs font-semibold uppercase tracking-wider mb-1">
-                {watchNames[p.watchId] ?? p.watchId}
-              </p>
-              <p className="text-ink text-sm font-semibold">{p.userName}</p>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {p.wristSize && (
-                  <span className="text-xs bg-subtle text-muted px-2 py-0.5 rounded-full">
-                    {p.wristSize}
-                  </span>
-                )}
-                <span className="text-faint text-xs">
+    <div>
+      {msg && <p role="status" className="mb-3 font-mono text-xs text-muted">{msg}</p>}
+      <ul className="border-t border-line">
+        {photos.map((p) => (
+          <li key={p.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 py-4 border-b border-line">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <div className="relative w-16 aspect-[4/5] bg-subtle rounded-md overflow-hidden shrink-0">
+                <Image
+                  src={p.url}
+                  alt="Pending photo"
+                  fill
+                  className="object-cover"
+                  sizes="64px"
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="font-mono text-[11px] tracking-[1px] uppercase text-muted truncate">
+                  {watchNames[p.watchId] ?? p.watchId}
+                </p>
+                <p className="mt-[3px] text-base font-semibold text-ink truncate">{p.userName}</p>
+                <p className="mt-0.5 font-mono text-xs text-muted">
+                  {p.wristSize && <>{p.wristSize} · </>}
                   {new Date(p.createdAt).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                     year: 'numeric',
                   })}
-                </span>
+                </p>
               </div>
             </div>
-            <div className="flex gap-2 shrink-0 self-start">
+            <div className="flex gap-2 shrink-0">
               <button
+                type="button"
                 onClick={() => act('approve', p.watchId, p.id)}
                 disabled={loading === p.id}
-                className="px-3 py-1.5 text-xs rounded-sm bg-ink text-white font-semibold hover:bg-ink-hover transition-colors disabled:opacity-50"
+                className="h-11 inline-flex items-center rounded-full bg-ink px-5 text-sm font-semibold text-white hover:bg-ink-hover transition-colors disabled:opacity-50"
               >
                 Approve
               </button>
               <button
+                type="button"
                 onClick={() => act('delete', p.watchId, p.id)}
                 disabled={loading === p.id}
-                className="px-3 py-1.5 text-xs rounded-sm bg-canvas text-loser border border-line hover:bg-canvas transition-colors disabled:opacity-50"
+                className="h-11 inline-flex items-center rounded-full border border-line-strong bg-surface px-5 text-sm font-medium text-ink hover:bg-subtle transition-colors disabled:opacity-50"
               >
                 Delete
               </button>
             </div>
-          </div>
-        </div>
-      ))}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
