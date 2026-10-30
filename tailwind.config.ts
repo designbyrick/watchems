@@ -54,9 +54,19 @@ const config: Config = {
           '0%': { opacity: '0', transform: 'translateY(16px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'pop-in': {
+          '0%': { opacity: '0', transform: 'translateY(12px) scale(0.96)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
       },
       animation: {
         'slide-up': 'slide-up 0.3s ease-out forwards',
+        'fade-in': 'fade-in 0.25s ease-out forwards',
+        'pop-in': 'pop-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
       },
     },
   },
