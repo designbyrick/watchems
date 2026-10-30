@@ -8,5 +8,8 @@
       "has": [{ "type": "host", "value": "clerk.watchems.com" }],
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     }
+  ],
+  "crons": [
+    { "path": "/api/cron/image-health", "schedule": "0 9 * * *" }
   ]
 }
