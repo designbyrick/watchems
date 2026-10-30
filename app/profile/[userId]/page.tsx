@@ -19,7 +19,7 @@ export async function generateMetadata(
       : user.username || 'User'
 
     return {
-      title: `${displayName}'s Watch Collection | Watchems`,
+      title: `${displayName}'s Watch Collection`,
       description: `View ${displayName}'s watch collection on Watchems — real wrist shots from real owners.`,
       robots: {
         index: true,
@@ -31,7 +31,7 @@ export async function generateMetadata(
     }
   } catch {
     return {
-      title: 'User Profile | Watchems',
+      title: 'User Profile',
       description: 'View a watch collection on Watchems.',
     }
   }
@@ -67,7 +67,7 @@ export default async function ProfilePage({ params }: { params: { userId: string
     .join('')
 
   return (
-    <main className="min-h-screen bg-canvas text-ink">
+    <div className="min-h-screen bg-canvas text-ink">
       <div className="max-w-[80rem] mx-auto px-4 py-12">
         {/* Back link */}
         <Link href="/" className="text-sm text-faint hover:text-ink mb-8 inline-block">
@@ -111,6 +111,6 @@ export default async function ProfilePage({ params }: { params: { userId: string
         <h2 className="text-2xl font-bold mb-6">Collection</h2>
         <PhotoGallery userId={params.userId} />
       </div>
-    </main>
+    </div>
   )
 }

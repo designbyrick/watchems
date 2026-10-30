@@ -7,6 +7,7 @@ import { eq, and, asc } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 import Image from 'next/image'
 import Link from 'next/link'
+import { brandPath } from '@/lib/brandSlug'
 import PhotoGallery from '@/components/home/PhotoGallery'
 
 export const dynamic = 'force-dynamic'
@@ -23,7 +24,7 @@ export async function generateMetadata(
   try {
     const user = await getUserByUsername(params.username)
     if (!user) {
-      return { title: 'Profile Not Found | Watchems' }
+      return { title: 'Profile Not Found' }
     }
 
     const displayName = user.firstName
@@ -31,7 +32,7 @@ export async function generateMetadata(
       : user.username || 'User'
 
     return {
-      title: `${displayName}'s Watch Collection | Watchems`,
+      title: `${displayName}'s Watch Collection`,
       description: `View ${displayName}'s watch collection on Watchems — real wrist shots from real owners.`,
       robots: { index: true, follow: true },
       alternates: {
@@ -39,7 +40,7 @@ export async function generateMetadata(
       },
     }
   } catch {
-    return { title: 'Profile Not Found | Watchems' }
+    return { title: 'Profile Not Found' }
   }
 }
 
@@ -77,7 +78,7 @@ export default async function PublicProfilePage({ params }: { params: { username
     .join('')
 
   return (
-    <main className="min-h-screen bg-canvas text-ink">
+    <div className="min-h-screen bg-canvas text-ink">
       <div className="max-w-[80rem] mx-auto px-4 py-12">
         {/* Back link */}
         <Link href="/" className="text-sm text-faint hover:text-ink mb-8 inline-block">
@@ -129,7 +130,7 @@ export default async function PublicProfilePage({ params }: { params: { username
                   {userBrands.map((brand) => (
                     <Link
                       key={brand}
-                      href={`/brand/${encodeURIComponent(brand.toLowerCase())}`}
+                      href={brandPath(brand)}
                       className="text-xs px-2.5 py-1 rounded-full border border-line-strong text-faint hover:text-ink hover:border-ink transition-colors"
                     >
                       {brand}
@@ -145,6 +146,6 @@ export default async function PublicProfilePage({ params }: { params: { username
         <h2 className="text-2xl font-bold mb-6">Collection</h2>
         <PhotoGallery userId={user.id} />
       </div>
-    </main>
+    </div>
   )
 }
