@@ -86,18 +86,22 @@ const nextConfig = {
         destination: '/',
         permanent: true,
       },
-      // www→non-www canonical redirect (GSC SEO fix)
-      {
-        source: '/:path*',
-        has: [
-          {
-            type: 'host',
-            value: 'www\\.watchvswatch\\.com',
-          },
-        ],
-        destination: 'https://watchvswatch.com/:path*',
-        permanent: true,
-      },
+      // www → apex canonical redirect. watchems.com (no www) is the canonical
+      // host used by metadataBase, canonicals and sitemaps.
+      // Gated behind ENABLE_WWW_TO_APEX_REDIRECT=1: while Vercel still has
+      // www.watchems.com as the primary domain (apex → www), enabling this
+      // creates a redirect loop. Turn it on only after watchems.com is the
+      // primary domain in Vercel → Settings → Domains.
+      ...(process.env.ENABLE_WWW_TO_APEX_REDIRECT === '1'
+        ? [
+            {
+              source: '/:path*',
+              has: [{ type: 'host', value: 'www\\.watchems\\.com' }],
+              destination: 'https://watchems.com/:path*',
+              permanent: true,
+            },
+          ]
+        : []),
       // Blog retired — redirect all /blog/* to homepage
       {
         source: '/blog',

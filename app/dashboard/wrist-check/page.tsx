@@ -6,7 +6,7 @@ import WristCheckClient from './WristCheckClient'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Wrist Check | Watchems',
+  title: 'Wrist Check',
   description: 'Track which watch you wear each day.',
   robots: { index: false, follow: false },
 }

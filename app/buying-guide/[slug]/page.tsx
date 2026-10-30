@@ -17,7 +17,7 @@ interface Props {
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const params = await props.params
   const guide = getGuideConfig(params.slug)
-  if (!guide) return { title: 'Not Found | Watchems' }
+  if (!guide) return { title: 'Not Found' }
 
   const url = `https://watchems.com/buying-guide/${guide.slug}`
   return {

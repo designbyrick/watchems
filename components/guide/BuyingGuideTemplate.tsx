@@ -158,7 +158,7 @@ export default async function BuyingGuideTemplate({ config }: { config: BuyingGu
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(itemListJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }} />
 
-      <main className="max-w-[1320px] mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-16 sm:pb-20">
+      <div className="max-w-[1320px] mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-16 sm:pb-20">
         <nav aria-label="Breadcrumb" className={`flex gap-2 ${mono} text-xs text-muted`}>
           <Link href="/buying-guides" className="hover:text-ink transition-colors">Buying guides</Link>
           <span aria-hidden="true">/</span>
@@ -316,7 +316,7 @@ export default async function BuyingGuideTemplate({ config }: { config: BuyingGu
             )}
           </article>
         </div>
-      </main>
+      </div>
     </>
   )
 }

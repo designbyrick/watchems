@@ -3,13 +3,13 @@ import Link from 'next/link'
 import { serializeJsonLd } from '@/lib/jsonLd'
 
 export const metadata: Metadata = {
-  title: 'About Watchems — Real Watch Photos from Real Owners',
+  title: { absolute: 'About Watchems — Real Watch Photos from Real Owners' },
   description: 'Watchems is a community photo gallery for watch enthusiasts. Browse and upload real watch photos — no affiliate links, no sponsored content.',
   alternates: {
     canonical: 'https://watchems.com/about',
   },
   openGraph: {
-    title: 'About | Watchems',
+    title: 'About Watchems',
     description: 'A community photo gallery for watch enthusiasts. Real watches, real owners, no affiliate links.',
     url: 'https://watchems.com/about',
     type: 'website',

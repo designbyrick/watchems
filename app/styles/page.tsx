@@ -13,15 +13,14 @@ import { serializeJsonLd } from '@/lib/jsonLd'
 const MIN_PHOTOS_FOR_HUB = 5
 
 export const metadata: Metadata = {
-  title: 'Watch Styles — Dive, Dress, Field, Pilot & More | Watchems',
+  title: 'Watch Styles — Dive, Dress, Field, Pilot & More',
   description:
     'Browse real owner wrist photos by watch style. Dive watches, dress watches, field watches, pilot watches, chronographs, GMT watches, and more — community-submitted on Watchems.',
-  robots: { index: false, follow: false },
   alternates: {
     canonical: 'https://watchems.com/styles',
   },
   openGraph: {
-    title: 'Watch Styles — Dive, Dress, Field, Pilot & More | Watchems',
+    title: 'Watch Styles — Dive, Dress, Field, Pilot & More',
     description:
       'Browse real owner wrist photos by watch style. Dive watches, dress watches, field watches, pilot watches, chronographs, GMT watches, and more.',
     url: 'https://watchems.com/styles',
@@ -30,7 +29,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary',
-    title: 'Watch Styles — Wrist Photo Gallery | Watchems',
+    title: 'Watch Styles — Wrist Photo Gallery',
     description: 'Browse real owner wrist photos by watch style on Watchems.',
   },
 }
@@ -90,7 +89,7 @@ export default async function StylesPage() {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(itemListJsonLd) }}
       />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
 
         {/* Breadcrumb */}
         <nav className="text-xs text-gray-400 mb-6 flex items-center gap-1.5">
@@ -135,7 +134,7 @@ export default async function StylesPage() {
           })}
         </div>
 
-      </main>
+      </div>
     </>
   )
 }

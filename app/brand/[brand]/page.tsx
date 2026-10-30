@@ -1,14 +1,15 @@
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+import { cache } from 'react'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { db } from '@/lib/db'
 import { photos } from '@/lib/db/schema'
-import { eq, and, asc, desc, sql, isNotNull, ilike } from 'drizzle-orm'
+import { eq, and, asc, desc, sql, isNotNull, inArray } from 'drizzle-orm'
 import { brands as brandDataList } from '@/lib/brandData'
-import { toWatchSlug } from '@/lib/normalizeWatch'
+import { brandSlug } from '@/lib/brandSlug'
 import { getAllGuides } from '@/lib/buyingGuides'
 import BrandPhotoCard from './BrandPhotoCard'
 import { serializeJsonLd } from '@/lib/jsonLd'
@@ -20,42 +21,58 @@ interface BrandPageProps {
 
 const GRID_LIMIT = 48
 const CHIP_LIMIT = 8
+// Brands with fewer approved photos than this stay crawlable but out of the index
+const MIN_PHOTOS_FOR_INDEX = 3
+
+// Every stored spelling of the brand whose slug matches the URL ("Grand Seiko", "GRAND SEIKO", …).
+// Middleware already 301s non-canonical variants, so params.brand is the lowercase hyphenated slug.
+const resolveBrandNames = cache(async (slug: string): Promise<string[]> => {
+  const rows = await db
+    .selectDistinct({ brandName: photos.brandName })
+    .from(photos)
+    .where(and(eq(photos.status, 'approved'), isNotNull(photos.brandName)))
+  return rows
+    .map((r) => r.brandName)
+    .filter((name): name is string => !!name && brandSlug(name) === slug)
+})
 
 export async function generateMetadata(props: BrandPageProps): Promise<Metadata> {
   const params = await props.params
-  const brand = decodeURIComponent(params.brand)
+  const brand = params.brand
+  const brandNames = await resolveBrandNames(brand)
+  if (brandNames.length === 0) return { title: 'Brand Not Found' }
 
   const stats = await db
     .select({ photoCount: sql<number>`count(*)::int` })
     .from(photos)
-    .where(and(eq(photos.status, 'approved'), ilike(photos.brandName, brand)))
+    .where(and(eq(photos.status, 'approved'), inArray(photos.brandName, brandNames)))
     .then((r) => r[0])
 
-  if (!stats || stats.photoCount === 0) return { title: 'Brand Not Found | Watchems' }
+  if (!stats || stats.photoCount === 0) return { title: 'Brand Not Found' }
 
   const repPhoto = await db
     .select({ brandName: photos.brandName, thumbnailUrl: photos.thumbnailUrl, url: photos.url })
     .from(photos)
-    .where(and(eq(photos.status, 'approved'), ilike(photos.brandName, brand)))
+    .where(and(eq(photos.status, 'approved'), inArray(photos.brandName, brandNames)))
     .orderBy(asc(photos.sortOrder), asc(photos.createdAt))
     .limit(1)
     .then((r) => r[0])
 
-  const canonicalBrandName = repPhoto?.brandName || brand
+  const canonicalBrandName = repPhoto?.brandName || brandNames[0]
   const imageUrl = repPhoto?.thumbnailUrl || repPhoto?.url || ''
 
   // Top 3 model names for richer description
   const topModelsForMeta = await db
     .select({ modelName: photos.modelName })
     .from(photos)
-    .where(and(eq(photos.status, 'approved'), ilike(photos.brandName, brand), isNotNull(photos.modelName)))
+    .where(and(eq(photos.status, 'approved'), inArray(photos.brandName, brandNames), isNotNull(photos.modelName)))
     .groupBy(photos.modelName)
     .orderBy(sql`count(*) DESC`)
     .limit(3)
 
   const modelList = topModelsForMeta.map((m) => m.modelName).filter(Boolean).join(', ')
 
-  const title = `${canonicalBrandName} Watches — Real Wrist Photos & Models | Watchems`
+  const title = `${canonicalBrandName} Watches — Real Wrist Photos & Models`
   const description = modelList
     ? `Browse ${stats.photoCount} real owner wrist photos of ${canonicalBrandName} watches including the ${modelList}. Community-submitted, no affiliate links — just real ${canonicalBrandName} watches on real wrists.`
     : `Browse ${stats.photoCount} real owner wrist photos of ${canonicalBrandName} watches worn on the wrist. Community-submitted, no affiliate links.`
@@ -63,7 +80,7 @@ export async function generateMetadata(props: BrandPageProps): Promise<Metadata>
   return {
     title,
     description,
-    robots: { index: false, follow: false },
+    robots: stats.photoCount < MIN_PHOTOS_FOR_INDEX ? { index: false, follow: true } : { index: true, follow: true },
     alternates: {
       canonical: `https://watchems.com/brand/${brand}`,
     },
@@ -87,13 +104,15 @@ export async function generateMetadata(props: BrandPageProps): Promise<Metadata>
 export default async function BrandPage(props: BrandPageProps) {
   const params = await props.params
   const searchParams = await props.searchParams
-  const brand = decodeURIComponent(params.brand)
+  const brand = params.brand
+  const brandNames = await resolveBrandNames(brand)
+  if (brandNames.length === 0) notFound()
 
   // Stats + guard
   const stats = await db
     .select({ photoCount: sql<number>`count(*)::int` })
     .from(photos)
-    .where(and(eq(photos.status, 'approved'), ilike(photos.brandName, brand)))
+    .where(and(eq(photos.status, 'approved'), inArray(photos.brandName, brandNames)))
     .then((r) => r[0])
 
   if (!stats || stats.photoCount === 0) notFound()
@@ -102,17 +121,17 @@ export default async function BrandPage(props: BrandPageProps) {
   const repPhoto = await db
     .select({ brandName: photos.brandName, thumbnailUrl: photos.thumbnailUrl, url: photos.url })
     .from(photos)
-    .where(and(eq(photos.status, 'approved'), ilike(photos.brandName, brand)))
+    .where(and(eq(photos.status, 'approved'), inArray(photos.brandName, brandNames)))
     .orderBy(asc(photos.sortOrder), asc(photos.createdAt))
     .limit(1)
     .then((r) => r[0])
 
   if (!repPhoto) notFound()
 
-  const canonicalBrandName = repPhoto.brandName || brand
+  const canonicalBrandName = repPhoto.brandName || brandNames[0]
   const imageUrl = repPhoto.thumbnailUrl || repPhoto.url
 
-  const brandWhere = and(eq(photos.status, 'approved'), ilike(photos.brandName, brand))
+  const brandWhere = and(eq(photos.status, 'approved'), inArray(photos.brandName, brandNames))
 
   // Model chips: the brand's most-photographed model names
   const [topModels, modelTotal] = await Promise.all([
@@ -163,10 +182,9 @@ export default async function BrandPage(props: BrandPageProps) {
   )
 
   // Editorial content from brandData if available
-  const normalizedBrandSlug = toWatchSlug(brand)
-  const brandData = brandDataList.find((b) => b.slug === normalizedBrandSlug) ?? null
+  const brandData = brandDataList.find((b) => b.slug === brand) ?? null
 
-  const pageTitle = `${canonicalBrandName} Watches — Real Wrist Photos & Models | Watchems`
+  const pageTitle = `${canonicalBrandName} Watches — Real Wrist Photos & Models`
 
   // Structured data
   const breadcrumbJsonLd = {
@@ -250,7 +268,7 @@ export default async function BrandPage(props: BrandPageProps) {
         />
       )}
 
-      <main className="max-w-[1320px] mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-16 sm:pb-[72px]">
+      <div className="max-w-[1320px] mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-16 sm:pb-[72px]">
 
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="flex flex-wrap gap-2 font-mono text-xs tracking-[1px] uppercase text-muted">
@@ -289,8 +307,8 @@ export default async function BrandPage(props: BrandPageProps) {
             {[{ modelName: null as string | null, label: 'All models' }, ...topModels.map((m) => ({ modelName: m.modelName, label: m.modelName ?? '' }))].map((chip) => {
               const active = chip.modelName === activeModel
               const href = chip.modelName
-                ? `/brand/${encodeURIComponent(brand)}?model=${encodeURIComponent(chip.modelName)}`
-                : `/brand/${encodeURIComponent(brand)}`
+                ? `/brand/${brand}?model=${encodeURIComponent(chip.modelName)}`
+                : `/brand/${brand}`
               return (
                 <Link
                   key={chip.label}
@@ -395,7 +413,7 @@ export default async function BrandPage(props: BrandPageProps) {
           </Link>
         </div>
 
-      </main>
+      </div>
     </>
   )
 }

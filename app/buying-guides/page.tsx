@@ -11,13 +11,13 @@ const verifiedMonths = Array.from(new Set(guides.map((g) => g.lastVerified)))
 const verifiedLabel = verifiedMonths.length === 1 ? verifiedMonths[0] : null
 
 export const metadata: Metadata = {
-  title: 'Watch Buying Guides by Price | Watchems',
+  title: 'Watch Buying Guides by Price',
   description: 'Ranked watch buying guides by budget — the best watches under $100, under $500 and under $1,000, with verified prices, full specs and honest trade-offs.',
   alternates: {
     canonical: 'https://watchems.com/buying-guides',
   },
   openGraph: {
-    title: 'Watch Buying Guides by Price | Watchems',
+    title: 'Watch Buying Guides by Price',
     description: 'Ranked watch buying guides by budget — the best watches under $100, under $500 and under $1,000, with verified prices, full specs and honest trade-offs.',
     url: 'https://watchems.com/buying-guides',
     type: 'website',
@@ -52,7 +52,7 @@ export default function BuyingGuidesPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(itemListJsonLd) }} />
 
-      <main className="max-w-[1320px] mx-auto px-4 sm:px-8 pt-8 sm:pt-12 pb-16 sm:pb-[72px]">
+      <div className="max-w-[1320px] mx-auto px-4 sm:px-8 pt-8 sm:pt-12 pb-16 sm:pb-[72px]">
         <section className="max-w-[760px]">
           <p className="font-mono text-xs uppercase tracking-[1px] text-muted">
             Buying guides{verifiedLabel && ` · Prices verified ${verifiedLabel}`}
@@ -110,7 +110,7 @@ export default function BuyingGuidesPage() {
             About Watchems
           </Link>
         </section>
-      </main>
+      </div>
     </>
   )
 }

@@ -93,7 +93,7 @@ export const under1000: BuyingGuideConfig = {
   summary: 'The most recommended watches between $500 and $1,000.',
   tier: '$500 – $1,000',
   lastVerified: 'May 2026',
-  seoTitle: 'Best Watches Under $1,000 (2026) — 20 Picks, Ranked | Watchems',
+  seoTitle: 'Best Watches Under $1,000 (2026) — 20 Picks, Ranked',
   seoDescription: 'The 20 most recommended watches under $1,000, ranked by community consensus across r/Watches, WatchUSeek, Fratello, and 5 other sources. Verified prices, full specs, honest trade-offs.',
   breadcrumbLabel: 'Under $1,000',
   heroImage: '/images/guides/under-1000-hero.png',

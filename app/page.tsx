@@ -1,9 +1,15 @@
-import { Suspense } from 'react'
 import HeroSearch from '@/components/home/HeroSearch'
 import PhotoGallery from '@/components/home/PhotoGallery'
 import UploadNudge from '@/components/home/UploadNudge'
+import { getInitialPhotos, GALLERY_PAGE_SIZE } from '@/lib/getInitialPhotos'
 import type { Metadata } from 'next'
 import { serializeJsonLd } from '@/lib/jsonLd'
+
+// Static HTML with the first gallery page, refreshed every 5 minutes (ISR).
+// Filters and search stay client-side via useSearchParams.
+// force-static lets lib/db's no-store fetch run during static generation instead of opting into dynamic rendering
+export const dynamic = 'force-static'
+export const revalidate = 300
 
 const faqItems = [
   {
@@ -91,6 +97,8 @@ export const metadata: Metadata = {
 }
 
 export default async function HomePage() {
+  const initial = await getInitialPhotos(1)
+
   return (
     <>
       {/* JSON-LD Schemas */}
@@ -108,10 +116,8 @@ export default async function HomePage() {
       />
 
       <div className="min-h-screen">
-        <Suspense>
-          <HeroSearch />
-          <PhotoGallery />
-        </Suspense>
+        <HeroSearch />
+        <PhotoGallery initial={{ ...initial, pageSize: GALLERY_PAGE_SIZE }} />
       </div>
       <UploadNudge />
     </>
