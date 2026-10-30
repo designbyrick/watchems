@@ -1,83 +1,92 @@
 export const dynamic = 'force-dynamic'
+// PageSpeed Insights runs a full Lighthouse pass and can take 20–40s
+export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
-import https from 'https'
+import crypto from 'crypto'
 
 /**
  * Core Web Vitals Monitoring Cron Job
- * Runs nightly at 02:00 UTC via Vercel Cron Jobs
- * Fetches CrUX data from PageSpeed Insights API
- * Logs metrics: LCP, FID, CLS
+ * Runs nightly at 02:00 UTC via Vercel Cron Jobs (see vercel.json)
+ * Fetches CrUX field data (p75, real users) from the PageSpeed Insights API
+ * Logs metrics: LCP, INP, CLS
  * Alerts if thresholds are breached
  */
 
-// Thresholds
+// Thresholds ("good" boundaries for p75)
 const THRESHOLDS = {
   lcp: 2.5, // seconds
-  fid: 0.1, // seconds (100ms)
+  inp: 0.2, // seconds (200ms)
   cls: 0.1, // unitless
+}
+
+interface CruxMetric {
+  percentile?: number
+  category?: string
+}
+
+interface LoadingExperience {
+  metrics?: {
+    LARGEST_CONTENTFUL_PAINT_MS?: CruxMetric
+    INTERACTION_TO_NEXT_PAINT?: CruxMetric
+    // CrUX reports CLS multiplied by 100 (e.g. 5 = 0.05)
+    CUMULATIVE_LAYOUT_SHIFT_SCORE?: CruxMetric
+  }
+}
+
+interface PageSpeedResponse {
+  // Field data for this exact URL
+  loadingExperience?: LoadingExperience
+  // Field data aggregated over the whole origin (fallback when the URL has too little traffic)
+  originLoadingExperience?: LoadingExperience
+  error?: { code?: number; message?: string }
 }
 
 /**
  * Fetch PageSpeed Insights data for a URL
  */
 async function fetchPageSpeedInsights(url: string): Promise<PageSpeedResponse> {
-  return new Promise((resolve, reject) => {
-    const apiUrl = new URL('https://www.googleapis.com/pagespeedonline/v5/runPagespeed')
-    apiUrl.searchParams.append('url', url)
-    apiUrl.searchParams.append('category', 'performance')
-
-    https
-      .get(apiUrl.toString(), (res) => {
-        let data = ''
-        res.on('data', (chunk) => {
-          data += chunk
-        })
-        res.on('end', () => {
-          try {
-            resolve(JSON.parse(data) as PageSpeedResponse)
-          } catch (e) {
-            reject(new Error(`Failed to parse PageSpeed Insights response: ${(e as Error).message}`))
-          }
-        })
-      })
-      .on('error', reject)
-  })
-}
-
-interface PageSpeedResponse {
-  lighthouseResult?: {
-    audits?: {
-      metrics?: {
-        details?: {
-          items?: Array<{
-            largest_contentful_paint_ms?: number
-            first_input_delay_ms?: number
-            cumulative_layout_shift_value?: number
-          }>
-        }
-      }
-    }
+  const apiUrl = new URL('https://www.googleapis.com/pagespeedonline/v5/runPagespeed')
+  apiUrl.searchParams.append('url', url)
+  apiUrl.searchParams.append('category', 'performance')
+  apiUrl.searchParams.append('strategy', 'mobile')
+  // Without a key, requests share a tiny anonymous quota and often get 429
+  if (process.env.PAGESPEED_API_KEY) {
+    apiUrl.searchParams.append('key', process.env.PAGESPEED_API_KEY)
   }
+
+  const res = await fetch(apiUrl.toString(), { cache: 'no-store' })
+  const data = (await res.json()) as PageSpeedResponse
+  if (!res.ok || data.error) {
+    throw new Error(`PageSpeed Insights API error ${res.status}: ${data.error?.message ?? res.statusText}`)
+  }
+  return data
 }
 
 interface CoreWebVitalsMetrics {
   lcp: number | null
-  fid: number | null
+  inp: number | null
   cls: number | null
+  source: 'url' | 'origin' | null
   timestamp: string
 }
 
 /**
- * Extract Core Web Vitals from PageSpeed Insights response
+ * Extract Core Web Vitals (CrUX p75) from PageSpeed Insights response
  */
 function extractCoreWebVitals(data: PageSpeedResponse): CoreWebVitalsMetrics {
-  const fieldData = data?.lighthouseResult?.audits?.metrics?.details?.items?.[0] || {}
+  const source = data.loadingExperience?.metrics ? 'url' : data.originLoadingExperience?.metrics ? 'origin' : null
+  const metrics = (source === 'url' ? data.loadingExperience : data.originLoadingExperience)?.metrics ?? {}
+
+  const lcpMs = metrics.LARGEST_CONTENTFUL_PAINT_MS?.percentile
+  const inpMs = metrics.INTERACTION_TO_NEXT_PAINT?.percentile
+  const clsX100 = metrics.CUMULATIVE_LAYOUT_SHIFT_SCORE?.percentile
 
   return {
-    lcp: fieldData.largest_contentful_paint_ms ? fieldData.largest_contentful_paint_ms / 1000 : null,
-    fid: fieldData.first_input_delay_ms ? fieldData.first_input_delay_ms / 1000 : null,
-    cls: fieldData.cumulative_layout_shift_value || null,
+    lcp: lcpMs !== undefined ? lcpMs / 1000 : null,
+    inp: inpMs !== undefined ? inpMs / 1000 : null,
+    cls: clsX100 !== undefined ? clsX100 / 100 : null,
+    source,
     timestamp: new Date().toISOString(),
   }
 }
@@ -108,14 +117,14 @@ function checkThresholds(metrics: CoreWebVitalsMetrics): Alert[] {
     })
   }
 
-  if (metrics.fid !== null && metrics.fid > THRESHOLDS.fid) {
+  if (metrics.inp !== null && metrics.inp > THRESHOLDS.inp) {
     alerts.push({
       level: 'warning',
-      metric: 'FID',
-      value: metrics.fid.toFixed(3),
+      metric: 'INP',
+      value: metrics.inp.toFixed(3),
       unit: 's',
-      threshold: THRESHOLDS.fid,
-      message: `FID exceeds threshold: ${metrics.fid.toFixed(3)}s > ${THRESHOLDS.fid}s`,
+      threshold: THRESHOLDS.inp,
+      message: `INP exceeds threshold: ${metrics.inp.toFixed(3)}s > ${THRESHOLDS.inp}s`,
     })
   }
 
@@ -134,22 +143,32 @@ function checkThresholds(metrics: CoreWebVitalsMetrics): Alert[] {
 }
 
 /**
- * Verify Vercel cron secret token
+ * Verify the cron secret. Vercel sends `Authorization: Bearer ${CRON_SECRET}`
+ * automatically when the CRON_SECRET env var is set on the project.
  */
-function verifyVercelCronSecret(request: NextRequest): boolean {
-  const secret = process.env.VERCEL_CRON_SECRET
+function verifyCronSecret(request: NextRequest): boolean {
+  const secret = process.env.CRON_SECRET || process.env.VERCEL_CRON_SECRET
   if (!secret) {
     // In development, allow requests when no secret is configured
     return process.env.NODE_ENV === 'development'
   }
 
-  const authHeader = request.headers.get('authorization')
-  return authHeader === `Bearer ${secret}`
+  const expected = Buffer.from(`Bearer ${secret}`)
+  const received = Buffer.from(request.headers.get('authorization') ?? '')
+  return received.length === expected.length && crypto.timingSafeEqual(received, expected)
+}
+
+function fmt(value: number | null, digits: number, unit = ''): string {
+  return value !== null ? value.toFixed(digits) + unit : 'N/A'
+}
+
+function ok(value: number | null, threshold: number): string {
+  return value !== null && value <= threshold ? '✅' : '⚠️'
 }
 
 export async function GET(request: NextRequest) {
   try {
-    if (!verifyVercelCronSecret(request)) {
+    if (!verifyCronSecret(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -161,19 +180,20 @@ export async function GET(request: NextRequest) {
 
     const logEntry = {
       timestamp: metrics.timestamp,
+      source: metrics.source,
       metrics: {
-        lcp: metrics.lcp ? parseFloat(metrics.lcp.toFixed(2)) : null,
-        fid: metrics.fid ? parseFloat(metrics.fid.toFixed(3)) : null,
-        cls: metrics.cls ? parseFloat(metrics.cls.toFixed(3)) : null,
+        lcp: metrics.lcp !== null ? parseFloat(metrics.lcp.toFixed(2)) : null,
+        inp: metrics.inp !== null ? parseFloat(metrics.inp.toFixed(3)) : null,
+        cls: metrics.cls !== null ? parseFloat(metrics.cls.toFixed(3)) : null,
       },
       alerts: alerts.length > 0 ? alerts : null,
-      status: alerts.length > 0 ? 'degraded' : 'healthy',
+      status: metrics.source === null ? 'no-data' : alerts.length > 0 ? 'degraded' : 'healthy',
     }
 
-    console.log(`✅ Core Web Vitals recorded:`)
-    console.log(`  LCP: ${metrics.lcp ? metrics.lcp.toFixed(2) + 's' : 'N/A'} ${metrics.lcp !== null && metrics.lcp <= THRESHOLDS.lcp ? '✅' : '⚠️'}`)
-    console.log(`  FID: ${metrics.fid ? metrics.fid.toFixed(3) + 's' : 'N/A'} ${metrics.fid !== null && metrics.fid <= THRESHOLDS.fid ? '✅' : '⚠️'}`)
-    console.log(`  CLS: ${metrics.cls ? metrics.cls.toFixed(3) : 'N/A'} ${metrics.cls !== null && metrics.cls <= THRESHOLDS.cls ? '✅' : '⚠️'}`)
+    console.log(`✅ Core Web Vitals recorded (CrUX p75, source: ${metrics.source ?? 'none'}):`)
+    console.log(`  LCP: ${fmt(metrics.lcp, 2, 's')} ${ok(metrics.lcp, THRESHOLDS.lcp)}`)
+    console.log(`  INP: ${fmt(metrics.inp, 3, 's')} ${ok(metrics.inp, THRESHOLDS.inp)}`)
+    console.log(`  CLS: ${fmt(metrics.cls, 3)} ${ok(metrics.cls, THRESHOLDS.cls)}`)
     console.log(`  Status: ${logEntry.status.toUpperCase()}`)
 
     if (alerts.length > 0) {

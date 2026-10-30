@@ -13,59 +13,64 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "monitor:cwv": "curl https://watchems.com/api/cron/core-web-vitals",
-    "monitor:gsc": "curl https://watchems.com/api/cron/gsc-metrics",
-    "test:cwv-local": "node -e \"import('./app/api/cron/core-web-vitals/route.ts')\""
+    "monitor:cwv": "curl -H \"Authorization: Bearer $CRON_SECRET\" https://watchems.com/api/cron/core-web-vitals",
+    "monitor:gsc": "curl -H \"Authorization: Bearer $CRON_SECRET\" https://watchems.com/api/cron/gsc-metrics",
+    "test:cwv-local": "node -e \"import('./app/api/cron/core-web-vitals/route.ts')\"",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.82.0",
     "@aws-sdk/client-s3": "^3.1018.0",
-    "@clerk/nextjs": "^6.39.0",
+    "@clerk/nextjs": "^6.39.8",
     "@google/generative-ai": "^0.24.1",
     "@neondatabase/serverless": "^1.0.2",
+    "@sentry/nextjs": "^11.10.0",
     "@tailwindcss/typography": "^0.5.19",
-    "@types/nodemailer": "^8.0.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
     "@vercel/analytics": "^2.0.1",
-    "@vercel/blob": "^2.3.1",
-    "@vercel/og": "^0.11.1",
     "@vercel/speed-insights": "^2.0.0",
     "browser-image-compression": "^2.0.2",
     "date-fns": "^4.1.0",
-    "drizzle-orm": "^0.45.1",
+    "drizzle-orm": "^0.45.4",
     "fuse.js": "^7.1.0",
     "gray-matter": "^4.0.3",
     "lucide-react": "^1.7.0",
-    "next": "14.2.35",
+    "next": "^15.5.28",
     "next-mdx-remote": "^6.0.0",
-    "nodemailer": "^8.0.5",
-    "react": "^18",
-    "react-dom": "^18",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "react-image-crop": "^11.0.10",
-    "react-markdown": "^10.1.0",
     "resend": "^6.10.0",
-    "sharp": "^0.34.5"
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "dotenv": "^17.3.1",
     "drizzle-kit": "^0.31.10",
     "eslint": "^8",
-    "eslint-config-next": "14.2.35",
+    "eslint-config-next": "^15.5.28",
     "openai": "^6.29.0",
     "playwright": "^1.58.2",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.12"
   },
   "browserslist": [
     "last 2 Chrome versions",
     "last 2 Firefox versions",
     "last 2 Safari versions",
     "last 2 Edge versions"
-  ]
+  ],
+  "overrides": {
+    "next": {
+      "postcss": "^8.5.32"
+    },
+    "@tailwindcss/typography": {
+      "postcss-selector-parser": "^6.1.5"
+    }
+  }
 }

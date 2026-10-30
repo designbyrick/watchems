@@ -6,6 +6,7 @@ import { eq, desc, and, inArray, sql } from 'drizzle-orm'
 import { FaqAccordion } from '@/components/guide/FaqAccordion'
 import { getGuideBySlug } from '@/lib/buyingGuides'
 import { getGuideSummaries, type BuyingGuideConfig, type RankEntry } from '@/lib/guides'
+import { serializeJsonLd } from '@/lib/jsonLd'
 
 interface PickPhoto {
   slug: string | null
@@ -152,10 +153,10 @@ export default async function BuyingGuideTemplate({ config }: { config: BuyingGu
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(config.articleJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(config.articleJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(itemListJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }} />
 
       <div className="max-w-[1320px] mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-16 sm:pb-20">
         <nav aria-label="Breadcrumb" className={`flex gap-2 ${mono} text-xs text-muted`}>

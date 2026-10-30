@@ -38,9 +38,10 @@ This document describes the monitoring infrastructure for Watchems, including cr
 
 **What it does:**
 - Fetches Core Web Vitals from Google PageSpeed Insights API
+- Reads CrUX **field data** (p75 of real Chrome users, last 28 days) from `loadingExperience`, falling back to `originLoadingExperience` when the URL has too little traffic. Lab data (`lighthouseResult`) is not used.
 - Collects metrics for `https://watchems.com`:
   - **LCP** (Largest Contentful Paint): target < 2.5s
-  - **FID** (First Input Delay): target < 0.1s (100ms)
+  - **INP** (Interaction to Next Paint): target < 0.2s (200ms) — replaced FID as a Core Web Vital in March 2024
   - **CLS** (Cumulative Layout Shift): target < 0.1 (unitless)
 - Checks thresholds and generates alerts if any metric exceeds target
 - Returns JSON response with metrics and alert status
@@ -49,9 +50,10 @@ This document describes the monitoring infrastructure for Watchems, including cr
 ```json
 {
   "timestamp": "2026-03-25T02:00:00.000Z",
+  "source": "url",
   "metrics": {
     "lcp": 2.1,
-    "fid": 0.05,
+    "inp": 0.15,
     "cls": 0.08
   },
   "alerts": null,
@@ -63,9 +65,10 @@ This document describes the monitoring infrastructure for Watchems, including cr
 ```json
 {
   "timestamp": "2026-03-25T02:00:00.000Z",
+  "source": "url",
   "metrics": {
     "lcp": 3.2,
-    "fid": 0.05,
+    "inp": 0.15,
     "cls": 0.08
   },
   "alerts": [
@@ -81,6 +84,8 @@ This document describes the monitoring infrastructure for Watchems, including cr
   "status": "degraded"
 }
 ```
+
+`status` is `no-data` when CrUX has no field data for the URL or origin.
 
 **Response Codes:**
 - `200 OK` - Metrics fetched and processed successfully
@@ -193,14 +198,18 @@ This document describes the monitoring infrastructure for Watchems, including cr
 
 ### Environment Variables
 
-#### Required for Core Web Vitals Monitor
-- **None** (uses public Google PageSpeed Insights API)
+#### Required for Cron Security
+- **`CRON_SECRET`** (required in production)
+  - Set in Vercel Dashboard → Project Settings → Environment Variables (Production)
+  - Vercel automatically sends `Authorization: Bearer <CRON_SECRET>` on every cron invocation when this variable exists — the name must be exactly `CRON_SECRET`
+  - Routes compare the header in constant time; without the variable they return `401` outside `NODE_ENV=development`
+  - Generate with `openssl rand -hex 32`
+  - `VERCEL_CRON_SECRET` is still read as a legacy fallback, but Vercel does not send it — use `CRON_SECRET`
 
-#### Optional for Cron Security
-- **`VERCEL_CRON_SECRET`** (recommended)
-  - Set in Vercel Dashboard → Project Settings → Environment Variables
-  - Used to verify requests are from Vercel's cron service
-  - If not set, development mode allows local testing
+#### Optional for Core Web Vitals Monitor
+- **`PAGESPEED_API_KEY`** (recommended)
+  - Google Cloud API key with the PageSpeed Insights API enabled
+  - Without it, requests use the shared anonymous quota and frequently fail with `429`
 
 #### Required for Google Search Console Metrics
 - **`GOOGLE_SERVICE_ACCOUNT_JSON`** (optional, skipped if not set)
@@ -238,15 +247,17 @@ This document describes the monitoring infrastructure for Watchems, including cr
 
 ### Manual Testing
 
-**Test Core Web Vitals:**
+Both routes require the auth header in production:
+
 ```bash
-curl https://watchems.com/api/cron/core-web-vitals
+CRON_SECRET=<value> npm run monitor:cwv
+CRON_SECRET=<value> npm run monitor:gsc
 ```
 
-**Test GSC Metrics (with auth header):**
+or directly:
+
 ```bash
-curl -H "Authorization: Bearer <VERCEL_CRON_SECRET>" \
-  https://watchems.com/api/cron/gsc-metrics
+curl -H "Authorization: Bearer $CRON_SECRET" https://watchems.com/api/cron/core-web-vitals
 ```
 
 ### Vercel Dashboard
@@ -281,8 +292,8 @@ The following Windows Task Scheduler scripts have been deprecated and removed:
 ## Troubleshooting
 
 ### Core Web Vitals returning null values
-- **Cause:** PageSpeed Insights API rate limiting or no CrUX data
-- **Solution:** Wait a few hours and retry; ensure site has sufficient traffic
+- **Cause:** PageSpeed Insights API rate limiting (set `PAGESPEED_API_KEY`) or no CrUX field data (`status: "no-data"`)
+- **Solution:** Add an API key; CrUX needs enough real Chrome traffic on the URL/origin
 
 ### GSC Metrics showing "GOOGLE_SERVICE_ACCOUNT_JSON not configured"
 - **Cause:** Environment variable not set in Vercel
@@ -294,7 +305,7 @@ The following Windows Task Scheduler scripts have been deprecated and removed:
 
 ### "Unauthorized" error on manual testing
 - **Cause:** Missing or incorrect `Authorization` header
-- **Solution:** Ensure `VERCEL_CRON_SECRET` matches the header value (or remove for dev testing)
+- **Solution:** Ensure `CRON_SECRET` is set in Vercel and matches the header value (or run with `NODE_ENV=development` and no secret for local testing)
 
 ---
 
@@ -308,7 +319,8 @@ The following Windows Task Scheduler scripts have been deprecated and removed:
    ```
 
 2. **Configure Environment Variables in Vercel:**
-   - Add `VERCEL_CRON_SECRET` (if using authentication)
+   - Add `CRON_SECRET` (required — crons return 401 without it)
+   - Add `PAGESPEED_API_KEY` (recommended)
    - Add `GOOGLE_SERVICE_ACCOUNT_JSON` (for GSC metrics)
 
 3. **Verify Cron Execution:**

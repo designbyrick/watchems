@@ -6,9 +6,10 @@ import { photos } from '@/lib/db/schema'
 import { eq, lt, and, desc, or, ilike, sql as drizzleSql } from 'drizzle-orm'
 import { checkAdmin } from '@/lib/admin'
 import { checkReadRateLimit } from '@/lib/ratelimit'
+import { escapeLike, parseIntParam } from '@/lib/validation'
 
 /**
- * GET /api/photos/all?limit=50&cursor=<timestamp>&brand=rolex&movement=automatic&priceMin=500&priceMax=2000&caseSizeMin=38&caseSizeMax=42
+ * GET /api/photos/all?limit=50&cursor=<timestamp>&brand=rolex&movement=automatic
  * Fetch ALL approved photos across ALL watches from Postgres
  * Supports cursor-based pagination, text search, and filter chips
  */
@@ -18,8 +19,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
   }
   const searchParams = req.nextUrl.searchParams
-  const limit = Math.min(parseInt(searchParams.get('limit') ?? '50'), 100)
+  const limit = Math.min(Math.max(parseIntParam(searchParams.get('limit')) ?? 50, 1), 100)
   const cursor = searchParams.get('cursor')
+  const cursorTime = cursor ? new Date(cursor) : null
+  if (cursorTime && Number.isNaN(cursorTime.getTime())) {
+    return NextResponse.json({ error: 'Invalid cursor' }, { status: 400 })
+  }
   const brand = searchParams.get('brand')?.toLowerCase() ?? ''
   const watchId = searchParams.get('watchId') ?? ''
   const userId = searchParams.get('userId') ?? ''
@@ -36,8 +41,7 @@ export async function GET(req: NextRequest) {
   try {
     // Build where condition
     const conditions = [eq(photos.status, 'approved')]
-    if (cursor) {
-      const cursorTime = new Date(cursor)
+    if (cursorTime) {
       conditions.push(lt(photos.createdAt, cursorTime))
     }
     if (watchId) {
@@ -55,12 +59,12 @@ export async function GET(req: NextRequest) {
 
     // Movement filter: match against DB movement field
     if (filterMovement && !watchId) {
-      conditions.push(ilike(photos.movement, `%${filterMovement}%`))
+      conditions.push(ilike(photos.movement, `%${escapeLike(filterMovement)}%`))
     }
 
     // Brand filter: match against DB brandName field
     if (brand && !watchId) {
-      conditions.push(ilike(photos.brandName, `%${brand}%`))
+      conditions.push(ilike(photos.brandName, `%${escapeLike(brand)}%`))
     }
 
     // Push search query to DB level (fixes pagination + filter mismatch)
@@ -74,15 +78,16 @@ export async function GET(req: NextRequest) {
       // Each token must match at least one column (AND across tokens, OR across columns)
       // For tokens >= 4 chars, also try trigram similarity for typo tolerance
       for (const token of tokens) {
+        const likeToken = `%${escapeLike(token)}%`
         const tokenConditions: ReturnType<typeof ilike>[] = [
-          ilike(photos.brandName, `%${token}%`),
-          ilike(photos.modelName, `%${token}%`),
-          ilike(photos.referenceNumber, `%${token}%`),
-          ilike(photos.watchId, `%${token}%`),
-          ilike(photos.movement, `%${token}%`),
-          ilike(photos.waterResistance, `%${token}%`),
-          ilike(photos.estimatedPrice, `%${token}%`),
-          ilike(photos.caseSize, `%${token}%`),
+          ilike(photos.brandName, likeToken),
+          ilike(photos.modelName, likeToken),
+          ilike(photos.referenceNumber, likeToken),
+          ilike(photos.watchId, likeToken),
+          ilike(photos.movement, likeToken),
+          ilike(photos.waterResistance, likeToken),
+          ilike(photos.estimatedPrice, likeToken),
+          ilike(photos.caseSize, likeToken),
         ]
 
         if (token.length >= 4) {

@@ -1,6 +1,7 @@
 export function getRedis() {
-  const url = process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+  // UPSTASH_* when set by hand; KV_* is what the Vercel Marketplace Upstash integration creates
+  const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN
   if (!url || !token) return null
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Redis } = require('@upstash/redis')

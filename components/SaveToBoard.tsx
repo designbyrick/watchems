@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useAuth } from '@clerk/nextjs'
+import { useIsSignedIn } from '@/lib/useIsSignedIn'
 
 interface Board {
   id: string
@@ -16,7 +16,7 @@ interface SaveToBoardProps {
 }
 
 export default function SaveToBoard({ photoId, variant = 'card', className = '' }: SaveToBoardProps) {
-  const { isSignedIn } = useAuth()
+  const isSignedIn = useIsSignedIn()
   const [open, setOpen] = useState(false)
   const [boards, setBoards] = useState<Board[]>([])
   const [savedIn, setSavedIn] = useState<Set<string>>(new Set())

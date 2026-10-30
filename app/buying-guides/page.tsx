@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import { getGuideSummaries } from '@/lib/guides'
+import { serializeJsonLd } from '@/lib/jsonLd'
 
 const guides = getGuideSummaries()
 
@@ -48,8 +49,8 @@ export default function BuyingGuidesPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(itemListJsonLd) }} />
 
       <div className="max-w-[1320px] mx-auto px-4 sm:px-8 pt-8 sm:pt-12 pb-16 sm:pb-[72px]">
         <section className="max-w-[760px]">

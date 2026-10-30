@@ -37,7 +37,7 @@ const components = {
     )
   },
   img: ({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => {
-    if (!src) return null
+    if (typeof src !== 'string' || !src) return null
     return (
       <span className="block my-6">
         <Image

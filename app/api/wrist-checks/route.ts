@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import crypto from 'crypto'
 import { db } from '@/lib/db'
 import { wristChecks, photos } from '@/lib/db/schema'
-import { eq, and, gte, lte } from 'drizzle-orm'
+import { eq, and, ne, gte, lte } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
       .where(
         and(
           eq(wristChecks.userId, userId),
+          ne(photos.status, 'deleted'),
           gte(wristChecks.date, startDate),
           lte(wristChecks.date, endDate)
         )
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
     const photo = await db
       .select({ id: photos.id })
       .from(photos)
-      .where(and(eq(photos.id, photoId), eq(photos.userId, userId)))
+      .where(and(eq(photos.id, photoId), eq(photos.userId, userId), ne(photos.status, 'deleted')))
       .limit(1)
 
     if (photo.length === 0) {

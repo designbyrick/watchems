@@ -57,6 +57,37 @@ function compareCanonicalRedirect(req: NextRequest): NextResponse | null {
 }
 
 /**
+ * Per-request Content-Security-Policy with a nonce (official Next.js pattern).
+ * Only scripts carrying this nonce — and scripts they load ('strict-dynamic') —
+ * can run, so injected inline <script> tags are blocked. The host allowlists
+ * stay as a fallback for browsers without 'strict-dynamic' support.
+ * This is the single source of the CSP header; the other security headers
+ * live in next.config.mjs.
+ *
+ * Pass `null` for ISR pages: their cached HTML is built without a request, so
+ * it carries no nonce and would be fully blocked by 'strict-dynamic'. Those
+ * get the host allowlist plus 'unsafe-inline' instead.
+ */
+function buildCsp(nonce: string | null): string {
+  const isDev = process.env.NODE_ENV === 'development'
+  const scriptSources = nonce ? `'nonce-${nonce}' 'strict-dynamic'` : "'unsafe-inline'"
+  return [
+    "default-src 'self'",
+    `script-src 'self' ${scriptSources}${isDev ? " 'unsafe-eval'" : ''} https://www.googletagmanager.com https://va.vercel-scripts.com https://clerk.watchems.com https://challenges.cloudflare.com`,
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self'",
+    "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://pub-5454588e96dd48eea58ff55965bbe8f5.r2.dev https://img.clerk.com https://images.unsplash.com",
+    "connect-src 'self' https://*.clerk.accounts.dev https://clerk.watchems.com https://api.clerk.com https://cdn.vercel-insights.com https://vitals.vercel-analytics.com https://www.google-analytics.com https://www.googletagmanager.com https://challenges.cloudflare.com https://*.sentry.io",
+    "frame-src 'self' https://*.clerk.accounts.dev https://clerk.watchems.com https://challenges.cloudflare.com",
+    "worker-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "upgrade-insecure-requests",
+  ].join('; ')
+}
+
+/**
  * Canonicalize /brand/ URLs to the lowercase hyphenated slug.
  * e.g. /brand/Grand%20Seiko → 301 → /brand/grand-seiko
  * Keeps one indexable URL per brand regardless of how links were cased/encoded.
@@ -112,14 +143,12 @@ async function deletedPhotoGone(req: NextRequest): Promise<NextResponse | null> 
   )
 }
 
-export default clerkMiddleware(async (_auth, req) => {
-  // Only activate Clerk middleware when the keys are present (e.g. in production).
-  // Without this guard, every request fails with MIDDLEWARE_INVOCATION_FAILED when
-  // the Clerk env vars are not set.
-  const hasClerk =
-    !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
-    !!process.env.CLERK_SECRET_KEY
+/** Routes rendered with `dynamic = 'force-static'` + ISR (app/page.tsx, app/page/[n]/page.tsx) */
+function isStaticGalleryPath(pathname: string): boolean {
+  return pathname === '/' || /^\/page\/\d+\/?$/.test(pathname)
+}
 
+async function handle(req: NextRequest): Promise<NextResponse> {
   // 1. Legacy root-level comparison URL redirect (redirect old indexed URLs)
   const legacyRedirect = legacyRootLevelRedirect(req)
   if (legacyRedirect) return legacyRedirect
@@ -136,10 +165,33 @@ export default clerkMiddleware(async (_auth, req) => {
   const gone = await deletedPhotoGone(req)
   if (gone) return gone
 
-  // 5. Proceed to next middleware/route
-  if (!hasClerk) return NextResponse.next()
-  return NextResponse.next()
-})
+  // 5. Attach the CSP. ISR pages (gallery home + /page/N) are served from a
+  //    static cache, so they can't carry a per-request nonce.
+  if (isStaticGalleryPath(req.nextUrl.pathname)) {
+    const res = NextResponse.next()
+    res.headers.set('Content-Security-Policy', buildCsp(null))
+    return res
+  }
+
+  // Next.js reads the nonce from the request's CSP header and applies it to
+  // its own scripts; app/layout.tsx reads `x-nonce` for ours.
+  const nonce = btoa(crypto.randomUUID())
+  const csp = buildCsp(nonce)
+
+  const requestHeaders = new Headers(req.headers)
+  requestHeaders.set('x-nonce', nonce)
+  requestHeaders.set('Content-Security-Policy', csp)
+
+  const res = NextResponse.next({ request: { headers: requestHeaders } })
+  res.headers.set('Content-Security-Policy', csp)
+  return res
+}
+
+// Clerk throws on every request when its keys are missing (e.g. Preview
+// deployments without Clerk env vars), so only wrap the handler when they exist.
+const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && !!process.env.CLERK_SECRET_KEY
+
+export default hasClerk ? clerkMiddleware((_auth, req) => handle(req)) : handle
 
 export const config = {
   matcher: [

@@ -3,6 +3,7 @@ import PhotoGallery from '@/components/home/PhotoGallery'
 import UploadNudge from '@/components/home/UploadNudge'
 import { getInitialPhotos, GALLERY_PAGE_SIZE } from '@/lib/getInitialPhotos'
 import type { Metadata } from 'next'
+import { serializeJsonLd } from '@/lib/jsonLd'
 
 // Static HTML with the first gallery page, refreshed every 5 minutes (ISR).
 // Filters and search stay client-side via useSearchParams.
@@ -103,15 +104,15 @@ export default async function HomePage() {
       {/* JSON-LD Schemas */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(websiteJsonLd) }}
       />
 
       <div className="min-h-screen">

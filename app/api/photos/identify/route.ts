@@ -4,9 +4,33 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import sharp from 'sharp'
-import { checkRateLimit } from '@/lib/ratelimit'
+import { checkIdentifyRateLimit } from '@/lib/ratelimit'
+import { ACCEPTED_TYPES } from '@/lib/photos'
 
 const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
+
+const MAX_IDENTIFY_SIZE = 8 * 1024 * 1024 // 8 MB
+
+/** Check the file's magic bytes match its declared image MIME type. */
+function hasValidImageSignature(bytes: Buffer, mimeType: string): boolean {
+  switch (mimeType) {
+    case 'image/jpeg':
+      return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+    case 'image/png':
+      return bytes.length >= 8 &&
+        bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+    case 'image/webp':
+      return bytes.length >= 12 &&
+        bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP'
+    case 'image/avif': {
+      if (bytes.length < 12 || bytes.toString('ascii', 4, 8) !== 'ftyp') return false
+      const brand = bytes.toString('ascii', 8, 12)
+      return brand === 'avif' || brand === 'avis'
+    }
+    default:
+      return false
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +42,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { success } = await checkRateLimit(userId)
+    const { success } = await checkIdentifyRateLimit(userId)
     if (!success) {
       return NextResponse.json(
         { error: 'Rate limit exceeded. Try again later.' },
@@ -27,11 +51,26 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData()
-    const photo = formData.get('photo') as File
+    const photo = formData.get('photo')
 
-    if (!photo) {
+    if (!photo || !(photo instanceof File)) {
       return NextResponse.json(
         { error: 'No photo provided' },
+        { status: 400 }
+      )
+    }
+
+    if (photo.size > MAX_IDENTIFY_SIZE) {
+      return NextResponse.json(
+        { error: 'Photo too large (max 8 MB)' },
+        { status: 400 }
+      )
+    }
+
+    const mimeType = photo.type
+    if (!ACCEPTED_TYPES.includes(mimeType)) {
+      return NextResponse.json(
+        { error: 'Unsupported image type' },
         { status: 400 }
       )
     }
@@ -39,6 +78,14 @@ export async function POST(request: NextRequest) {
     // Convert file to buffer, then to base64
     const buffer = await photo.arrayBuffer()
     const sharpBuffer = Buffer.from(buffer)
+
+    if (!hasValidImageSignature(sharpBuffer, mimeType)) {
+      return NextResponse.json(
+        { error: 'File content does not match image type' },
+        { status: 400 }
+      )
+    }
+
     const base64 = sharpBuffer.toString('base64')
 
     // Layer 1: EXIF check — real photos almost always have EXIF metadata
@@ -50,9 +97,6 @@ export async function POST(request: NextRequest) {
       // If sharp fails to read metadata, default to false
       hasCamera = false
     }
-
-    // Determine MIME type
-    const mimeType = photo.type || 'image/jpeg'
 
     // Call Gemini 2.5 Flash to identify the watch
     const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' })

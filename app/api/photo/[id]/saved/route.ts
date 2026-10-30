@@ -7,10 +7,8 @@ import { eq, and } from 'drizzle-orm'
 export const dynamic = 'force-dynamic'
 
 /** GET /api/photos/[id]/saved — returns { savedIn: string[] } (collection IDs containing this photo) */
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const photoId = params.id
   const { userId } = await auth()
   if (!userId) {

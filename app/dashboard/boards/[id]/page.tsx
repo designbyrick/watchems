@@ -11,7 +11,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-export default async function BoardDetailPage({ params }: { params: { id: string } }) {
+export default async function BoardDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
