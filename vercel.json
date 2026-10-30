@@ -4,7 +4,8 @@
   "installCommand": "npm ci",
   "crons": [
     { "path": "/api/cron/core-web-vitals", "schedule": "0 2 * * *" },
-    { "path": "/api/cron/gsc-metrics", "schedule": "0 3 * * 1" }
+    { "path": "/api/cron/gsc-metrics", "schedule": "0 3 * * 1" },
+    { "path": "/api/cron/image-health", "schedule": "0 9 * * *" }
   ],
   "headers": [
     {
@@ -12,8 +13,5 @@
       "has": [{ "type": "host", "value": "clerk.watchems.com" }],
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     }
-  ],
-  "crons": [
-    { "path": "/api/cron/image-health", "schedule": "0 9 * * *" }
   ]
 }
