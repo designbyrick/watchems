@@ -63,12 +63,17 @@ function compareCanonicalRedirect(req: NextRequest): NextResponse | null {
  * stay as a fallback for browsers without 'strict-dynamic' support.
  * This is the single source of the CSP header; the other security headers
  * live in next.config.mjs.
+ *
+ * Pass `null` for ISR pages: their cached HTML is built without a request, so
+ * it carries no nonce and would be fully blocked by 'strict-dynamic'. Those
+ * get the host allowlist plus 'unsafe-inline' instead.
  */
-function buildCsp(nonce: string): string {
+function buildCsp(nonce: string | null): string {
   const isDev = process.env.NODE_ENV === 'development'
+  const scriptSources = nonce ? `'nonce-${nonce}' 'strict-dynamic'` : "'unsafe-inline'"
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''} https://www.googletagmanager.com https://va.vercel-scripts.com https://clerk.watchems.com https://challenges.cloudflare.com`,
+    `script-src 'self' ${scriptSources}${isDev ? " 'unsafe-eval'" : ''} https://www.googletagmanager.com https://va.vercel-scripts.com https://clerk.watchems.com https://challenges.cloudflare.com`,
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self'",
     "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://pub-5454588e96dd48eea58ff55965bbe8f5.r2.dev https://img.clerk.com https://images.unsplash.com",
@@ -138,6 +143,11 @@ async function deletedPhotoGone(req: NextRequest): Promise<NextResponse | null> 
   )
 }
 
+/** Routes rendered with `dynamic = 'force-static'` + ISR (app/page.tsx, app/page/[n]/page.tsx) */
+function isStaticGalleryPath(pathname: string): boolean {
+  return pathname === '/' || /^\/page\/\d+\/?$/.test(pathname)
+}
+
 async function handle(req: NextRequest): Promise<NextResponse> {
   // 1. Legacy root-level comparison URL redirect (redirect old indexed URLs)
   const legacyRedirect = legacyRootLevelRedirect(req)
@@ -155,8 +165,16 @@ async function handle(req: NextRequest): Promise<NextResponse> {
   const gone = await deletedPhotoGone(req)
   if (gone) return gone
 
-  // 5. Attach the CSP. Next.js reads the nonce from the request's CSP header and
-  //    applies it to its own scripts; app/layout.tsx reads `x-nonce` for ours.
+  // 5. Attach the CSP. ISR pages (gallery home + /page/N) are served from a
+  //    static cache, so they can't carry a per-request nonce.
+  if (isStaticGalleryPath(req.nextUrl.pathname)) {
+    const res = NextResponse.next()
+    res.headers.set('Content-Security-Policy', buildCsp(null))
+    return res
+  }
+
+  // Next.js reads the nonce from the request's CSP header and applies it to
+  // its own scripts; app/layout.tsx reads `x-nonce` for ours.
   const nonce = btoa(crypto.randomUUID())
   const csp = buildCsp(nonce)
 
