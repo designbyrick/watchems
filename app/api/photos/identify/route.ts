@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const { success } = await checkIdentifyRateLimit(userId)
     if (!success) {
       return NextResponse.json(
-        { error: 'Rate limit exceeded. Try again later.' },
+        { error: 'Rate limit exceeded. Try again later.', code: 'rate_limited' },
         { status: 429 }
       )
     }
@@ -181,6 +181,14 @@ Rules:
     return NextResponse.json(responseData)
   } catch (error: unknown) {
     console.error('Watch identification error:', error)
+    // Upstream Gemini problems (no credits, quota, overload) → AI unavailable
+    const upstreamStatus = (error as { status?: number })?.status
+    if (upstreamStatus && [402, 403, 429, 500, 503].includes(upstreamStatus)) {
+      return NextResponse.json(
+        { error: 'AI identification is unavailable', code: 'ai_unavailable' },
+        { status: 503 }
+      )
+    }
     return NextResponse.json(
       { error: 'identification failed' },
       { status: 500 }
