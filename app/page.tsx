@@ -118,7 +118,7 @@ export default async function HomePage() {
         <HeroSearch />
         <PhotoGallery initial={{ ...initial, pageSize: GALLERY_PAGE_SIZE }} />
       </div>
-      <UploadNudge />
+      <UploadNudge photos={initial.photos.slice(0, 3)} totalCount={initial.totalCount} />
     </>
   )
 }
