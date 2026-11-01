@@ -145,15 +145,15 @@ async function deletedPhotoGone(req: NextRequest): Promise<NextResponse | null> 
 
 /**
  * Routes rendered with `dynamic = 'force-static'` + ISR: the gallery
- * (app/page.tsx, app/page/[n]) and the catalog hubs (app/w, app/watches,
- * app/brands, app/brand, app/style, app/styles).
+ * (app/page.tsx, app/page/[n]), the catalog hubs (app/w, app/watches,
+ * app/brands, app/brand, app/style, app/styles) and app/photo/[id].
  */
 function isIsrPagePath(pathname: string): boolean {
   return (
     pathname === '/' ||
     /^\/page\/\d+\/?$/.test(pathname) ||
     /^\/(watches|brands|styles)\/?$/.test(pathname) ||
-    /^\/(w|brand|style)\/[^/]+\/?$/.test(pathname)
+    /^\/(w|brand|style|photo)\/[^/]+\/?$/.test(pathname)
   )
 }
 

@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache'
  * right away instead of after the page's `revalidate` window.
  */
 export function revalidateCatalog() {
-  for (const route of ['/page/[n]', '/w/[watchId]', '/brand/[brand]', '/style/[style]']) {
+  for (const route of ['/page/[n]', '/photo/[id]', '/w/[watchId]', '/brand/[brand]', '/style/[style]']) {
     revalidatePath(route, 'page')
   }
   for (const path of ['/', '/watches', '/brands', '/styles', '/sitemap.xml', '/image-sitemap.xml']) {
