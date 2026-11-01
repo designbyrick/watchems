@@ -1,6 +1,6 @@
 import { clerkMiddleware } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import type { NextFetchEvent, NextRequest } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { brandSlug } from '@/lib/brandSlug'
 
@@ -143,9 +143,23 @@ async function deletedPhotoGone(req: NextRequest): Promise<NextResponse | null> 
   )
 }
 
-/** Routes rendered with `dynamic = 'force-static'` + ISR (app/page.tsx, app/page/[n]/page.tsx) */
-function isStaticGalleryPath(pathname: string): boolean {
-  return pathname === '/' || /^\/page\/\d+\/?$/.test(pathname)
+/**
+ * Routes rendered with `dynamic = 'force-static'` + ISR: the gallery
+ * (app/page.tsx, app/page/[n]) and the catalog hubs (app/w, app/watches,
+ * app/brands, app/brand, app/style, app/styles).
+ */
+function isIsrPagePath(pathname: string): boolean {
+  return (
+    pathname === '/' ||
+    /^\/page\/\d+\/?$/.test(pathname) ||
+    /^\/(watches|brands|styles)\/?$/.test(pathname) ||
+    /^\/(w|brand|style)\/[^/]+\/?$/.test(pathname)
+  )
+}
+
+/** Cached pages and sitemaps never read the session, so Clerk's per-request work is skipped there. */
+function skipsClerk(pathname: string): boolean {
+  return isIsrPagePath(pathname) || pathname === '/sitemap.xml' || pathname === '/image-sitemap.xml'
 }
 
 async function handle(req: NextRequest): Promise<NextResponse> {
@@ -165,9 +179,9 @@ async function handle(req: NextRequest): Promise<NextResponse> {
   const gone = await deletedPhotoGone(req)
   if (gone) return gone
 
-  // 5. Attach the CSP. ISR pages (gallery home + /page/N) are served from a
+  // 5. Attach the CSP. ISR pages (gallery + catalog hubs) are served from a
   //    static cache, so they can't carry a per-request nonce.
-  if (isStaticGalleryPath(req.nextUrl.pathname)) {
+  if (isIsrPagePath(req.nextUrl.pathname)) {
     const res = NextResponse.next()
     res.headers.set('Content-Security-Policy', buildCsp(null))
     return res
@@ -191,7 +205,12 @@ async function handle(req: NextRequest): Promise<NextResponse> {
 // deployments without Clerk env vars), so only wrap the handler when they exist.
 const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && !!process.env.CLERK_SECRET_KEY
 
-export default hasClerk ? clerkMiddleware((_auth, req) => handle(req)) : handle
+const withClerk = hasClerk ? clerkMiddleware((_auth, req) => handle(req)) : null
+
+export default function middleware(req: NextRequest, event: NextFetchEvent) {
+  if (!withClerk || skipsClerk(req.nextUrl.pathname)) return handle(req)
+  return withClerk(req, event)
+}
 
 export const config = {
   matcher: [

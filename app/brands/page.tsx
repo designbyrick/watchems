@@ -1,9 +1,13 @@
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+// Static HTML refreshed every hour (ISR); moderation changes purge it via
+// lib/revalidateCatalog. force-static lets lib/db's no-store fetch run during
+// static generation instead of opting into dynamic rendering.
+export const dynamic = 'force-static'
+export const revalidate = 3600
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { db } from '@/lib/db'
+import { emptyIfNoDbAtBuild } from '@/lib/db/buildFallback'
 import { photos } from '@/lib/db/schema'
 import { eq, and, sql, isNotNull } from 'drizzle-orm'
 import BrandList from './BrandList'
@@ -33,15 +37,18 @@ export const metadata: Metadata = {
 }
 
 export default async function BrandsPage() {
-  const brandGroups = await db
-    .select({
-      brandName: photos.brandName,
-      photoCount: sql<number>`count(*)::int`,
-    })
-    .from(photos)
-    .where(and(eq(photos.status, 'approved'), isNotNull(photos.brandName)))
-    .groupBy(photos.brandName)
-    .orderBy(photos.brandName)
+  const brandGroups = await emptyIfNoDbAtBuild(
+    db
+      .select({
+        brandName: photos.brandName,
+        photoCount: sql<number>`count(*)::int`,
+      })
+      .from(photos)
+      .where(and(eq(photos.status, 'approved'), isNotNull(photos.brandName)))
+      .groupBy(photos.brandName)
+      .orderBy(photos.brandName),
+    'brands',
+  )
 
   const totalPhotos = brandGroups.reduce((sum, b) => sum + b.photoCount, 0)
 

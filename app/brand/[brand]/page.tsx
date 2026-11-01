@@ -1,7 +1,15 @@
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+// Rendered on demand and cached for an hour (ISR); moderation changes purge it
+// via lib/revalidateCatalog. force-static lets lib/db's no-store fetch run
+// during static generation instead of opting into dynamic rendering.
+export const dynamic = 'force-static'
+export const revalidate = 3600
+export const dynamicParams = true
 
-import { cache } from 'react'
+export function generateStaticParams() {
+  return []
+}
+
+import { cache, Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -11,12 +19,12 @@ import { eq, and, asc, desc, sql, isNotNull, inArray } from 'drizzle-orm'
 import { brands as brandDataList } from '@/lib/brandData'
 import { brandSlug } from '@/lib/brandSlug'
 import { getAllGuides } from '@/lib/buyingGuides'
-import BrandPhotoCard from './BrandPhotoCard'
+import type { BrandPhoto } from './BrandPhotoCard'
+import BrandModelGrid, { BrandModelGridView } from './BrandModelGrid'
 import { serializeJsonLd } from '@/lib/jsonLd'
 
 interface BrandPageProps {
   params: Promise<{ brand: string }>
-  searchParams: Promise<{ model?: string | string[] }>
 }
 
 const GRID_LIMIT = 48
@@ -103,7 +111,6 @@ export async function generateMetadata(props: BrandPageProps): Promise<Metadata>
 
 export default async function BrandPage(props: BrandPageProps) {
   const params = await props.params
-  const searchParams = await props.searchParams
   const brand = params.brand
   const brandNames = await resolveBrandNames(brand)
   if (brandNames.length === 0) notFound()
@@ -149,30 +156,55 @@ export default async function BrandPage(props: BrandPageProps) {
       .then((r) => r[0]?.n ?? 0),
   ])
 
-  const requestedModel = Array.isArray(searchParams.model) ? searchParams.model[0] : searchParams.model
-  const activeModel = requestedModel
-    ? topModels.find((m) => m.modelName?.toLowerCase() === requestedModel.toLowerCase())?.modelName ?? null
-    : null
-
-  // One tile per owner's watch, newest first
-  const gridRows = await db
-    .selectDistinctOn([photos.watchId, photos.userId], {
-      id: photos.id,
-      slug: photos.slug,
-      url: photos.url,
-      thumbnailUrl: photos.thumbnailUrl,
-      brandName: photos.brandName,
-      modelName: photos.modelName,
-      referenceNumber: photos.referenceNumber,
-      watchId: photos.watchId,
-      createdAt: photos.createdAt,
-    })
-    .from(photos)
-    .where(activeModel ? and(brandWhere, eq(photos.modelName, activeModel)) : brandWhere)
-    .orderBy(photos.watchId, photos.userId, asc(photos.sortOrder), desc(photos.createdAt))
-  const gridPhotos = gridRows
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(0, GRID_LIMIT)
+  // One tile per owner's watch, newest first. The page is cached, so every
+  // model chip's grid is prepared here and BrandModelGrid picks one from ?model=.
+  const gridFor = async (model: string | null): Promise<BrandPhoto[]> => {
+    const rows = await db
+      .selectDistinctOn([photos.watchId, photos.userId], {
+        id: photos.id,
+        slug: photos.slug,
+        url: photos.url,
+        thumbnailUrl: photos.thumbnailUrl,
+        brandName: photos.brandName,
+        modelName: photos.modelName,
+        referenceNumber: photos.referenceNumber,
+        watchId: photos.watchId,
+        createdAt: photos.createdAt,
+      })
+      .from(photos)
+      .where(model ? and(brandWhere, eq(photos.modelName, model)) : brandWhere)
+      .orderBy(photos.watchId, photos.userId, asc(photos.sortOrder), desc(photos.createdAt))
+    return rows
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, GRID_LIMIT)
+      .map((row): BrandPhoto => ({
+        id: row.id,
+        slug: row.slug,
+        url: row.url,
+        thumbnailUrl: row.thumbnailUrl,
+        brandName: row.brandName,
+        modelName: row.modelName,
+        referenceNumber: row.referenceNumber,
+        watchId: row.watchId,
+      }))
+  }
+  const chipModels = topModels.length > 1 ? topModels.map((m) => m.modelName).filter((m): m is string => !!m) : []
+  const gridEntries = await Promise.all(
+    [null, ...chipModels].map(async (model) => [model ?? '', await gridFor(model)] as const),
+  )
+  const photosById: Record<string, BrandPhoto> = {}
+  const grids: Record<string, string[]> = {}
+  for (const [key, list] of gridEntries) {
+    grids[key] = list.map((p) => p.id)
+    for (const p of list) photosById[p.id] = p
+  }
+  const gridProps = {
+    brand,
+    brandLabel: canonicalBrandName,
+    models: topModels.map((m) => m.modelName),
+    photosById,
+    grids,
+  }
 
   // Guide picks for this brand (read-only from the guide data)
   const guideRows = getAllGuides().flatMap((guide) =>
@@ -301,47 +333,9 @@ export default async function BrandPage(props: BrandPageProps) {
           </Link>
         </section>
 
-        {/* Model chips */}
-        {topModels.length > 1 && (
-          <div role="group" aria-label="Models" className="mt-5 flex gap-2 overflow-x-auto sm:flex-wrap -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none]">
-            {[{ modelName: null as string | null, label: 'All models' }, ...topModels.map((m) => ({ modelName: m.modelName, label: m.modelName ?? '' }))].map((chip) => {
-              const active = chip.modelName === activeModel
-              const href = chip.modelName
-                ? `/brand/${brand}?model=${encodeURIComponent(chip.modelName)}`
-                : `/brand/${brand}`
-              return (
-                <Link
-                  key={chip.label}
-                  href={href}
-                  scroll={false}
-                  aria-current={active ? 'true' : undefined}
-                  className={`shrink-0 h-10 rounded-full border px-4 flex items-center text-sm whitespace-nowrap transition-colors ${
-                    active
-                      ? 'border-ink bg-ink text-white font-semibold'
-                      : 'border-line bg-surface text-ink font-medium hover:border-line-strong'
-                  }`}
-                >
-                  {chip.label}
-                </Link>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Photo grid */}
-        <div className="mt-7 grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(232px,1fr))] gap-x-3 gap-y-7 sm:gap-x-5 sm:gap-y-9">
-          {gridPhotos.map((photo, i) => (
-            <BrandPhotoCard key={photo.id} photo={photo} brandLabel={canonicalBrandName} eager={i < 6} />
-          ))}
-          <Link
-            href="/upload"
-            className="flex flex-col items-center justify-center gap-2.5 aspect-[4/5] border-[1.5px] border-dashed border-line-strong rounded-md text-muted text-center p-6 hover:border-ink hover:text-ink transition-colors"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-            <span className="text-[15px] font-semibold text-ink">Own a {canonicalBrandName}?</span>
-            <span className="text-[13px]">Add your wrist shot</span>
-          </Link>
-        </div>
+        <Suspense fallback={<BrandModelGridView {...gridProps} activeModel={null} />}>
+          <BrandModelGrid {...gridProps} />
+        </Suspense>
 
         {/* Buying guides */}
         {guideRows.length > 0 && (

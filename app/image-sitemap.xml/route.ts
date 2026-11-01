@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm'
 import { desc } from 'drizzle-orm'
 import { buildPhotoAltText } from '@/lib/photoAlt'
 
-export const revalidate = 3600 // ISR: regenerate at most once an hour
+export const revalidate = 86400 // ISR: regenerate at most once a day (moderation changes purge it via lib/revalidateCatalog)
 
 /**
  * Escape XML special characters for safe inclusion in XML text content.

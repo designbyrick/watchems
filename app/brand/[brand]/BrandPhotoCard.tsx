@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-interface BrandPhoto {
+export interface BrandPhoto {
   id: string
   slug: string | null
   url: string
