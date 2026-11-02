@@ -9,7 +9,7 @@ import GalleryFilters from './GalleryFilters'
 import Fuse from 'fuse.js'
 import EmptyState from '@/components/ui/EmptyState'
 import { getWatchesCacheSync, getWatchesData } from '@/lib/watchesCache'
-import { trackEvent } from '@/lib/gtag'
+import { trackEvent } from '@/lib/analytics'
 
 interface PhotoItem {
   id: string

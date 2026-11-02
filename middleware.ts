@@ -73,11 +73,11 @@ function buildCsp(nonce: string | null): string {
   const scriptSources = nonce ? `'nonce-${nonce}' 'strict-dynamic'` : "'unsafe-inline'"
   return [
     "default-src 'self'",
-    `script-src 'self' ${scriptSources}${isDev ? " 'unsafe-eval'" : ''} https://www.googletagmanager.com https://va.vercel-scripts.com https://clerk.watchems.com https://challenges.cloudflare.com`,
+    `script-src 'self' ${scriptSources}${isDev ? " 'unsafe-eval'" : ''} https://va.vercel-scripts.com https://clerk.watchems.com https://challenges.cloudflare.com`,
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self'",
     "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://pub-5454588e96dd48eea58ff55965bbe8f5.r2.dev https://img.clerk.com https://images.unsplash.com",
-    "connect-src 'self' https://*.clerk.accounts.dev https://clerk.watchems.com https://api.clerk.com https://cdn.vercel-insights.com https://vitals.vercel-analytics.com https://www.google-analytics.com https://www.googletagmanager.com https://challenges.cloudflare.com https://*.sentry.io",
+    "connect-src 'self' https://*.clerk.accounts.dev https://clerk.watchems.com https://api.clerk.com https://cdn.vercel-insights.com https://vitals.vercel-analytics.com https://challenges.cloudflare.com https://*.sentry.io",
     "frame-src 'self' https://*.clerk.accounts.dev https://clerk.watchems.com https://challenges.cloudflare.com",
     "worker-src 'self' blob:",
     "object-src 'none'",
