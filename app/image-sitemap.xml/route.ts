@@ -3,7 +3,6 @@ import { getIsrDb } from '@/lib/db/isr'
 import { photos } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { desc } from 'drizzle-orm'
-import { buildPhotoAltText } from '@/lib/photoAlt'
 
 export const revalidate = 3600 // ISR: regenerate at most once an hour
 
@@ -28,11 +27,9 @@ const getApprovedPhotos = () =>
       id: photos.id,
       slug: photos.slug,
       url: photos.url,
-      thumbnailUrl: photos.thumbnailUrl,
-      brandName: photos.brandName,
-      modelName: photos.modelName,
-      referenceNumber: photos.referenceNumber,
-      userName: photos.userName,
+      watchId: photos.watchId,
+      userId: photos.userId,
+      sortOrder: photos.sortOrder,
       createdAt: photos.createdAt
     })
     .from(photos)
@@ -61,34 +58,37 @@ export async function GET() {
 
   const baseUrl = 'https://watchems.com'
 
-  // Build XML entries
-  const entries = allPhotos
-    .filter(photo => photo.url) // Skip photos with null/empty URL
-    .map(photo => {
-      // Use buildPhotoAltText for the title
-      const altText = buildPhotoAltText({
-        brandName: photo.brandName,
-        modelName: photo.modelName,
-        referenceNumber: photo.referenceNumber,
-        userName: photo.userName,
-      })
+  // One <url> per canonical photo page. Secondary carousel photos canonicalize
+  // to the primary one (lowest sortOrder, then earliest createdAt — same rule as
+  // app/sitemap.ts), so their images are listed under the primary's <loc>.
+  type Row = (typeof allPhotos)[number]
+  const carousels = new Map<string, Row[]>()
+  for (const photo of allPhotos) {
+    if (!photo.url) continue // Skip photos with null/empty URL
+    const key = `${photo.watchId}\u0000${photo.userId}`
+    const group = carousels.get(key)
+    if (group) group.push(photo)
+    else carousels.set(key, [photo])
+  }
 
-      // Build caption with reference number if available
-      const caption = `On-wrist photo of ${photo.brandName || 'watch'} ${photo.modelName || ''}${
-        photo.referenceNumber ? ` ref. ${photo.referenceNumber}` : ''
-      } submitted by ${photo.userName}`.trim()
-
-      // Use thumbnailUrl if available (faster for Google crawling), fallback to url
-      const imageUrl = photo.thumbnailUrl || photo.url
+  const entries = Array.from(carousels.values())
+    .map((group) => {
+      group.sort(
+        (a, b) => a.sortOrder - b.sortOrder || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      )
+      const primary = group[0]
+      // Full-size image (thumbnails are a poor candidate for Google Images);
+      // image:title/caption are omitted — Google no longer reads them.
+      const images = group
+        .map((photo) => `
+    <image:image>
+      <image:loc>${escapeXml(photo.url)}</image:loc>
+    </image:image>`)
+        .join('')
 
       return `
   <url>
-    <loc>${escapeXml(`${baseUrl}/photo/${photo.slug ?? photo.id}`)}</loc>
-    <image:image>
-      <image:loc>${escapeXml(imageUrl)}</image:loc>
-      <image:title>${escapeXml(altText)}</image:title>
-      <image:caption>${escapeXml(caption)}</image:caption>
-    </image:image>
+    <loc>${escapeXml(`${baseUrl}/photo/${primary.slug ?? primary.id}`)}</loc>${images}
   </url>`
     })
     .join('')

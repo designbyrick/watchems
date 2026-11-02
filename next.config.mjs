@@ -1,7 +1,23 @@
 import { withSentryConfig } from '@sentry/nextjs/config'
 
+// PostHog reverse proxy: the browser posts to /wmx on our own domain and Next
+// forwards it, so no third-party host is needed in the CSP and blockers miss it.
+// Assets live on the region's -assets host (eu.i.posthog.com → eu-assets.i.posthog.com).
+const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST
+const posthogAssetsHost = posthogHost?.replace(/:\/\/(\w+)\.i\./, '://$1-assets.i.')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // PostHog's API paths end in a slash; Next's trailing-slash redirect would break them
+  skipTrailingSlashRedirect: true,
+  async rewrites() {
+    if (!posthogHost) return []
+    return [
+      { source: '/wmx/static/:path*', destination: `${posthogAssetsHost}/static/:path*` },
+      { source: '/wmx/array/:path*', destination: `${posthogAssetsHost}/array/:path*` },
+      { source: '/wmx/:path*', destination: `${posthogHost}/:path*` },
+    ]
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [

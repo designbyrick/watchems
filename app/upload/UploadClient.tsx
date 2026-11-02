@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { brandPath } from '@/lib/brandSlug'
 import imageCompression from 'browser-image-compression'
 import CropModal from './CropModal'
-import { trackEvent } from '@/lib/gtag'
+import { trackEvent } from '@/lib/analytics'
 
 function toSlug(str: string) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
