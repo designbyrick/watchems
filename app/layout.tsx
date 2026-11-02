@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
-import Script from 'next/script'
 import { headers } from 'next/headers'
 import { ClerkProvider } from '@clerk/nextjs'
 import { SpeedInsights } from '@vercel/speed-insights/next'
@@ -76,7 +75,7 @@ const organizationJsonLd = {
   sameAs: [],
 }
 
-function Shell({ children, nonce }: { children: React.ReactNode; nonce?: string }) {
+function Shell({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
@@ -84,26 +83,8 @@ function Shell({ children, nonce }: { children: React.ReactNode; nonce?: string 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationJsonLd) }}
         />
-        {/* Bootstrap dataLayer immediately so gtag() calls before the GA script
-            loads are queued rather than lost — prevents (not set) attribution.
-            Do NOT call gtag('config') here — the Script tag below handles that
-            when the library loads, avoiding a duplicate page_view. */}
-        <script
-          nonce={nonce}
-          dangerouslySetInnerHTML={{
-            __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());`,
-          }}
-        />
       </head>
       <body className="bg-canvas text-ink antialiased min-h-screen flex flex-col">
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-T077JWH4E5"
-          strategy="afterInteractive"
-          nonce={nonce}
-        />
-        <Script id="ga4-config" strategy="afterInteractive" nonce={nonce}>
-          {`gtag('config','G-T077JWH4E5');`}
-        </Script>
         <Navigation />
         <main className="flex-1">{children}</main>
         <Footer />
@@ -117,9 +98,10 @@ function Shell({ children, nonce }: { children: React.ReactNode; nonce?: string 
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Per-request CSP nonce set by middleware.ts. Reading headers() makes every
-  // page render dynamically — that's the cost of a nonce-based CSP.
-  const nonce = (await headers()).get('x-nonce') ?? undefined
+  // Reading headers() makes every page render dynamically, so Next.js can put
+  // the per-request CSP nonce from middleware.ts on its scripts — that's the
+  // cost of a nonce-based CSP. Don't remove it.
+  await headers()
 
   if (hasClerk) {
     return (
@@ -145,9 +127,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           },
         }}
       >
-        <Shell nonce={nonce}>{children}</Shell>
+        <Shell>{children}</Shell>
       </ClerkProvider>
     )
   }
-  return <Shell nonce={nonce}>{children}</Shell>
+  return <Shell>{children}</Shell>
 }

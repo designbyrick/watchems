@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Image from 'next/image'
-import { trackEvent } from '@/lib/gtag'
+import { trackEvent } from '@/lib/analytics'
 
 export interface ViewerPhoto {
   id: string

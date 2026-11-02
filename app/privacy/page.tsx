@@ -15,7 +15,7 @@ export default function PrivacyPage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-8 pt-10 pb-16 sm:pt-14">
       <p className="font-mono text-xs tracking-[1px] uppercase text-muted">Legal</p>
       <h1 className="mt-2.5 text-[36px] sm:text-[44px] leading-[1.05] font-semibold tracking-[-1.8px] text-ink">Privacy Policy</h1>
-      <p className="mt-4 mb-12 font-mono text-[11px] tracking-[1px] uppercase text-faint">Last updated: March 26, 2026</p>
+      <p className="mt-4 mb-12 font-mono text-[11px] tracking-[1px] uppercase text-faint">Last updated: November 1, 2026</p>
 
       <div className={LEGAL_PROSE}>
         <section>
@@ -46,10 +46,11 @@ export default function PrivacyPage() {
 
           <h3>Analytics and performance data</h3>
           <p>
-            We use Google Analytics 4 and Vercel Analytics to understand how the site is
-            used. This includes page views, referral sources, device type, and general
-            geographic region. We do not enable Google&apos;s advertising features or share
-            analytics data with third parties for advertising purposes.
+            We use PostHog (hosted in the EU) and Vercel Analytics to understand how the
+            site is used. This includes page views, clicks and other interactions,
+            referral sources, device type, and general geographic region. If you are
+            signed in, these events are linked to your account. We do not share analytics
+            data with third parties for advertising purposes.
           </p>
 
           <h3>Technical data</h3>
@@ -82,7 +83,7 @@ export default function PrivacyPage() {
             <li><strong>Clerk</strong> — authentication and account management</li>
             <li><strong>Vercel</strong> — hosting, image storage (Blob), and analytics</li>
             <li><strong>Upstash</strong> — database for photos and gallery data</li>
-            <li><strong>Google Analytics 4</strong> — website analytics</li>
+            <li><strong>PostHog</strong> — product analytics</li>
           </ul>
           <p>
             Each service has its own privacy policy governing how it processes data. We
@@ -100,17 +101,8 @@ export default function PrivacyPage() {
               account.
             </li>
             <li>
-              <strong>Analytics cookies</strong> — set by Google Analytics to distinguish
-              users and track sessions. You can opt out of Google Analytics by installing
-              the{' '}
-              <a
-                href="https://tools.google.com/dlpage/gaoptout"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-ink underline underline-offset-2 hover:text-muted transition-colors"
-              >
-                Google Analytics opt-out browser add-on
-              </a>.
+              <strong>Analytics cookies</strong> — set by PostHog to distinguish
+              visitors and track sessions.
             </li>
           </ul>
           <p>We do not use advertising cookies or tracking pixels.</p>
@@ -128,8 +120,8 @@ export default function PrivacyPage() {
               published. You can request removal by emailing us.
             </li>
             <li>
-              <strong>Analytics data</strong> is retained according to Google Analytics
-              and Vercel Analytics default retention periods (typically 14 months for GA4).
+              <strong>Analytics data</strong> is retained according to PostHog and
+              Vercel Analytics default retention periods.
             </li>
           </ul>
         </section>
