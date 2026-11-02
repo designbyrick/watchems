@@ -14,12 +14,16 @@ import SaveToBoard from '@/components/SaveToBoard'
 import SocialActions from '@/components/home/SocialActions'
 import PhotoViewer from '@/components/photo/PhotoViewer'
 import { serializeJsonLd } from '@/lib/jsonLd'
+import { brandSlug } from '@/lib/brandSlug'
 
 interface PhotoPageProps {
   params: Promise<{ id: string }>
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Same threshold as app/w/[watchId]/page.tsx — below it /w/ redirects to the gallery filter
+const MIN_PHOTOS_WATCH_HUB = 3
 
 // Swatch colours for the spec-sheet dial dot (keys are lowercase dialColor values)
 const DIAL_SWATCHES: Record<string, string> = {
@@ -96,11 +100,6 @@ function onePerUpload(rows: RelatedPhoto[], current: { watchId: string; userId: 
 
 function unslugify(slug: string) {
   return slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-}
-
-/** Brand URL segment: lowercase, hyphen-separated (matches the /brand canonical) */
-function brandSlug(brandName: string) {
-  return brandName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 }
 
 // Shared by generateMetadata and the page — React cache() dedupes per request
@@ -191,7 +190,6 @@ export default async function PhotoPage(props: PhotoPageProps) {
   const modelName = p.modelName || 'on the wrist'
   const imageUrl = p.thumbnailUrl || p.url
   const brandHref = `/brand/${brandSlug(brandName)}`
-  const watchHref = `/w/${p.watchId}`
   const watchName = [p.brandName, p.modelName].filter(Boolean).join(' ') || unslugify(p.watchId)
   const displayModel = p.modelName || p.referenceNumber || unslugify(p.watchId)
   const dialKey = p.dialColor?.trim().toLowerCase() || null
@@ -200,12 +198,16 @@ export default async function PhotoPage(props: PhotoPageProps) {
   const RELATED_POOL = 60
   const approvedOthers = and(eq(photos.status, 'approved'), ne(photos.userId, p.userId))
 
-  const [carousel, shotCountRows, byDial] = await Promise.all([
+  const [carousel, shotCountRows, watchCountRows, byDial] = await Promise.all([
     getCarousel(p.watchId, p.userId),
     db
       .select({ n: count() })
       .from(photos)
       .where(and(eq(photos.userId, p.userId), eq(photos.status, 'approved'))),
+    db
+      .select({ n: count() })
+      .from(photos)
+      .where(and(eq(photos.watchId, p.watchId), eq(photos.status, 'approved'))),
     dialKey
       ? db
           .select(relatedSelect)
@@ -215,6 +217,11 @@ export default async function PhotoPage(props: PhotoPageProps) {
           .limit(RELATED_POOL)
       : Promise.resolve([] as RelatedPhoto[]),
   ])
+
+  // Link the /w/ hub only when it renders; below the threshold link the gallery
+  // filter it would redirect to, so crawlers aren't sent through a 307.
+  const hasWatchHub = Number(watchCountRows[0]?.n ?? 0) >= MIN_PHOTOS_WATCH_HUB
+  const watchHref = hasWatchHub ? `/w/${p.watchId}` : `/?watch=${encodeURIComponent(p.watchId)}`
 
   // "More <dial> dials", falling back to the same watch from other owners, then the brand
   let related = onePerUpload(byDial, p, RELATED_LIMIT)
@@ -298,42 +305,20 @@ export default async function PhotoPage(props: PhotoPageProps) {
     copyrightNotice: `© ${p.userName}, shared on Watchems`,
     license: 'https://creativecommons.org/licenses/by-nc/4.0/',
     acquireLicensePage: 'https://watchems.com/about',
+    // A Thing, not a Product: Google validates every Product (nested ones too) for
+    // offers/review/aggregateRating, which a photo gallery doesn't have.
     about: {
       '@type': 'Thing',
       name: `${brandName} ${modelName}`,
     },
   }
 
-  // Structured data — Product (only when we have brand + model)
-  // No Offer block — this is a photo gallery, not a commerce page.
-  // Product without Offer is valid schema.org and avoids GSC Merchant Listings errors.
-  const productJsonLd = p.brandName && p.modelName
-    ? {
-        '@context': 'https://schema.org',
-        '@type': 'Product',
-        name: `${brandName} ${modelName}`,
-        brand: { '@type': 'Brand', name: brandName },
-        image: imageUrl,
-        url: `https://watchems.com/photo/${slug}`,
-        ...(p.referenceNumber && { mpn: p.referenceNumber }),
-        description: [
-          `${brandName} ${modelName}${p.referenceNumber ? ` (ref. ${p.referenceNumber})` : ''}.`,
-          p.movement && `Movement: ${p.movement}.`,
-          p.caseSize && `Case size: ${p.caseSize}mm.`,
-          p.dialColor && `Dial: ${p.dialColor}.`,
-          p.caseMaterial && `Case: ${p.caseMaterial}.`,
-          p.waterResistance && `Water resistance: ${p.waterResistance}.`,
-        ]
-          .filter(Boolean)
-          .join(' '),
-      }
-    : null
-
-  // Structured data — BreadcrumbList (Gallery → Brand → Watch → Photo), mirrors the visual breadcrumb
+  // Structured data — BreadcrumbList (Gallery → Brand → Watch → Photo), mirrors the visual breadcrumb.
+  // The watch level is left out when its hub doesn't exist (the filter URL canonicalizes to the home page).
   const breadcrumbItems = [
     { name: 'Gallery', item: 'https://watchems.com' },
     ...(p.brandName ? [{ name: p.brandName, item: `https://watchems.com${brandHref}` }] : []),
-    { name: watchName, item: `https://watchems.com${watchHref}` },
+    ...(hasWatchHub ? [{ name: watchName, item: `https://watchems.com${watchHref}` }] : []),
     { name: `Photo by ${p.userName}`, item: canonicalUrl },
   ]
   const breadcrumbJsonLd = {
@@ -348,12 +333,6 @@ export default async function PhotoPage(props: PhotoPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(imageJsonLd) }}
       />
-      {productJsonLd && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: serializeJsonLd(productJsonLd) }}
-        />
-      )}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
