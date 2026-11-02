@@ -64,14 +64,6 @@ const websiteJsonLd = {
   name: 'Watchems',
   url: 'https://watchems.com',
   description: 'Community watch photo gallery featuring photos of watches at every price point.',
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: {
-      '@type': 'EntryPoint',
-      urlTemplate: 'https://watchems.com?q={search_term_string}',
-    },
-    'query-input': 'required name=search_term_string',
-  },
 }
 
 export const metadata: Metadata = {
