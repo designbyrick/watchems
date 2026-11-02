@@ -9,6 +9,7 @@ import './globals.css'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import MobileTabBar from '@/components/MobileTabBar'
+import PostHogIdentify from '@/components/PostHogIdentify'
 import { serializeJsonLd } from '@/lib/jsonLd'
 
 const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
@@ -109,6 +110,7 @@ function Shell({ children, nonce }: { children: React.ReactNode; nonce?: string 
         <MobileTabBar />
         <SpeedInsights />
         <Analytics />
+        {hasClerk && <PostHogIdentify />}
       </body>
     </html>
   )
