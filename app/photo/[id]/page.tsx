@@ -20,6 +20,8 @@ interface PhotoPageProps {
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+// Mirrors MIN_PHOTOS_FOR_HUB in app/w/[watchId]/page.tsx
+const MIN_PHOTOS_FOR_HUB = 3
 
 // Swatch colours for the spec-sheet dial dot (keys are lowercase dialColor values)
 const DIAL_SWATCHES: Record<string, string> = {
@@ -191,7 +193,6 @@ export default async function PhotoPage(props: PhotoPageProps) {
   const modelName = p.modelName || 'on the wrist'
   const imageUrl = p.thumbnailUrl || p.url
   const brandHref = `/brand/${brandSlug(brandName)}`
-  const watchHref = `/w/${p.watchId}`
   const watchName = [p.brandName, p.modelName].filter(Boolean).join(' ') || unslugify(p.watchId)
   const displayModel = p.modelName || p.referenceNumber || unslugify(p.watchId)
   const dialKey = p.dialColor?.trim().toLowerCase() || null
@@ -200,12 +201,16 @@ export default async function PhotoPage(props: PhotoPageProps) {
   const RELATED_POOL = 60
   const approvedOthers = and(eq(photos.status, 'approved'), ne(photos.userId, p.userId))
 
-  const [carousel, shotCountRows, byDial] = await Promise.all([
+  const [carousel, shotCountRows, watchCountRows, byDial] = await Promise.all([
     getCarousel(p.watchId, p.userId),
     db
       .select({ n: count() })
       .from(photos)
       .where(and(eq(photos.userId, p.userId), eq(photos.status, 'approved'))),
+    db
+      .select({ n: count() })
+      .from(photos)
+      .where(and(eq(photos.watchId, p.watchId), eq(photos.status, 'approved'))),
     dialKey
       ? db
           .select(relatedSelect)
@@ -215,6 +220,9 @@ export default async function PhotoPage(props: PhotoPageProps) {
           .limit(RELATED_POOL)
       : Promise.resolve([] as RelatedPhoto[]),
   ])
+
+  // /w/ hubs with fewer than MIN_PHOTOS_FOR_HUB photos redirect to the gallery, so only link real hubs
+  const watchHref = (watchCountRows[0]?.n ?? 0) >= MIN_PHOTOS_FOR_HUB ? `/w/${p.watchId}` : null
 
   // "More <dial> dials", falling back to the same watch from other owners, then the brand
   let related = onePerUpload(byDial, p, RELATED_LIMIT)
@@ -229,7 +237,7 @@ export default async function PhotoPage(props: PhotoPageProps) {
       .limit(RELATED_POOL)
     related = onePerUpload(sameWatch, p, RELATED_LIMIT)
     relatedTitle = `More ${watchName}`
-    relatedHref = watchHref
+    relatedHref = watchHref ?? relatedHref
   }
   if (related.length === 0 && p.brandName) {
     const sameBrand = await db
@@ -333,7 +341,7 @@ export default async function PhotoPage(props: PhotoPageProps) {
   const breadcrumbItems = [
     { name: 'Gallery', item: 'https://watchems.com' },
     ...(p.brandName ? [{ name: p.brandName, item: `https://watchems.com${brandHref}` }] : []),
-    { name: watchName, item: `https://watchems.com${watchHref}` },
+    ...(watchHref ? [{ name: watchName, item: `https://watchems.com${watchHref}` }] : []),
     { name: `Photo by ${p.userName}`, item: canonicalUrl },
   ]
   const breadcrumbJsonLd = {
@@ -368,9 +376,15 @@ export default async function PhotoPage(props: PhotoPageProps) {
               <span aria-hidden="true">/</span>
             </>
           )}
-          <Link href={watchHref} className="hover:text-ink transition-colors truncate">
-            {[displayModel, p.modelName && p.referenceNumber].filter(Boolean).join(' ')}
-          </Link>
+          {watchHref ? (
+            <Link href={watchHref} className="hover:text-ink transition-colors truncate">
+              {[displayModel, p.modelName && p.referenceNumber].filter(Boolean).join(' ')}
+            </Link>
+          ) : (
+            <span className="truncate">
+              {[displayModel, p.modelName && p.referenceNumber].filter(Boolean).join(' ')}
+            </span>
+          )}
           <span aria-hidden="true">/</span>
           <span className="text-ink truncate" aria-current="page">Photo by {p.userName}</span>
         </nav>
@@ -397,12 +411,14 @@ export default async function PhotoPage(props: PhotoPageProps) {
               {p.referenceNumber && (
                 <p className="mt-3 font-mono text-sm text-muted">Ref. {p.referenceNumber}</p>
               )}
-              <Link
-                href={watchHref}
-                className="mt-4 inline-block text-[15px] font-semibold text-ink shadow-[inset_0_-1px_0_currentColor] hover:text-ink-hover"
-              >
-                See all photos of the {watchName} →
-              </Link>
+              {watchHref && (
+                <Link
+                  href={watchHref}
+                  className="mt-4 inline-block text-[15px] font-semibold text-ink shadow-[inset_0_-1px_0_currentColor] hover:text-ink-hover"
+                >
+                  See all photos of the {watchName} →
+                </Link>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-2.5">

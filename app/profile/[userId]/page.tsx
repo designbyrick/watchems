@@ -21,7 +21,7 @@ export async function generateMetadata(props: { params: Promise<{ userId: string
       title: `${displayName}'s Watch Collection`,
       description: `View ${displayName}'s watch collection on Watchems — real wrist shots from real owners.`,
       robots: {
-        index: true,
+        index: false,
         follow: true,
       },
       alternates: {
