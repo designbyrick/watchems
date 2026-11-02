@@ -1,10 +1,14 @@
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+// Static HTML refreshed every hour (ISR); moderation changes purge it via
+// lib/revalidateCatalog. force-static lets lib/db's no-store fetch run during
+// static generation instead of opting into dynamic rendering.
+export const dynamic = 'force-static'
+export const revalidate = 3600
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import { db } from '@/lib/db'
+import { emptyIfNoDbAtBuild } from '@/lib/db/buildFallback'
 import { photos } from '@/lib/db/schema'
 import { eq, and, sql, isNotNull } from 'drizzle-orm'
 import { serializeJsonLd } from '@/lib/jsonLd'
@@ -34,20 +38,23 @@ export const metadata: Metadata = {
 }
 
 export default async function WatchesPage() {
-  const watchGroups = await db
-    .select({
-      watchId: photos.watchId,
-      brandName: photos.brandName,
-      modelName: photos.modelName,
-      photoCount: sql<number>`count(*)::int`,
-      thumbnailUrl: sql<string | null>`min(${photos.thumbnailUrl})`,
-      url: sql<string>`min(${photos.url})`,
-    })
-    .from(photos)
-    .where(and(eq(photos.status, 'approved'), isNotNull(photos.watchId)))
-    .groupBy(photos.watchId, photos.brandName, photos.modelName)
-    .having(sql`count(*) >= ${MIN_PHOTOS_FOR_HUB}`)
-    .orderBy(sql`count(*) DESC`)
+  const watchGroups = await emptyIfNoDbAtBuild(
+    db
+      .select({
+        watchId: photos.watchId,
+        brandName: photos.brandName,
+        modelName: photos.modelName,
+        photoCount: sql<number>`count(*)::int`,
+        thumbnailUrl: sql<string | null>`min(${photos.thumbnailUrl})`,
+        url: sql<string>`min(${photos.url})`,
+      })
+      .from(photos)
+      .where(and(eq(photos.status, 'approved'), isNotNull(photos.watchId)))
+      .groupBy(photos.watchId, photos.brandName, photos.modelName)
+      .having(sql`count(*) >= ${MIN_PHOTOS_FOR_HUB}`)
+      .orderBy(sql`count(*) DESC`),
+    'watches',
+  )
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',

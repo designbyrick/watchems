@@ -1,5 +1,13 @@
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+// Rendered on demand and cached for an hour (ISR); moderation changes purge it
+// via lib/revalidateCatalog. force-static lets lib/db's no-store fetch run
+// during static generation instead of opting into dynamic rendering.
+export const dynamic = 'force-static'
+export const revalidate = 3600
+export const dynamicParams = true
+
+export function generateStaticParams() {
+  return []
+}
 
 import { notFound, redirect } from 'next/navigation'
 import type { Metadata } from 'next'

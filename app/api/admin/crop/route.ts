@@ -4,6 +4,7 @@ import { checkAdmin } from '@/lib/admin'
 import { db } from '@/lib/db'
 import { photos } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { revalidateCatalog } from '@/lib/revalidateCatalog'
 import sharp from 'sharp'
 
 export const dynamic = 'force-dynamic'
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
       thumbnailUrl: newThumbUrl,
     }).where(eq(photos.id, photoId))
 
+    revalidateCatalog()
     return NextResponse.json({
       success: true,
       url: newUrl,

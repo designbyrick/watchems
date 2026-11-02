@@ -4,6 +4,7 @@ import { checkAdmin } from '@/lib/admin'
 import { db } from '@/lib/db'
 import { photos } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { revalidateCatalog } from '@/lib/revalidateCatalog'
 import sharp from 'sharp'
 
 export const dynamic = 'force-dynamic'
@@ -61,6 +62,7 @@ export async function POST(req: NextRequest) {
       originalUrl: null,
     }).where(eq(photos.id, photoId))
 
+    revalidateCatalog()
     return NextResponse.json({ success: true, url: newUrl, thumbnailUrl: newThumbUrl })
   } catch (error) {
     console.error('[Admin crop/revert] Error:', error)
