@@ -2,6 +2,8 @@
 // No session replay — errors plus a 10% sample of performance traces only.
 // The SDK is loaded lazily so it stays out of the initial JS bundle (~70 kB);
 // errors thrown before it finishes loading are not reported.
+import { initPostHog } from '@/lib/posthog'
+
 type SentryModule = typeof import('@sentry/nextjs')
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN
@@ -17,6 +19,8 @@ if (dsn) {
     sentry = mod
   })
 }
+
+initPostHog()
 
 export function onRouterTransitionStart(
   ...args: Parameters<SentryModule['captureRouterTransitionStart']>
