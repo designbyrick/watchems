@@ -14,8 +14,31 @@ let client: PostHog | undefined
 const queue: ((posthog: PostHog) => void)[] = []
 const MAX_QUEUE = 50
 
+const NO_TRACK_KEY = 'wm-notrack'
+
+/**
+ * Owner opt-out: visiting any page with ?notrack=1 stops PostHog and Vercel
+ * Analytics in this browser; ?notrack=0 turns them back on.
+ */
+function isTrackingDisabled(): boolean {
+  try {
+    const param = new URLSearchParams(window.location.search).get('notrack')
+    if (param === '1') {
+      localStorage.setItem(NO_TRACK_KEY, '1')
+      localStorage.setItem('va-disable', 'true')
+    } else if (param === '0') {
+      localStorage.removeItem(NO_TRACK_KEY)
+      localStorage.removeItem('va-disable')
+    }
+    return localStorage.getItem(NO_TRACK_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 export function initPostHog() {
   if (!token || !host || typeof window === 'undefined') return
+  if (isTrackingDisabled()) return
   void import('posthog-js').then(({ default: posthog }) => {
     posthog.init(token, {
       api_host: '/wmx',
