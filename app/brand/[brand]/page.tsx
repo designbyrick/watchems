@@ -36,39 +36,58 @@ const resolveBrandNames = cache(async (slug: string): Promise<string[]> => {
     .filter((name): name is string => !!name && brandSlug(name) === slug)
 })
 
+// Counts, cover photo and model chips in one parallel round trip; cache() shares
+// the result between generateMetadata and the page.
+const getBrandSummary = cache(async (slug: string) => {
+  const brandNames = await resolveBrandNames(slug)
+  if (brandNames.length === 0) return null
+
+  const brandWhere = and(eq(photos.status, 'approved'), inArray(photos.brandName, brandNames))
+  const [stats, repPhoto, topModels, modelTotal] = await Promise.all([
+    db
+      .select({ photoCount: sql<number>`count(*)::int` })
+      .from(photos)
+      .where(brandWhere)
+      .then((r) => r[0]),
+    db
+      .select({ brandName: photos.brandName, thumbnailUrl: photos.thumbnailUrl, url: photos.url })
+      .from(photos)
+      .where(brandWhere)
+      .orderBy(asc(photos.sortOrder), asc(photos.createdAt))
+      .limit(1)
+      .then((r) => r[0]),
+    // Model chips: the brand's most-photographed model names
+    db
+      .select({ modelName: photos.modelName, photoCount: sql<number>`count(*)::int` })
+      .from(photos)
+      .where(and(brandWhere, isNotNull(photos.modelName)))
+      .groupBy(photos.modelName)
+      .orderBy(sql`count(*) DESC`)
+      .limit(CHIP_LIMIT),
+    db
+      .select({ n: sql<number>`count(distinct lower(${photos.modelName}))::int` })
+      .from(photos)
+      .where(brandWhere)
+      .then((r) => r[0]?.n ?? 0),
+  ])
+
+  return { brandNames, brandWhere, stats, repPhoto, topModels, modelTotal }
+})
+
 export async function generateMetadata(props: BrandPageProps): Promise<Metadata> {
   const params = await props.params
   const brand = params.brand
-  const brandNames = await resolveBrandNames(brand)
-  if (brandNames.length === 0) return { title: 'Brand Not Found' }
-
-  const stats = await db
-    .select({ photoCount: sql<number>`count(*)::int` })
-    .from(photos)
-    .where(and(eq(photos.status, 'approved'), inArray(photos.brandName, brandNames)))
-    .then((r) => r[0])
+  const summary = await getBrandSummary(brand)
+  if (!summary) return { title: 'Brand Not Found' }
+  const { brandNames, stats, repPhoto } = summary
 
   if (!stats || stats.photoCount === 0) return { title: 'Brand Not Found' }
-
-  const repPhoto = await db
-    .select({ brandName: photos.brandName, thumbnailUrl: photos.thumbnailUrl, url: photos.url })
-    .from(photos)
-    .where(and(eq(photos.status, 'approved'), inArray(photos.brandName, brandNames)))
-    .orderBy(asc(photos.sortOrder), asc(photos.createdAt))
-    .limit(1)
-    .then((r) => r[0])
 
   const canonicalBrandName = repPhoto?.brandName || brandNames[0]
   const imageUrl = repPhoto?.thumbnailUrl || repPhoto?.url || ''
 
   // Top 3 model names for richer description
-  const topModelsForMeta = await db
-    .select({ modelName: photos.modelName })
-    .from(photos)
-    .where(and(eq(photos.status, 'approved'), inArray(photos.brandName, brandNames), isNotNull(photos.modelName)))
-    .groupBy(photos.modelName)
-    .orderBy(sql`count(*) DESC`)
-    .limit(3)
+  const topModelsForMeta = summary.topModels.slice(0, 3)
 
   const modelList = topModelsForMeta.map((m) => m.modelName).filter(Boolean).join(', ')
 
@@ -105,49 +124,15 @@ export default async function BrandPage(props: BrandPageProps) {
   const params = await props.params
   const searchParams = await props.searchParams
   const brand = params.brand
-  const brandNames = await resolveBrandNames(brand)
-  if (brandNames.length === 0) notFound()
-
-  // Stats + guard
-  const stats = await db
-    .select({ photoCount: sql<number>`count(*)::int` })
-    .from(photos)
-    .where(and(eq(photos.status, 'approved'), inArray(photos.brandName, brandNames)))
-    .then((r) => r[0])
+  const summary = await getBrandSummary(brand)
+  if (!summary) notFound()
+  const { brandNames, brandWhere, stats, repPhoto, topModels, modelTotal } = summary
 
   if (!stats || stats.photoCount === 0) notFound()
-
-  // Cover photo (for OG + structured data)
-  const repPhoto = await db
-    .select({ brandName: photos.brandName, thumbnailUrl: photos.thumbnailUrl, url: photos.url })
-    .from(photos)
-    .where(and(eq(photos.status, 'approved'), inArray(photos.brandName, brandNames)))
-    .orderBy(asc(photos.sortOrder), asc(photos.createdAt))
-    .limit(1)
-    .then((r) => r[0])
-
   if (!repPhoto) notFound()
 
   const canonicalBrandName = repPhoto.brandName || brandNames[0]
   const imageUrl = repPhoto.thumbnailUrl || repPhoto.url
-
-  const brandWhere = and(eq(photos.status, 'approved'), inArray(photos.brandName, brandNames))
-
-  // Model chips: the brand's most-photographed model names
-  const [topModels, modelTotal] = await Promise.all([
-    db
-      .select({ modelName: photos.modelName, photoCount: sql<number>`count(*)::int` })
-      .from(photos)
-      .where(and(brandWhere, isNotNull(photos.modelName)))
-      .groupBy(photos.modelName)
-      .orderBy(sql`count(*) DESC`)
-      .limit(CHIP_LIMIT),
-    db
-      .select({ n: sql<number>`count(distinct lower(${photos.modelName}))::int` })
-      .from(photos)
-      .where(brandWhere)
-      .then((r) => r[0]?.n ?? 0),
-  ])
 
   const requestedModel = Array.isArray(searchParams.model) ? searchParams.model[0] : searchParams.model
   const activeModel = requestedModel

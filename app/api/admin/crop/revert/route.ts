@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { photos } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import sharp from 'sharp'
+import { revalidatePublicPages } from '@/lib/revalidate'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,6 +62,7 @@ export async function POST(req: NextRequest) {
       originalUrl: null,
     }).where(eq(photos.id, photoId))
 
+    revalidatePublicPages()
     return NextResponse.json({ success: true, url: newUrl, thumbnailUrl: newThumbUrl })
   } catch (error) {
     console.error('[Admin crop/revert] Error:', error)

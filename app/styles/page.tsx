@@ -1,10 +1,14 @@
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+// Rendered on demand and cached (ISR): refreshed every 5 minutes, and right away when
+// a photo is moderated (lib/revalidate.ts). force-static lets lib/db's no-store fetch
+// run during static generation instead of opting into dynamic rendering.
+export const dynamic = 'force-static'
+export const revalidate = 300
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import { db } from '@/lib/db'
+import { withBuildFallback } from '@/lib/db/isr'
 import { photos } from '@/lib/db/schema'
 import { eq, and, sql, isNotNull } from 'drizzle-orm'
 import { getStyleByDbValue } from '@/lib/styleData'
@@ -35,18 +39,23 @@ export const metadata: Metadata = {
 }
 
 export default async function StylesPage() {
-  const styleGroups = await db
-    .select({
-      watchStyle: photos.watchStyle,
-      photoCount: sql<number>`count(*)::int`,
-      thumbnailUrl: sql<string | null>`min(${photos.thumbnailUrl})`,
-      url: sql<string>`min(${photos.url})`,
-    })
-    .from(photos)
-    .where(and(eq(photos.status, 'approved'), isNotNull(photos.watchStyle)))
-    .groupBy(photos.watchStyle)
-    .having(sql`count(*) >= ${MIN_PHOTOS_FOR_HUB}`)
-    .orderBy(sql`count(*) DESC`)
+  const styleGroups = await withBuildFallback(
+    () =>
+      db
+        .select({
+          watchStyle: photos.watchStyle,
+          photoCount: sql<number>`count(*)::int`,
+          thumbnailUrl: sql<string | null>`min(${photos.thumbnailUrl})`,
+          url: sql<string>`min(${photos.url})`,
+        })
+        .from(photos)
+        .where(and(eq(photos.status, 'approved'), isNotNull(photos.watchStyle)))
+        .groupBy(photos.watchStyle)
+        .having(sql`count(*) >= ${MIN_PHOTOS_FOR_HUB}`)
+        .orderBy(sql`count(*) DESC`),
+    [],
+    'styles'
+  )
 
   // Join against styleData to get display names and slugs, filtering out DB noise
   const displayStyles = styleGroups

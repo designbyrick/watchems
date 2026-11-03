@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { photos, photoLikes, collectionItems } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
 import { sanitizeText } from '@/lib/validation'
+import { revalidatePublicPages } from '@/lib/revalidate'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,6 +54,7 @@ export async function DELETE(
       await Promise.all(urls.map((u) => deletePhotoFromR2(u)))
     }
 
+    revalidatePublicPages()
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting photo:', error)
@@ -143,6 +145,7 @@ export async function PATCH(
       .set(requeue ? { ...updates, status: 'pending' } : updates)
       .where(eq(photos.id, photoId))
 
+    revalidatePublicPages()
     return NextResponse.json({ success: true, status: requeue ? 'pending_review' : current.status })
   } catch (error) {
     console.error('Error updating photo metadata:', error)

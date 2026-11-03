@@ -107,7 +107,8 @@ export async function GET(req: NextRequest) {
         caseMaterials: toChips(caseMaterials),
         strapTypes: toChips(strapTypes),
       },
-      { headers: { 'Cache-Control': 'no-store' } }
+      // Public aggregate data — the client cache (lib/watchesCache.ts) also keeps it 5 minutes
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
     )
   } catch (error) {
     console.error('Error fetching watches with photos:', error)

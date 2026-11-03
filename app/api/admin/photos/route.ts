@@ -9,6 +9,7 @@ import { photos, photoLikes, collectionItems } from '@/lib/db/schema'
 import { eq, and, sql, inArray } from 'drizzle-orm'
 import { sendPhotoApprovedEmail, sendPhotoBulkApprovedEmail, sendPhotoRejectedEmail } from '@/lib/email'
 import { REJECTION_REASONS } from '@/lib/rejectionReasons'
+import { revalidatePublicPages } from '@/lib/revalidate'
 
 export const dynamic = 'force-dynamic'
 
@@ -172,6 +173,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      revalidatePublicPages()
       return NextResponse.json({ success: true, approved: photoRecords.length })
     } catch (error) {
       console.error('Error bulk-approving photos:', error)
@@ -208,6 +210,7 @@ export async function POST(req: NextRequest) {
         console.error('[Resend] Failed to send user-approve email:', emailError)
       }
 
+      revalidatePublicPages()
       return NextResponse.json({ success: true, approved: photoRecords.length })
     } catch (error) {
       console.error('Error user-approving photos:', error)
@@ -358,10 +361,11 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Soft-delete — keeps the row so /photo/[id] can return 410 Gone to Google
+      // Soft-delete — keeps the row (the public /photo/[id] page answers 404)
       await db.update(photos).set({ status: 'deleted' }).where(eq(photos.id, photoId))
     }
 
+    revalidatePublicPages()
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error processing photo action:', error)
@@ -436,6 +440,7 @@ export async function PATCH(req: NextRequest) {
 
     await db.update(photos).set(updates).where(eq(photos.id, photoId))
 
+    revalidatePublicPages()
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error updating photo metadata:', error)
@@ -478,6 +483,7 @@ export async function PUT(req: NextRequest) {
       await db.update(photos).set({ sortOrder: i }).where(eq(photos.id, photoIds[i]))
     }
 
+    revalidatePublicPages()
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error reordering photos:', error)
