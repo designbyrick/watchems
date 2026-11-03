@@ -10,7 +10,7 @@ export async function GET() {
 
 - **Home**: https://watchems.com — community photo gallery
 - **Brands**: https://watchems.com/brands — every brand with real wrist photos (e.g. https://watchems.com/brand/seiko)
-- **Watch models**: https://watchems.com/watches — model hubs with owner photos (e.g. https://watchems.com/w/{watch-slug})
+- **Watch models**: https://watchems.com/watches — every model with owner photos; each photo page lists other owners' photos of the same watch
 - **Styles**: https://watchems.com/styles — dive, dress, field, pilot, chronograph, GMT and more (e.g. https://watchems.com/style/dive-watches)
 - **Buying guides**: https://watchems.com/buying-guides — editorial picks by budget
 

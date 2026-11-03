@@ -11,6 +11,7 @@ import { eq, and, desc, sql, isNotNull, ilike } from 'drizzle-orm'
 import { buildPhotoAltText } from '@/lib/photoAlt'
 import { getStyleBySlug } from '@/lib/styleData'
 import { serializeJsonLd } from '@/lib/jsonLd'
+import { primaryPhotoSlug } from '@/lib/watchPhoto'
 
 const MIN_PHOTOS_FOR_HUB = 5
 
@@ -104,6 +105,7 @@ export default async function StylePage(props: StylePageProps) {
       photoCount: sql<number>`count(*)::int`,
       thumbnailUrl: sql<string | null>`min(${photos.thumbnailUrl})`,
       url: sql<string>`min(${photos.url})`,
+      photoSlug: primaryPhotoSlug,
     })
     .from(photos)
     .where(
@@ -225,7 +227,7 @@ export default async function StylePage(props: StylePageProps) {
               {watchGroups.map((watch) => (
                 <Link
                   key={watch.watchId}
-                  href={`/w/${watch.watchId}`}
+                  href={`/photo/${watch.photoSlug}`}
                   className="group block rounded-xl overflow-hidden border border-gray-100 hover:border-gray-300 transition-colors"
                 >
                   <div className="aspect-square bg-gray-50 overflow-hidden relative">

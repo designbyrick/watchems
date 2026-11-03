@@ -22,9 +22,6 @@ interface PhotoPageProps {
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-// Same threshold as app/w/[watchId]/page.tsx — below it /w/ redirects to the gallery filter
-const MIN_PHOTOS_WATCH_HUB = 3
-
 // Swatch colours for the spec-sheet dial dot (keys are lowercase dialColor values)
 const DIAL_SWATCHES: Record<string, string> = {
   black: '#111213',
@@ -100,6 +97,48 @@ function onePerUpload(rows: RelatedPhoto[], current: { watchId: string; userId: 
 
 function unslugify(slug: string) {
   return slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+}
+
+/** Grid of photo cards under the main photo; "See all" shows only when href is given.
+ *  byOwner captions cards with the uploader — for same-watch grids, where the model would repeat. */
+function RelatedSection({ id, title, href, photos, byOwner = false }: { id: string; title: string; href?: string; photos: RelatedPhoto[]; byOwner?: boolean }) {
+  return (
+    <section aria-labelledby={id}>
+      <div className="flex justify-between items-baseline gap-4 mt-12 sm:mt-16 mb-5 pt-5 border-t border-line">
+        <h2 id={id} className="text-[22px] sm:text-[26px] font-semibold tracking-[-0.6px] text-ink">
+          {title}
+        </h2>
+        {href && (
+          <Link href={href} className="font-mono text-xs tracking-[1px] uppercase text-muted hover:text-ink transition-colors shrink-0">
+            See all →
+          </Link>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(232px,1fr))] sm:gap-x-5 sm:gap-y-8">
+        {photos.map((photo) => (
+          <Link key={photo.id} href={`/photo/${photo.slug ?? photo.id}`} className="group block min-w-0">
+            <div className="aspect-[4/5] overflow-hidden rounded-md bg-surface">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo.thumbnailUrl || photo.url}
+                alt={buildPhotoAltText(photo)}
+                className="block w-full h-full object-cover transition-transform duration-[350ms] ease-out group-hover:scale-[1.035]"
+                loading="lazy"
+              />
+            </div>
+            {photo.brandName && (
+              <p className="mt-2 sm:mt-3 font-mono text-[10.5px] sm:text-[11px] tracking-[0.8px] sm:tracking-[1px] uppercase text-muted truncate">
+                {photo.brandName}
+              </p>
+            )}
+            <p className="mt-[3px] sm:mt-1 text-[15px] sm:text-[17px] leading-[1.25] font-semibold tracking-[-0.2px] text-ink">
+              {byOwner ? `Shot by ${photo.userName}` : photo.modelName || photo.referenceNumber || unslugify(photo.watchId)}
+            </p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  )
 }
 
 // Shared by generateMetadata and the page — React cache() dedupes per request
@@ -198,16 +237,17 @@ export default async function PhotoPage(props: PhotoPageProps) {
   const RELATED_POOL = 60
   const approvedOthers = and(eq(photos.status, 'approved'), ne(photos.userId, p.userId))
 
-  const [carousel, shotCountRows, watchCountRows, byDial] = await Promise.all([
+  const [carousel, shotCountRows, sameWatchRows, byDial] = await Promise.all([
     getCarousel(p.watchId, p.userId),
     db
       .select({ n: count() })
       .from(photos)
       .where(and(eq(photos.userId, p.userId), eq(photos.status, 'approved'))),
     db
-      .select({ n: count() })
+      .select(relatedSelect)
       .from(photos)
-      .where(and(eq(photos.watchId, p.watchId), eq(photos.status, 'approved'))),
+      .where(and(eq(photos.watchId, p.watchId), approvedOthers))
+      .orderBy(asc(photos.sortOrder), desc(photos.createdAt)),
     dialKey
       ? db
           .select(relatedSelect)
@@ -218,31 +258,21 @@ export default async function PhotoPage(props: PhotoPageProps) {
       : Promise.resolve([] as RelatedPhoto[]),
   ])
 
-  // Link the /w/ hub only when it renders; below the threshold link the gallery
-  // filter it would redirect to, so crawlers aren't sent through a 307.
-  const hasWatchHub = Number(watchCountRows[0]?.n ?? 0) >= MIN_PHOTOS_WATCH_HUB
-  const watchHref = hasWatchHub ? `/w/${p.watchId}` : `/?watch=${encodeURIComponent(p.watchId)}`
+  // There is no watch page: other owners' photos of this watch are listed here,
+  // and the full set lives in the gallery filter.
+  const watchHref = `/?watch=${encodeURIComponent(p.watchId)}`
+  const sameWatchAll = onePerUpload(sameWatchRows, p, Infinity)
+  const sameWatch = sameWatchAll.slice(0, RELATED_LIMIT)
 
-  // "More <dial> dials", falling back to the same watch from other owners, then the brand
-  let related = onePerUpload(byDial, p, RELATED_LIMIT)
+  // "More <dial> dials" (other watches only — the same watch has its own section), falling back to the brand
+  let related = onePerUpload(byDial.filter((row) => row.watchId !== p.watchId), p, RELATED_LIMIT)
   let relatedTitle = dialKey ? `More ${dialKey} dials` : ''
   let relatedHref = dialKey ? `/?dialColor=${encodeURIComponent(dialKey)}` : '/'
-  if (related.length === 0) {
-    const sameWatch = await db
-      .select(relatedSelect)
-      .from(photos)
-      .where(and(eq(photos.watchId, p.watchId), approvedOthers))
-      .orderBy(asc(photos.sortOrder), desc(photos.createdAt))
-      .limit(RELATED_POOL)
-    related = onePerUpload(sameWatch, p, RELATED_LIMIT)
-    relatedTitle = `More ${watchName}`
-    relatedHref = watchHref
-  }
   if (related.length === 0 && p.brandName) {
     const sameBrand = await db
       .select(relatedSelect)
       .from(photos)
-      .where(and(eq(photos.status, 'approved'), sql`lower(${photos.brandName}) = ${p.brandName.toLowerCase()}`))
+      .where(and(eq(photos.status, 'approved'), ne(photos.watchId, p.watchId), sql`lower(${photos.brandName}) = ${p.brandName.toLowerCase()}`))
       .orderBy(desc(photos.createdAt))
       .limit(RELATED_POOL)
     related = onePerUpload(sameBrand, p, RELATED_LIMIT)
@@ -313,12 +343,11 @@ export default async function PhotoPage(props: PhotoPageProps) {
     },
   }
 
-  // Structured data — BreadcrumbList (Gallery → Brand → Watch → Photo), mirrors the visual breadcrumb.
-  // The watch level is left out when its hub doesn't exist (the filter URL canonicalizes to the home page).
+  // Structured data — BreadcrumbList (Gallery → Brand → Photo). The visual breadcrumb's watch
+  // level is left out: it links the gallery filter, which canonicalizes to the home page.
   const breadcrumbItems = [
     { name: 'Gallery', item: 'https://watchems.com' },
     ...(p.brandName ? [{ name: p.brandName, item: `https://watchems.com${brandHref}` }] : []),
-    ...(hasWatchHub ? [{ name: watchName, item: `https://watchems.com${watchHref}` }] : []),
     { name: `Photo by ${p.userName}`, item: canonicalUrl },
   ]
   const breadcrumbJsonLd = {
@@ -376,12 +405,6 @@ export default async function PhotoPage(props: PhotoPageProps) {
               {p.referenceNumber && (
                 <p className="mt-3 font-mono text-sm text-muted">Ref. {p.referenceNumber}</p>
               )}
-              <Link
-                href={watchHref}
-                className="mt-4 inline-block text-[15px] font-semibold text-ink shadow-[inset_0_-1px_0_currentColor] hover:text-ink-hover"
-              >
-                See all photos of the {watchName} →
-              </Link>
             </div>
 
             <div className="flex flex-wrap gap-2.5">
@@ -469,40 +492,18 @@ export default async function PhotoPage(props: PhotoPageProps) {
           </aside>
         </div>
 
+        {sameWatch.length > 0 && (
+          <RelatedSection
+            id="same-watch-heading"
+            title={`More photos of the ${watchName}`}
+            href={sameWatchAll.length > sameWatch.length ? watchHref : undefined}
+            photos={sameWatch}
+            byOwner
+          />
+        )}
+
         {related.length > 0 && (
-          <section aria-labelledby="related-heading">
-            <div className="flex justify-between items-baseline gap-4 mt-12 sm:mt-16 mb-5 pt-5 border-t border-line">
-              <h2 id="related-heading" className="text-[22px] sm:text-[26px] font-semibold tracking-[-0.6px] text-ink">
-                {relatedTitle}
-              </h2>
-              <Link href={relatedHref} className="font-mono text-xs tracking-[1px] uppercase text-muted hover:text-ink transition-colors shrink-0">
-                See all →
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(232px,1fr))] sm:gap-x-5 sm:gap-y-8">
-              {related.map((photo) => (
-                <Link key={photo.id} href={`/photo/${photo.slug ?? photo.id}`} className="group block min-w-0">
-                  <div className="aspect-[4/5] overflow-hidden rounded-md bg-surface">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={photo.thumbnailUrl || photo.url}
-                      alt={buildPhotoAltText(photo)}
-                      className="block w-full h-full object-cover transition-transform duration-[350ms] ease-out group-hover:scale-[1.035]"
-                      loading="lazy"
-                    />
-                  </div>
-                  {photo.brandName && (
-                    <p className="mt-2 sm:mt-3 font-mono text-[10.5px] sm:text-[11px] tracking-[0.8px] sm:tracking-[1px] uppercase text-muted truncate">
-                      {photo.brandName}
-                    </p>
-                  )}
-                  <p className="mt-[3px] sm:mt-1 text-[15px] sm:text-[17px] leading-[1.25] font-semibold tracking-[-0.2px] text-ink">
-                    {photo.modelName || photo.referenceNumber || unslugify(photo.watchId)}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </section>
+          <RelatedSection id="related-heading" title={relatedTitle} href={relatedHref} photos={related} />
         )}
       </main>
     </>
