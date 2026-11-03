@@ -1,3 +1,6 @@
+// No per-request data: force-static opts out of the dynamic render the root layout's headers() call triggers
+export const dynamic = 'force-static'
+
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { LEGAL_PROSE } from '@/components/ui/prose'

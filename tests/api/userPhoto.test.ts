@@ -9,6 +9,7 @@ import { DELETE, PATCH } from '@/app/api/user/photos/[photoId]/route'
 vi.mock('@clerk/nextjs/server', () => ({ auth: vi.fn() }))
 vi.mock('@/lib/db', async () => ({ db: (await import('../helpers/fakeDb')).fakeDb.db }))
 vi.mock('@/lib/r2', () => ({ isR2Configured: true, deletePhotoFromR2: vi.fn(async () => true) }))
+vi.mock('@/lib/revalidate', () => ({ revalidatePublicPages: vi.fn() }))
 
 const signIn = (userId: string | null) =>
   vi.mocked(auth).mockResolvedValue({ userId } as Awaited<ReturnType<typeof auth>>)

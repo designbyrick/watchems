@@ -1,7 +1,6 @@
 import { clerkMiddleware } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { neon } from '@neondatabase/serverless'
 import { brandSlug } from '@/lib/brandSlug'
 
 /**
@@ -111,44 +110,25 @@ function brandCanonicalRedirect(req: NextRequest): NextResponse | null {
 }
 
 /**
- * Soft-deleted photos answer 410 Gone so Google drops them from the index.
- * App Router pages can't set a 410 status themselves (only notFound()/redirect()),
- * so the status lookup happens here. Any lookup failure falls through to the page.
+ * Routes rendered with `dynamic = 'force-static'` (ISR or fully static). Their cached
+ * HTML is built without a request, so it can't carry a per-request nonce.
+ * /brand/[brand] stays dynamic: it reads ?model= from the URL.
  */
-async function deletedPhotoGone(req: NextRequest): Promise<NextResponse | null> {
-  const match = req.nextUrl.pathname.match(/^\/photo\/([^/]+)\/?$/)
-  if (!match || !process.env.DATABASE_URL) return null
+const STATIC_PATHS = [
+  /^\/$/,
+  /^\/page\/\d+$/,
+  /^\/photo\/[^/]+$/,
+  /^\/w\/[^/]+$/,
+  /^\/style\/[^/]+$/,
+  /^\/(styles|watches|brands|buying-guides|about|privacy|terms|copyright)$/,
+  /^\/buying-guide\/[^/]+$/,
+]
 
-  let param: string
-  try {
-    param = decodeURIComponent(match[1])
-  } catch {
-    return null
-  }
-
-  try {
-    const sql = neon(process.env.DATABASE_URL, { fetchOptions: { cache: 'no-store' } })
-    const rows = await sql`select status from photos where slug = ${param} or id = ${param} limit 1`
-    if (rows[0]?.status !== 'deleted') return null
-  } catch {
-    return null
-  }
-
-  return new NextResponse(
-    '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><title>Photo removed</title><p>This photo has been removed. <a href="/">Back to the gallery</a></p>',
-    {
-      status: 410,
-      headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'noindex' },
-    }
-  )
+function isStaticPath(pathname: string): boolean {
+  const path = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname
+  return STATIC_PATHS.some((re) => re.test(path))
 }
-
-/** Routes rendered with `dynamic = 'force-static'` + ISR (app/page.tsx, app/page/[n]/page.tsx) */
-function isStaticGalleryPath(pathname: string): boolean {
-  return pathname === '/' || /^\/page\/\d+\/?$/.test(pathname)
-}
-
-async function handle(req: NextRequest): Promise<NextResponse> {
+function handle(req: NextRequest): NextResponse {
   // 1. Legacy root-level comparison URL redirect (redirect old indexed URLs)
   const legacyRedirect = legacyRootLevelRedirect(req)
   if (legacyRedirect) return legacyRedirect
@@ -161,13 +141,9 @@ async function handle(req: NextRequest): Promise<NextResponse> {
   const brandRedirect = brandCanonicalRedirect(req)
   if (brandRedirect) return brandRedirect
 
-  // 4. Soft-deleted photo pages → 410 Gone
-  const gone = await deletedPhotoGone(req)
-  if (gone) return gone
-
-  // 5. Attach the CSP. ISR pages (gallery home + /page/N) are served from a
-  //    static cache, so they can't carry a per-request nonce.
-  if (isStaticGalleryPath(req.nextUrl.pathname)) {
+  // 4. Attach the CSP. Static/ISR pages are served from a cache, so they
+  //    can't carry a per-request nonce.
+  if (isStaticPath(req.nextUrl.pathname)) {
     const res = NextResponse.next()
     res.headers.set('Content-Security-Policy', buildCsp(null))
     return res

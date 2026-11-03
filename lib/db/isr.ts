@@ -18,3 +18,20 @@ export function getIsrDb(revalidate: number) {
   clients.set(revalidate, client)
   return client
 }
+
+/**
+ * For pages prerendered at build time (ISR). CI builds (and local dev without
+ * Neon) use a stub DATABASE_URL, so there the fallback is rendered; in
+ * production the error is rethrown so ISR keeps serving the last good version.
+ */
+export async function withBuildFallback<T>(query: () => PromiseLike<T>, fallback: T, label: string): Promise<T> {
+  try {
+    return await query()
+  } catch (err) {
+    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'development') {
+      console.warn(`[${label}] DB unavailable, rendering without data`)
+      return fallback
+    }
+    throw err
+  }
+}

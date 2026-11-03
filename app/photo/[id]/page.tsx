@@ -1,5 +1,8 @@
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+// Rendered on demand and cached (ISR): refreshed every 5 minutes, and right away when
+// a photo is moderated (lib/revalidate.ts). force-static lets lib/db's no-store fetch
+// run during static generation instead of opting into dynamic rendering.
+export const dynamic = 'force-static'
+export const revalidate = 300
 
 import { cache } from 'react'
 import { notFound, permanentRedirect } from 'next/navigation'
@@ -174,8 +177,9 @@ export default async function PhotoPage(props: PhotoPageProps) {
   const param = params.id
   const p = await getPhoto(param)
 
-  // Soft-deleted photos are answered with 410 Gone by middleware.ts before
-  // reaching here; anything else that isn't approved is a 404.
+  // Anything not approved (pending, rejected, soft-deleted) is a 404. A 410 for
+  // deleted photos would need a DB lookup per request in middleware, which
+  // defeats the ISR cache; Google drops 404s from the index too.
   if (!p || p.status !== 'approved') {
     notFound()
   }

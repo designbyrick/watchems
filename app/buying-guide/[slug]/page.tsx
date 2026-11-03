@@ -3,7 +3,11 @@
  * Guide content lives in lib/guides; editorial extras come from lib/buyingGuides.
  */
 
-export const dynamic = 'force-dynamic'
+// Rendered on demand and cached (ISR): refreshed every 5 minutes, and right away when
+// a photo is moderated (lib/revalidate.ts). force-static lets lib/db's no-store fetch
+// run during static generation instead of opting into dynamic rendering.
+export const dynamic = 'force-static'
+export const revalidate = 300
 
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
