@@ -8,6 +8,7 @@ import { db } from '@/lib/db'
 import { photos } from '@/lib/db/schema'
 import { eq, and, sql, isNotNull } from 'drizzle-orm'
 import { serializeJsonLd } from '@/lib/jsonLd'
+import { primaryPhotoSlug } from '@/lib/watchPhoto'
 
 const MIN_PHOTOS_FOR_HUB = 3
 
@@ -42,6 +43,7 @@ export default async function WatchesPage() {
       photoCount: sql<number>`count(*)::int`,
       thumbnailUrl: sql<string | null>`min(${photos.thumbnailUrl})`,
       url: sql<string>`min(${photos.url})`,
+      photoSlug: primaryPhotoSlug,
     })
     .from(photos)
     .where(and(eq(photos.status, 'approved'), isNotNull(photos.watchId)))
@@ -67,7 +69,7 @@ export default async function WatchesPage() {
       '@type': 'ListItem',
       position: i + 1,
       name: [w.brandName, w.modelName].filter(Boolean).join(' '),
-      url: `https://watchems.com/w/${w.watchId}`,
+      url: `https://watchems.com/photo/${w.photoSlug}`,
     })),
   }
 
@@ -107,7 +109,7 @@ export default async function WatchesPage() {
             return (
               <Link
                 key={watch.watchId}
-                href={`/w/${watch.watchId}`}
+                href={`/photo/${watch.photoSlug}`}
                 className="group block rounded-xl overflow-hidden border border-gray-100 hover:border-gray-300 transition-colors"
               >
                 <div className="aspect-square bg-gray-50 overflow-hidden relative">

@@ -5,14 +5,13 @@ import { eq, desc } from 'drizzle-orm'
 import { GUIDES } from '@/lib/guides'
 import { styles } from '@/lib/styleData'
 import { toWatchSlug } from '@/lib/normalizeWatch'
-import { isValidSlug } from '@/lib/validation'
 
 // ISR: regenerate at most once an hour
 export const revalidate = 3600
 
 // Same thresholds the hub pages use before they render (otherwise they redirect)
 const MIN_PHOTOS_BRAND = 3
-const MIN_PHOTOS_WATCH = 3 // app/w/[watchId]/page.tsx
+const MIN_PHOTOS_WATCH = 3 // app/watches/page.tsx lists models from this count
 const MIN_PHOTOS_STYLE = 5 // app/style/[style]/page.tsx
 
 const base = 'https://watchems.com'
@@ -118,14 +117,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }))
 
-  const watchPages: MetadataRoute.Sitemap = Array.from(watchGroups.entries())
-    .filter(([watchId, g]) => g.count >= MIN_PHOTOS_WATCH && isValidSlug(watchId))
-    .map(([watchId, g]) => ({
-      url: `${base}/w/${watchId}`,
-      lastModified: g.lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    }))
+  // No per-watch URLs: /w/ redirects to the watch's primary photo, which is already
+  // in photoPages. Watch groups only date the /watches index.
+  const listedWatchDates = Array.from(watchGroups.values())
+    .filter((g) => g.count >= MIN_PHOTOS_WATCH)
+    .map((g) => g.lastModified)
 
   const liveStyles = styles
     .map((s) => ({ style: s, group: styleGroups.get(s.dbValue.toLowerCase()) }))
@@ -157,7 +153,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${base}/watches`,
-      lastModified: latest(watchPages.map((p) => p.lastModified as Date)),
+      lastModified: latest(listedWatchDates),
       changeFrequency: 'weekly',
       priority: 0.8,
     },
@@ -184,7 +180,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...brandPages,
     ...stylePages,
     ...guidePages,
-    ...watchPages,
     ...photoPages,
   ]
 }
