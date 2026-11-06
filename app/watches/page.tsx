@@ -1,5 +1,7 @@
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+// ISR: rendered on demand, cached up to a day. force-static lets lib/db's no-store fetch run during
+// static generation; middleware.ts serves these paths with the nonce-free CSP (isStaticPublicPath).
+export const dynamic = 'force-static'
+export const revalidate = 86400 // 1 day; writes purge it early via lib/revalidatePublic
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -8,6 +10,7 @@ import { db } from '@/lib/db'
 import { photos } from '@/lib/db/schema'
 import { eq, and, sql, isNotNull } from 'drizzle-orm'
 import { serializeJsonLd } from '@/lib/jsonLd'
+import { staticQuery } from '@/lib/staticQuery'
 
 const MIN_PHOTOS_FOR_HUB = 3
 
@@ -34,20 +37,22 @@ export const metadata: Metadata = {
 }
 
 export default async function WatchesPage() {
-  const watchGroups = await db
-    .select({
-      watchId: photos.watchId,
-      brandName: photos.brandName,
-      modelName: photos.modelName,
-      photoCount: sql<number>`count(*)::int`,
-      thumbnailUrl: sql<string | null>`min(${photos.thumbnailUrl})`,
-      url: sql<string>`min(${photos.url})`,
-    })
-    .from(photos)
-    .where(and(eq(photos.status, 'approved'), isNotNull(photos.watchId)))
-    .groupBy(photos.watchId, photos.brandName, photos.modelName)
-    .having(sql`count(*) >= ${MIN_PHOTOS_FOR_HUB}`)
-    .orderBy(sql`count(*) DESC`)
+  const watchGroups = await staticQuery(() =>
+    db
+      .select({
+        watchId: photos.watchId,
+        brandName: photos.brandName,
+        modelName: photos.modelName,
+        photoCount: sql<number>`count(*)::int`,
+        thumbnailUrl: sql<string | null>`min(${photos.thumbnailUrl})`,
+        url: sql<string>`min(${photos.url})`,
+      })
+      .from(photos)
+      .where(and(eq(photos.status, 'approved'), isNotNull(photos.watchId)))
+      .groupBy(photos.watchId, photos.brandName, photos.modelName)
+      .having(sql`count(*) >= ${MIN_PHOTOS_FOR_HUB}`)
+      .orderBy(sql`count(*) DESC`)
+  )
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',

@@ -4,6 +4,10 @@ import Image from 'next/image'
 import { getGuideSummaries } from '@/lib/guides'
 import { serializeJsonLd } from '@/lib/jsonLd'
 
+// Static page; middleware.ts serves it with the nonce-free CSP (isStaticPublicPath).
+export const dynamic = 'force-static'
+
+
 const guides = getGuideSummaries()
 
 // Show "Prices verified X" only when every guide agrees on the month

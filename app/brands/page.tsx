@@ -1,5 +1,7 @@
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+// ISR: rendered on demand, cached up to a day. force-static lets lib/db's no-store fetch run during
+// static generation; middleware.ts serves these paths with the nonce-free CSP (isStaticPublicPath).
+export const dynamic = 'force-static'
+export const revalidate = 86400 // 1 day; writes purge it early via lib/revalidatePublic
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -9,6 +11,7 @@ import { eq, and, sql, isNotNull } from 'drizzle-orm'
 import BrandList from './BrandList'
 import { serializeJsonLd } from '@/lib/jsonLd'
 import { brandPath } from '@/lib/brandSlug'
+import { staticQuery } from '@/lib/staticQuery'
 
 export const metadata: Metadata = {
   title: 'Watch Brands — Wrist Photo Gallery',
@@ -33,15 +36,17 @@ export const metadata: Metadata = {
 }
 
 export default async function BrandsPage() {
-  const brandGroups = await db
-    .select({
-      brandName: photos.brandName,
-      photoCount: sql<number>`count(*)::int`,
-    })
-    .from(photos)
-    .where(and(eq(photos.status, 'approved'), isNotNull(photos.brandName)))
-    .groupBy(photos.brandName)
-    .orderBy(photos.brandName)
+  const brandGroups = await staticQuery(() =>
+    db
+      .select({
+        brandName: photos.brandName,
+        photoCount: sql<number>`count(*)::int`,
+      })
+      .from(photos)
+      .where(and(eq(photos.status, 'approved'), isNotNull(photos.brandName)))
+      .groupBy(photos.brandName)
+      .orderBy(photos.brandName)
+  )
 
   const totalPhotos = brandGroups.reduce((sum, b) => sum + b.photoCount, 0)
 

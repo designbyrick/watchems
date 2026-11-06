@@ -222,7 +222,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       { photos: result, nextCursor, totalCount: countResult, suggestions },
-      { headers: { 'Cache-Control': 'no-store' } }
+      // Approved photos only, same for every visitor: let the Vercel CDN serve repeats
+      // (each distinct query string is its own cache entry) instead of running the function.
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } }
     )
   } catch (error) {
     console.error('[/api/photos/all] Query failed:', error)

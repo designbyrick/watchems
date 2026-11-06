@@ -7,7 +7,7 @@ import { getInitialPhotos, GALLERY_PAGE_SIZE } from '@/lib/getInitialPhotos'
 // Crawlable pages of the home gallery (/page/2, /page/3, …), rendered on demand and cached (ISR)
 // force-static lets lib/db's no-store fetch run during static generation instead of opting into dynamic rendering
 export const dynamic = 'force-static'
-export const revalidate = 300
+export const revalidate = 86400 // 1 day; writes purge it early via lib/revalidatePublic
 export const dynamicParams = true
 
 export function generateStaticParams() {

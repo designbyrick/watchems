@@ -11,7 +11,7 @@ import { sendImageHealthAlertEmail, type ImageHealthCheckResult } from '@/lib/em
 /**
  * Image Health Monitoring Cron Job
  * Vercel Cron runs it once a day (Hobby plan limit, see vercel.json) and
- * .github/workflows/image-health.yml calls it every 15 minutes with the same
+ * .github/workflows/image-health.yml calls it every hour with the same
  * `Authorization: Bearer $CRON_SECRET` header. See MONITORING_CRON.md.
  * Loads the most recent approved photo and checks that it is served both
  * directly from Cloudflare R2 and through the Next.js image optimizer.

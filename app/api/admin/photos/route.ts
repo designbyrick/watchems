@@ -9,6 +9,7 @@ import { photos, photoLikes, collectionItems } from '@/lib/db/schema'
 import { eq, and, sql, inArray } from 'drizzle-orm'
 import { sendPhotoApprovedEmail, sendPhotoBulkApprovedEmail, sendPhotoRejectedEmail } from '@/lib/email'
 import { REJECTION_REASONS } from '@/lib/rejectionReasons'
+import { withPublicRevalidate } from '@/lib/revalidatePublic'
 
 export const dynamic = 'force-dynamic'
 
@@ -120,7 +121,7 @@ export async function GET(req: NextRequest) {
 }
 
 /** POST /api/admin/photos - approve or delete a pending photo */
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!checkAdmin(userId)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -370,7 +371,7 @@ export async function POST(req: NextRequest) {
 }
 
 /** PATCH /api/admin/photos - update metadata fields on a photo */
-export async function PATCH(req: NextRequest) {
+async function handlePATCH(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!checkAdmin(userId)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -444,7 +445,7 @@ export async function PATCH(req: NextRequest) {
 }
 
 /** PUT /api/admin/photos - reorder approved photos for a watch */
-export async function PUT(req: NextRequest) {
+async function handlePUT(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!checkAdmin(userId)) {
@@ -484,3 +485,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to reorder photos' }, { status: 500 })
   }
 }
+
+export const POST = withPublicRevalidate(handlePOST)
+export const PATCH = withPublicRevalidate(handlePATCH)
+export const PUT = withPublicRevalidate(handlePUT)
