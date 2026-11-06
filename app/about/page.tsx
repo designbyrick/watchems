@@ -2,6 +2,10 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { serializeJsonLd } from '@/lib/jsonLd'
 
+// Static page; middleware.ts serves it with the nonce-free CSP (isStaticPublicPath).
+export const dynamic = 'force-static'
+
+
 export const metadata: Metadata = {
   title: { absolute: 'About Watchems — Real Watch Photos from Real Owners' },
   description: 'Watchems is a community photo gallery for watch enthusiasts. Browse and upload real watch photos — no affiliate links, no sponsored content.',

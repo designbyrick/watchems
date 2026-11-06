@@ -143,9 +143,23 @@ async function deletedPhotoGone(req: NextRequest): Promise<NextResponse | null> 
   )
 }
 
-/** Routes rendered with `dynamic = 'force-static'` + ISR (app/page.tsx, app/page/[n]/page.tsx) */
-function isStaticGalleryPath(pathname: string): boolean {
-  return pathname === '/' || /^\/page\/\d+\/?$/.test(pathname)
+/**
+ * Public routes rendered with `dynamic = 'force-static'` (+ ISR): the gallery home,
+ * /page/N, photo/style/watch/guide pages, the index pages and the legal pages.
+ * Keep in sync with the `force-static` exports in app/.
+ */
+const STATIC_PUBLIC_PATHS = [
+  /^\/$/,
+  /^\/page\/\d+\/?$/,
+  /^\/photo\/[^/]+\/?$/,
+  /^\/style\/[^/]+\/?$/,
+  /^\/w\/[^/]+\/?$/,
+  /^\/buying-guide\/[^/]+\/?$/,
+  /^\/(watches|brands|styles|buying-guides|about|terms|copyright|privacy)\/?$/,
+]
+
+function isStaticPublicPath(pathname: string): boolean {
+  return STATIC_PUBLIC_PATHS.some((re) => re.test(pathname))
 }
 
 async function handle(req: NextRequest): Promise<NextResponse> {
@@ -165,9 +179,9 @@ async function handle(req: NextRequest): Promise<NextResponse> {
   const gone = await deletedPhotoGone(req)
   if (gone) return gone
 
-  // 5. Attach the CSP. ISR pages (gallery home + /page/N) are served from a
-  //    static cache, so they can't carry a per-request nonce.
-  if (isStaticGalleryPath(req.nextUrl.pathname)) {
+  // 5. Attach the CSP. Static/ISR public pages are served from a cache,
+  //    so they can't carry a per-request nonce.
+  if (isStaticPublicPath(req.nextUrl.pathname)) {
     const res = NextResponse.next()
     res.headers.set('Content-Security-Policy', buildCsp(null))
     return res

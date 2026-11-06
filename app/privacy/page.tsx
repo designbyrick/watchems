@@ -2,6 +2,10 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { LEGAL_PROSE } from '@/components/ui/prose'
 
+// Static page; middleware.ts serves it with the nonce-free CSP (isStaticPublicPath).
+export const dynamic = 'force-static'
+
+
 export const metadata: Metadata = {
   title: 'Privacy Policy',
   description: 'How Watchems collects, uses, and protects your personal data.',

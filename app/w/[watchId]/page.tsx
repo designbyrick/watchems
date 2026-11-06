@@ -1,5 +1,12 @@
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+// ISR: rendered on demand, cached 5 min. force-static lets lib/db's no-store fetch run during
+// static generation; middleware.ts serves these paths with the nonce-free CSP (isStaticPublicPath).
+export const dynamic = 'force-static'
+export const revalidate = 300
+export const dynamicParams = true
+
+export function generateStaticParams() {
+  return []
+}
 
 import { notFound, redirect } from 'next/navigation'
 import type { Metadata } from 'next'
