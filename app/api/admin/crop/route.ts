@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { photos } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import sharp from 'sharp'
+import { withPublicRevalidate } from '@/lib/revalidatePublic'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,7 @@ export const dynamic = 'force-dynamic'
  * Accepts multipart form: photoId + cropped image file.
  * Re-processes with sharp and re-uploads to R2 at the same key.
  */
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!checkAdmin(userId)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -81,3 +82,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Crop failed' }, { status: 500 })
   }
 }
+
+export const POST = withPublicRevalidate(handlePOST)

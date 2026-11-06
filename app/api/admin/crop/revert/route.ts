@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { photos } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import sharp from 'sharp'
+import { withPublicRevalidate } from '@/lib/revalidatePublic'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,7 @@ export const dynamic = 'force-dynamic'
  * Fetches the original from R2 (stored at originalUrl), re-processes
  * it with sharp to regenerate full-size + thumbnail, and updates the DB.
  */
-export async function POST(req: NextRequest) {
+async function handlePOST(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!checkAdmin(userId)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -67,3 +68,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Revert failed' }, { status: 500 })
   }
 }
+
+export const POST = withPublicRevalidate(handlePOST)

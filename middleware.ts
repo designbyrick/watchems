@@ -155,14 +155,34 @@ const STATIC_PUBLIC_PATHS = [
   /^\/style\/[^/]+\/?$/,
   /^\/w\/[^/]+\/?$/,
   /^\/buying-guide\/[^/]+\/?$/,
+  /^\/brand\/[^/]+(\/m\/[^/]+)?\/?$/,
   /^\/(watches|brands|styles|buying-guides|about|terms|copyright|privacy)\/?$/,
 ]
+
+function brandModelRewrite(req: NextRequest): URL | null {
+  const match = req.nextUrl.pathname.match(/^\/brand\/([^/]+)\/?$/)
+  const model = req.nextUrl.searchParams.get('model')
+  if (!match || !model) return null
+  const url = req.nextUrl.clone()
+  url.pathname = `/brand/${match[1]}/m/${encodeURIComponent(model)}`
+  url.search = ''
+  return url
+}
 
 function isStaticPublicPath(pathname: string): boolean {
   return STATIC_PUBLIC_PATHS.some((re) => re.test(pathname))
 }
 
+// Vulnerability-scanner probes (WordPress, PHP, dotfiles, backups). Answer with a bare 404
+// here so they don't render the full not-found page through the dynamic root layout.
+const BOT_PROBE = /(^\/(wp-|wordpress|xmlrpc|phpmyadmin|cgi-bin|\.env|\.git|\.aws|\.ssh))|\.(php\d?|aspx?|jsp|cgi|env|sql|bak|old|ini|log|ya?ml|tar|gz|rar|7z)$/i
+
 async function handle(req: NextRequest): Promise<NextResponse> {
+  // 0. Scanner probes → cheap 404 without rendering anything
+  if (BOT_PROBE.test(req.nextUrl.pathname)) {
+    return new NextResponse('Not found', { status: 404, headers: { 'Content-Type': 'text/plain' } })
+  }
+
   // 1. Legacy root-level comparison URL redirect (redirect old indexed URLs)
   const legacyRedirect = legacyRootLevelRedirect(req)
   if (legacyRedirect) return legacyRedirect
@@ -179,7 +199,16 @@ async function handle(req: NextRequest): Promise<NextResponse> {
   const gone = await deletedPhotoGone(req)
   if (gone) return gone
 
-  // 5. Attach the CSP. Static/ISR public pages are served from a cache,
+  // 5. /brand/x?model=y → internal /brand/x/m/y so each model filter is ISR-cached
+  //    (the visitor still sees ?model= in the address bar).
+  const brandModel = brandModelRewrite(req)
+  if (brandModel) {
+    const res = NextResponse.rewrite(brandModel)
+    res.headers.set('Content-Security-Policy', buildCsp(null))
+    return res
+  }
+
+  // 6. Attach the CSP. Static/ISR public pages are served from a cache,
   //    so they can't carry a per-request nonce.
   if (isStaticPublicPath(req.nextUrl.pathname)) {
     const res = NextResponse.next()

@@ -1,7 +1,7 @@
-// ISR: rendered on demand, cached 5 min. force-static lets lib/db's no-store fetch run during
+// ISR: rendered on demand, cached up to a day. force-static lets lib/db's no-store fetch run during
 // static generation; middleware.ts serves these paths with the nonce-free CSP (isStaticPublicPath).
 export const dynamic = 'force-static'
-export const revalidate = 300
+export const revalidate = 86400 // 1 day; writes purge it early via lib/revalidatePublic
 
 import type { Metadata } from 'next'
 import Link from 'next/link'

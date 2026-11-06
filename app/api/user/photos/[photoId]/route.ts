@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { photos, photoLikes, collectionItems } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
 import { sanitizeText } from '@/lib/validation'
+import { withPublicRevalidate } from '@/lib/revalidatePublic'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,7 @@ const MAX_FIELD_LENGTH = 120
 const IDENTITY_KEYS = ['brandName', 'modelName', 'referenceNumber'] as const
 
 /** DELETE /api/user/photos/[photoId] — delete the user's own photo */
-export async function DELETE(
+async function handleDELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ photoId: string }> }
 ) {
@@ -61,7 +62,7 @@ export async function DELETE(
 }
 
 /** PATCH /api/user/photos/[photoId] — update metadata fields on the user's own photo */
-export async function PATCH(
+async function handlePATCH(
   req: NextRequest,
   { params }: { params: Promise<{ photoId: string }> }
 ) {
@@ -149,3 +150,6 @@ export async function PATCH(
     return NextResponse.json({ error: 'Failed to update photo' }, { status: 500 })
   }
 }
+
+export const DELETE = withPublicRevalidate(handleDELETE)
+export const PATCH = withPublicRevalidate(handlePATCH)

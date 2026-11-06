@@ -107,7 +107,9 @@ export async function GET(req: NextRequest) {
         caseMaterials: toChips(caseMaterials),
         strapTypes: toChips(strapTypes),
       },
-      { headers: { 'Cache-Control': 'no-store' } }
+      // Filter/chip data from approved photos, same for every visitor and fetched on every
+      // gallery load: cache it on the Vercel CDN instead of re-aggregating the table each time.
+      { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' } }
     )
   } catch (error) {
     console.error('Error fetching watches with photos:', error)

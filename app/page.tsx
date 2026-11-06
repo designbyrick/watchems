@@ -9,7 +9,7 @@ import { serializeJsonLd } from '@/lib/jsonLd'
 // Filters and search stay client-side via useSearchParams.
 // force-static lets lib/db's no-store fetch run during static generation instead of opting into dynamic rendering
 export const dynamic = 'force-static'
-export const revalidate = 300
+export const revalidate = 86400 // 1 day; writes purge it early via lib/revalidatePublic
 
 const faqItems = [
   {
