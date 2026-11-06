@@ -10,7 +10,15 @@ export function withPublicRevalidate<A extends unknown[], R extends Response>(
 ): (...args: A) => Promise<R> {
   return async (...args: A) => {
     const res = await handler(...args)
-    if (res.ok) revalidatePath('/', 'layout')
+    if (res.ok) {
+      try {
+        revalidatePath('/', 'layout')
+      } catch (err) {
+        // The write already succeeded; a failed purge only means pages refresh on their own
+        // schedule (also the case when handlers run outside Next, e.g. in unit tests).
+        console.error('[revalidatePublic] cache purge failed:', err)
+      }
+    }
     return res
   }
 }

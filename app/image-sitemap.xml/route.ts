@@ -4,7 +4,7 @@ import { photos } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { desc } from 'drizzle-orm'
 
-export const revalidate = 86400 // ISR: regenerate at most once a day; writes purge it early via lib/revalidatePublic
+export const revalidate = 3600 // ISR: regenerate at most once an hour
 
 /**
  * Escape XML special characters for safe inclusion in XML text content.

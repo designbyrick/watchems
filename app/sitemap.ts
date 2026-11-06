@@ -8,7 +8,7 @@ import { toWatchSlug } from '@/lib/normalizeWatch'
 import { isValidSlug } from '@/lib/validation'
 
 // ISR: regenerate at most once an hour
-export const revalidate = 86400
+export const revalidate = 3600
 
 // Same thresholds the hub pages use before they render (otherwise they redirect)
 const MIN_PHOTOS_BRAND = 3

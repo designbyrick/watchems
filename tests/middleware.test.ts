@@ -15,20 +15,32 @@ const scriptSrc = (res: Response) =>
   res.headers.get('Content-Security-Policy')?.split('; ').find((d) => d.startsWith('script-src')) ?? ''
 
 describe('middleware CSP', () => {
-  it.each(['/', '/page/2', '/page/2/'])('serves ISR page %s without a nonce', async (path) => {
+  it.each([
+    '/',
+    '/page/2',
+    '/page/2/',
+    '/about',
+    '/brand/rolex',
+    '/brand/rolex/m/submariner',
+    '/photo/some-photo',
+    '/w/omega-seamaster-300m',
+    '/style/diver',
+    '/buying-guide/under-500',
+    '/brands',
+  ])('serves ISR page %s without a nonce', async (path) => {
     const src = scriptSrc(await run(path))
     expect(src).toContain("'unsafe-inline'")
     expect(src).not.toContain('nonce-')
     expect(src).not.toContain("'strict-dynamic'")
   })
 
-  it.each(['/about', '/brand/rolex', '/page/abc', '/pages'])('uses a per-request nonce on %s', async (path) => {
+  it.each(['/upload', '/dashboard', '/page/abc', '/pages', '/brand/rolex/extra'])('uses a per-request nonce on %s', async (path) => {
     const src = scriptSrc(await run(path))
     expect(src).toMatch(/'nonce-[^']+' 'strict-dynamic'/)
     expect(src).not.toContain("'unsafe-inline'")
   })
 
   it('issues a fresh nonce per request', async () => {
-    expect(scriptSrc(await run('/about'))).not.toBe(scriptSrc(await run('/about')))
+    expect(scriptSrc(await run('/upload'))).not.toBe(scriptSrc(await run('/upload')))
   })
 })

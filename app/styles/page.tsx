@@ -11,6 +11,7 @@ import { photos } from '@/lib/db/schema'
 import { eq, and, sql, isNotNull } from 'drizzle-orm'
 import { getStyleByDbValue } from '@/lib/styleData'
 import { serializeJsonLd } from '@/lib/jsonLd'
+import { staticQuery } from '@/lib/staticQuery'
 
 const MIN_PHOTOS_FOR_HUB = 5
 
@@ -37,18 +38,20 @@ export const metadata: Metadata = {
 }
 
 export default async function StylesPage() {
-  const styleGroups = await db
-    .select({
-      watchStyle: photos.watchStyle,
-      photoCount: sql<number>`count(*)::int`,
-      thumbnailUrl: sql<string | null>`min(${photos.thumbnailUrl})`,
-      url: sql<string>`min(${photos.url})`,
-    })
-    .from(photos)
-    .where(and(eq(photos.status, 'approved'), isNotNull(photos.watchStyle)))
-    .groupBy(photos.watchStyle)
-    .having(sql`count(*) >= ${MIN_PHOTOS_FOR_HUB}`)
-    .orderBy(sql`count(*) DESC`)
+  const styleGroups = await staticQuery(() =>
+    db
+      .select({
+        watchStyle: photos.watchStyle,
+        photoCount: sql<number>`count(*)::int`,
+        thumbnailUrl: sql<string | null>`min(${photos.thumbnailUrl})`,
+        url: sql<string>`min(${photos.url})`,
+      })
+      .from(photos)
+      .where(and(eq(photos.status, 'approved'), isNotNull(photos.watchStyle)))
+      .groupBy(photos.watchStyle)
+      .having(sql`count(*) >= ${MIN_PHOTOS_FOR_HUB}`)
+      .orderBy(sql`count(*) DESC`)
+  )
 
   // Join against styleData to get display names and slugs, filtering out DB noise
   const displayStyles = styleGroups
