@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "guides-preview",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "source /private/tmp/claude-501/-Users-ricardobrandao-Documents-GitHub-watchems--claude-worktrees-fervent-wilbur-340efa/955a6c08-ea37-487f-b4bc-8cbd73a182c1/scratchpad/stubenv.sh && npx next start -p 3461"],
+      "port": 3461
+    }
+  ]
+}
