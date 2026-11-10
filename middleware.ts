@@ -56,6 +56,14 @@ function compareCanonicalRedirect(req: NextRequest): NextResponse | null {
   return NextResponse.redirect(url, { status: 301 })
 }
 
+// GA4 hosts per Google's CSP guide (incl. Google Signals). CSP can't wildcard a
+// TLD, so ga-audiences pings to country domains (google.com.br etc.) stay blocked;
+// they only feed remarketing audiences, not the g/collect hits.
+const GA_CONNECT_SOURCES =
+  'https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.google.com'
+const GA_IMG_SOURCES =
+  'https://*.google-analytics.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.google.com'
+
 /**
  * Per-request Content-Security-Policy with a nonce (official Next.js pattern).
  * Only scripts carrying this nonce — and scripts they load ('strict-dynamic') —
@@ -76,8 +84,8 @@ function buildCsp(nonce: string | null): string {
     `script-src 'self' ${scriptSources}${isDev ? " 'unsafe-eval'" : ''} https://www.googletagmanager.com https://va.vercel-scripts.com https://clerk.watchems.com https://challenges.cloudflare.com`,
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self'",
-    "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://pub-5454588e96dd48eea58ff55965bbe8f5.r2.dev https://img.clerk.com https://images.unsplash.com",
-    "connect-src 'self' https://*.clerk.accounts.dev https://clerk.watchems.com https://api.clerk.com https://cdn.vercel-insights.com https://vitals.vercel-analytics.com https://www.google-analytics.com https://www.googletagmanager.com https://challenges.cloudflare.com https://*.sentry.io",
+    `img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://pub-5454588e96dd48eea58ff55965bbe8f5.r2.dev https://img.clerk.com https://images.unsplash.com ${GA_IMG_SOURCES}`,
+    `connect-src 'self' https://*.clerk.accounts.dev https://clerk.watchems.com https://api.clerk.com https://cdn.vercel-insights.com https://vitals.vercel-analytics.com https://www.google-analytics.com https://www.googletagmanager.com https://challenges.cloudflare.com https://*.sentry.io ${GA_CONNECT_SOURCES}`,
     "frame-src 'self' https://*.clerk.accounts.dev https://clerk.watchems.com https://challenges.cloudflare.com",
     "worker-src 'self' blob:",
     "object-src 'none'",
