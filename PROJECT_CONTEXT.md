@@ -64,6 +64,7 @@ The core table. Key fields:
 | `/dashboard/liked` | Liked photos |
 | `/dashboard/profile` | Profile + avatar |
 | `/admin/photos` | Admin moderation queue (approve/reject/crop/reorder) |
+| `/learn`, `/learn/[slug]` | Organic-traffic posts (`content/posts/`, `new-post` skill) |
 
 ---
 
@@ -132,7 +133,7 @@ These things **no longer exist** — don't suggest recreating them:
 
 ## Hard Rules
 
-- No affiliate links anywhere
+- Affiliate links are allowed (see `CLAUDE.md`), but the site still says "no affiliate links" in public copy; change that copy before adding any
 - No social/community features
 - `data/watches.json` must not be recreated — Neon DB is the only source of truth
 - TypeScript strict mode — no implicit `any`

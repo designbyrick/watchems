@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 864" width="1536" height="864" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <rect width="1536" height="864" fill="#FFFFFF"/>
+
+  <!-- strap stubs -->
+  <rect x="663" y="40" width="210" height="260" fill="#F6F6F5" stroke="#E4E4E2" stroke-width="2"/>
+  <rect x="663" y="564" width="210" height="260" fill="#F6F6F5" stroke="#E4E4E2" stroke-width="2"/>
+
+  <!-- to scale: 38 mm case, 47 mm lug-to-lug, 20 mm lug width -->
+  <g fill="#D2D2CF" stroke="#5A5A58" stroke-width="3">
+    <rect x="631" y="185" width="32" height="130" rx="8"/>
+    <rect x="873" y="185" width="32" height="130" rx="8"/>
+    <rect x="631" y="549" width="32" height="130" rx="8"/>
+    <rect x="873" y="549" width="32" height="130" rx="8"/>
+  </g>
+  <circle cx="768" cy="432" r="200" fill="#EEEEEC" stroke="#5A5A58" stroke-width="4"/>
+  <circle cx="768" cy="432" r="168" fill="#FFFFFF" stroke="#D2D2CF" stroke-width="2"/>
+
+  <!-- case diameter -->
+  <line x1="568" y1="432" x2="968" y2="432" stroke="#161616" stroke-width="6"/>
+  <path d="M568,432 l24,-14 v28 z M968,432 l-24,-14 v28 z" fill="#161616"/>
+  <text x="540" y="420" font-size="52" font-weight="600" fill="#161616" text-anchor="end">case</text>
+  <text x="540" y="478" font-size="52" font-weight="600" fill="#161616" text-anchor="end">diameter</text>
+
+  <!-- lug width -->
+  <line x1="663" y1="185" x2="663" y2="100" stroke="#2563EB" stroke-width="3" stroke-dasharray="8 8"/>
+  <line x1="873" y1="185" x2="873" y2="100" stroke="#2563EB" stroke-width="3" stroke-dasharray="8 8"/>
+  <line x1="663" y1="120" x2="873" y2="120" stroke="#2563EB" stroke-width="6"/>
+  <path d="M663,120 l22,-13 v26 z M873,120 l-22,-13 v26 z" fill="#2563EB"/>
+  <text x="540" y="138" font-size="52" font-weight="600" fill="#2563EB" text-anchor="end">lug width</text>
+
+  <!-- lug-to-lug -->
+  <line x1="905" y1="185" x2="1062" y2="185" stroke="#C2410C" stroke-width="3" stroke-dasharray="8 8"/>
+  <line x1="905" y1="679" x2="1062" y2="679" stroke="#C2410C" stroke-width="3" stroke-dasharray="8 8"/>
+  <line x1="1048" y1="185" x2="1048" y2="679" stroke="#C2410C" stroke-width="8"/>
+  <path d="M1048,185 l-16,26 h32 z M1048,679 l-16,-26 h32 z" fill="#C2410C"/>
+  <text x="1090" y="420" font-size="56" font-weight="600" fill="#C2410C">lug-to-lug</text>
+  <text x="1090" y="480" font-size="44" fill="#5A5A58">decides the fit</text>
+</svg>

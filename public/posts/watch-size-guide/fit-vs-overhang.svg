@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 864" width="1536" height="864" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <rect width="1536" height="864" fill="#FFFFFF"/>
+  <line x1="768" y1="60" x2="768" y2="804" stroke="#E4E4E2" stroke-width="3"/>
+
+  <!-- Fits -->
+  <text x="384" y="140" font-size="76" font-weight="600" fill="#16A34A" text-anchor="middle">Fits</text>
+  <path d="M254,430 L514,430 Q624,430 624,540 L624,600 Q624,710 514,710 L254,710 Q144,710 144,600 L144,540 Q144,430 254,430 Z" fill="#EEEEEC" stroke="#D2D2CF" stroke-width="4"/>
+  <path d="M269,424 L254,424 Q138,424 138,540 L138,600 Q138,716 254,716 L514,716 Q630,716 630,600 L630,540 Q630,424 514,424 L499,424" fill="none" stroke="#5A5A58" stroke-width="12" stroke-linejoin="round"/>
+  <rect x="269" y="376" width="230" height="50" rx="12" fill="#161616"/>
+  <line x1="254" y1="290" x2="254" y2="430" stroke="#767674" stroke-width="3" stroke-dasharray="10 10"/>
+  <line x1="514" y1="290" x2="514" y2="430" stroke="#767674" stroke-width="3" stroke-dasharray="10 10"/>
+  <line x1="254" y1="304" x2="514" y2="304" stroke="#767674" stroke-width="5"/>
+  <text x="384" y="272" font-size="44" fill="#5A5A58" text-anchor="middle">flat width</text>
+  <text x="384" y="595" font-size="52" fill="#767674" text-anchor="middle">wrist</text>
+
+  <!-- Hangs over -->
+  <text x="1152" y="140" font-size="76" font-weight="600" fill="#C2410C" text-anchor="middle">Hangs over</text>
+  <path d="M1022,430 L1282,430 Q1392,430 1392,540 L1392,600 Q1392,710 1282,710 L1022,710 Q912,710 912,600 L912,540 Q912,430 1022,430 Z" fill="#EEEEEC" stroke="#D2D2CF" stroke-width="4"/>
+  <path d="M977,430 L1022,430 Q912,430 912,540 L902,540 Z" fill="#C2410C" fill-opacity="0.22"/>
+  <path d="M1327,430 L1282,430 Q1392,430 1392,540 L1402,540 Z" fill="#C2410C" fill-opacity="0.22"/>
+  <path d="M977,428 L902,540 L902,600 Q902,716 1022,716 L1282,716 Q1402,716 1402,600 L1402,540 L1327,428" fill="none" stroke="#5A5A58" stroke-width="12" stroke-linejoin="round"/>
+  <rect x="977" y="376" width="350" height="50" rx="12" fill="#161616"/>
+  <line x1="1022" y1="290" x2="1022" y2="376" stroke="#767674" stroke-width="3" stroke-dasharray="10 10"/>
+  <line x1="1282" y1="290" x2="1282" y2="376" stroke="#767674" stroke-width="3" stroke-dasharray="10 10"/>
+  <line x1="1022" y1="304" x2="1282" y2="304" stroke="#767674" stroke-width="5"/>
+  <text x="1152" y="272" font-size="44" fill="#5A5A58" text-anchor="middle">flat width</text>
+  <text x="890" y="500" font-size="48" font-weight="600" fill="#C2410C" text-anchor="end">gap</text>
+  <text x="1414" y="500" font-size="48" font-weight="600" fill="#C2410C">gap</text>
+  <text x="1152" y="595" font-size="52" fill="#767674" text-anchor="middle">wrist</text>
+</svg>

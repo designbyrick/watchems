@@ -8,6 +8,7 @@ Read this before doing anything.
 - Stack: Next.js 14, TypeScript strict, Tailwind
 - Deploy: Vercel (auto-deploys on push to master)
 - **Do NOT auto-commit or push.** Make changes locally, let the user test, then commit only when asked.
+  - One exception (owner, 2026-11-02): the scheduled task `posts-diario` (`/new-post diario`) may commit and push only to `posts/<slug>` branches and open a **draft** PR. It never merges and never pushes to `master`. Publishing is `/new-post aprovar <slug>`, asked by the owner each time.
 
 ## Hard Rules
 - Affiliate links are allowed and encouraged — any affiliate network is permitted anywhere appropriate (buying guides, watch pages, brand pages, CTAs)
@@ -28,7 +29,8 @@ Read this before doing anything.
   - `lib/email-templates/*.html` are NOT read by any code — they're reference copies of the hosted templates. Editing them changes nothing; edit the template in Resend (and keep variable names in sync with `lib/email.ts`)
 - **AI**: Google Gemini for watch identification (`lib/gemini.ts` or similar)
 - **Rate limiting**: `lib/ratelimit.ts`
-- **Buying Guides**: Static editorial data in `lib/buyingGuideData.ts` (typed `BuyingGuideData[]`). New guides are generated via `scripts/generate-guide.mjs` using `scripts/guide-instructions.md` as the prompt template. Guide components live in `components/guide/`.
+- **Buying Guides**: Config per guide in `lib/guides/*.ts` (`under-100`, `under-500`, `under-1000`, registered in `lib/guides/index.ts`), editorial extras in `lib/buyingGuides.ts` + `content/buying-guides/`. Components in `components/guide/`. `scripts/generate-guide.mjs` is stale (it still writes to the deleted `lib/priceData.ts`).
+- **Organic posts** (`/learn/<slug>`): MDX in `content/posts/<slug>/index.mdx`, read by `lib/posts.ts` (the folder is the registry). Rules in `lib/postRules.ts`, tested by `tests/lib/posts.test.ts`. Built with the `new-post` skill (`.claude/skills/new-post/`); search backlog in `docs/seo/backlog.md`. Posts do not use the DB: every fact comes from a cited URL (brand site first), never memory. Covers are drawn with OpenAI (`scripts/post-image.mjs`, paid, never a real brand or model).
 - **CI**: GitHub Actions (`/.github/workflows/ci.yml`) runs build + lint on push to master before Vercel deploy gate.
 
 ## Key Pages
@@ -41,7 +43,8 @@ Read this before doing anything.
 - `/style/[style]` — Style/category landing page
 - `/styles` — Style browse page
 - `/buying-guides` — Buying guides index
-- `/buying-guide/[slug]` — Individual buying guide (data from `lib/buyingGuideData.ts`)
+- `/buying-guide/[slug]` — Individual buying guide (data from `lib/guides/`)
+- `/learn` — Organic-traffic posts index; `/learn/[slug]` — post (data from `content/posts/`)
 - `/about` — About page
 - `/dashboard` — My Watches (user's submitted photos + stats)
 - `/dashboard/wrist-check` — Daily wear logging with calendar
@@ -67,9 +70,10 @@ There is NO watches table. A "watch" is identified by `watchId` (slug like `omeg
 - **`npm run validate` is removed** — the script that used watches.json is deleted.
 
 ## Buying Guide Rules
-- Guide data lives in `lib/buyingGuideData.ts` — NOT in the DB
-- Use `scripts/generate-guide.mjs` + `scripts/guide-instructions.md` to generate new guide entries
-- `lib/priceData.ts` is DELETED — `lib/buyingGuideData.ts` is the replacement
+- Guide data lives in `lib/guides/*.ts` — NOT in the DB
+- `scripts/guide-instructions.md` holds the research rules for guides; `scripts/generate-guide.mjs` needs fixing before use
+- `lib/priceData.ts` is DELETED — `lib/guides/` is the replacement
+- Price-tier searches ("best watches under $X") belong to buying guides; `/learn` posts never target them
 - Internal links in guides can point to `/brand/` or `/style/` paths, or to affiliate URLs
 - `images.hero` and `images.mid` in guide data are full URLs (Cloudflare R2 or external)
 

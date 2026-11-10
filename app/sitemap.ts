@@ -3,6 +3,7 @@ import { getIsrDb } from '@/lib/db/isr'
 import { photos } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import { GUIDES } from '@/lib/guides'
+import { getAllPosts } from '@/lib/posts'
 import { styles } from '@/lib/styleData'
 import { toWatchSlug } from '@/lib/normalizeWatch'
 import { isValidSlug } from '@/lib/validation'
@@ -178,12 +179,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ]
 
+  const posts = getAllPosts()
+  const postPages: MetadataRoute.Sitemap = posts.length === 0 ? [] : [
+    { url: `${base}/learn`, changeFrequency: 'weekly', priority: 0.8 },
+    ...posts.map((p) => ({
+      url: `${base}/learn/${p.slug}`,
+      lastModified: new Date(p.updated ?? p.published),
+      changeFrequency: 'monthly' as const,
+      priority: 0.75,
+    })),
+  ]
+
   return [
     ...staticPages,
     ...hubIndexes,
     ...brandPages,
     ...stylePages,
     ...guidePages,
+    ...postPages,
     ...watchPages,
     ...photoPages,
   ]

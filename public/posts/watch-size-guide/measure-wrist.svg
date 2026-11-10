@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 864" width="1536" height="864" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <rect width="1536" height="864" fill="#FFFFFF"/>
+  <line x1="768" y1="60" x2="768" y2="804" stroke="#E4E4E2" stroke-width="3"/>
+
+  <!-- 1. Around -->
+  <text x="384" y="140" font-size="76" font-weight="600" fill="#161616" text-anchor="middle">1. Around</text>
+  <path d="M254,380 L514,380 Q624,380 624,490 L624,560 Q624,670 514,670 L254,670 Q144,670 144,560 L144,490 Q144,380 254,380 Z" fill="#EEEEEC" stroke="#D2D2CF" stroke-width="4"/>
+  <path d="M250,348 L518,348 Q656,348 656,486 L656,564 Q656,702 518,702 L250,702 Q112,702 112,564 L112,486 Q112,348 250,348 Z" fill="none" stroke="#C2410C" stroke-width="9" stroke-dasharray="26 16" stroke-linecap="round"/>
+  <text x="384" y="545" font-size="56" font-weight="600" fill="#C2410C" text-anchor="middle">wrist size</text>
+
+  <!-- 2. Across -->
+  <text x="1152" y="140" font-size="76" font-weight="600" fill="#161616" text-anchor="middle">2. Across</text>
+  <path d="M1022,380 L1282,380 Q1392,380 1392,490 L1392,560 Q1392,670 1282,670 L1022,670 Q912,670 912,560 L912,490 Q912,380 1022,380 Z" fill="#EEEEEC" stroke="#D2D2CF" stroke-width="4"/>
+  <line x1="1022" y1="290" x2="1022" y2="380" stroke="#C2410C" stroke-width="4" stroke-dasharray="10 10"/>
+  <line x1="1282" y1="290" x2="1282" y2="380" stroke="#C2410C" stroke-width="4" stroke-dasharray="10 10"/>
+  <line x1="1022" y1="310" x2="1282" y2="310" stroke="#C2410C" stroke-width="9" stroke-linecap="round"/>
+  <path d="M1022,310 l26,-16 v32 z M1282,310 l-26,16 v-32 z" fill="#C2410C"/>
+  <text x="1152" y="262" font-size="56" font-weight="600" fill="#C2410C" text-anchor="middle">flat width</text>
+  <text x="1152" y="545" font-size="52" fill="#767674" text-anchor="middle">wrist</text>
+</svg>
