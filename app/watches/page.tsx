@@ -11,15 +11,14 @@ import { eq, and, sql, isNotNull } from 'drizzle-orm'
 const MIN_PHOTOS_FOR_HUB = 3
 
 export const metadata: Metadata = {
-  title: 'Watch Models — Wrist Photo Gallery | Watchems',
+  title: 'Watch Models — Wrist Photo Gallery',
   description:
     'Browse real owner wrist photos by watch model. Rolex Submariner, Omega Speedmaster, Seiko Prospex and more — community-submitted photos on Watchems.',
-  robots: { index: false, follow: false },
   alternates: {
     canonical: 'https://watchems.com/watches',
   },
   openGraph: {
-    title: 'Watch Models — Wrist Photo Gallery | Watchems',
+    title: 'Watch Models — Wrist Photo Gallery',
     description:
       'Browse real owner wrist photos by watch model. Community-submitted wrist shots on Watchems.',
     url: 'https://watchems.com/watches',
@@ -28,7 +27,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary',
-    title: 'Watch Models — Wrist Photo Gallery | Watchems',
+    title: 'Watch Models — Wrist Photo Gallery',
     description: 'Browse real owner wrist photos by watch model on Watchems.',
   },
 }
@@ -82,7 +81,7 @@ export default async function WatchesPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
       />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
 
         {/* Breadcrumb */}
         <nav className="text-xs text-gray-400 mb-6 flex items-center gap-1.5">
@@ -128,7 +127,7 @@ export default async function WatchesPage() {
           })}
         </div>
 
-      </main>
+      </div>
     </>
   )
 }

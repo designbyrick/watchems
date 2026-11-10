@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useUser, SignInButton } from '@clerk/nextjs'
 import Link from 'next/link'
+import { brandPath } from '@/lib/brandSlug'
 import imageCompression from 'browser-image-compression'
 import CropModal from './CropModal'
 import { trackEvent } from '@/lib/gtag'
@@ -701,7 +702,7 @@ export default function UploadClient() {
                 <>
                   {' '}Once approved, {successPreviews.length > 1 ? 'they' : 'it'} will appear on the{' '}
                   <Link
-                    href={`/brand/${encodeURIComponent(meta.brandName.toLowerCase())}`}
+                    href={brandPath(meta.brandName)}
                     className="text-ink underline underline-offset-2 hover:text-muted transition-colors"
                   >
                     {meta.brandName} page

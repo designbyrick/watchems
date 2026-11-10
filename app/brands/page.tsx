@@ -7,16 +7,17 @@ import { db } from '@/lib/db'
 import { photos } from '@/lib/db/schema'
 import { eq, and, sql, isNotNull } from 'drizzle-orm'
 import BrandList from './BrandList'
+import { brandPath } from '@/lib/brandSlug'
 
 export const metadata: Metadata = {
-  title: 'Watch Brands — Wrist Photo Gallery | Watchems',
+  title: 'Watch Brands — Wrist Photo Gallery',
   description:
     'Browse real owner wrist photos by watch brand. Rolex, Omega, Seiko, Tudor, and more — community-submitted photos on Watchems.',
   alternates: {
     canonical: 'https://watchems.com/brands',
   },
   openGraph: {
-    title: 'Watch Brands — Wrist Photo Gallery | Watchems',
+    title: 'Watch Brands — Wrist Photo Gallery',
     description:
       'Browse real owner wrist photos by watch brand. Rolex, Omega, Seiko, Tudor, and more — community-submitted photos on Watchems.',
     url: 'https://watchems.com/brands',
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary',
-    title: 'Watch Brands — Wrist Photo Gallery | Watchems',
+    title: 'Watch Brands — Wrist Photo Gallery',
     description: 'Browse real owner wrist photos by watch brand on Watchems.',
   },
 }
@@ -61,7 +62,7 @@ export default async function BrandsPage() {
       '@type': 'ListItem',
       position: i + 1,
       name: b.brandName,
-      url: `https://watchems.com/brand/${encodeURIComponent(b.brandName!.toLowerCase())}`,
+      url: `https://watchems.com${brandPath(b.brandName!)}`,
     })),
   }
 
@@ -76,7 +77,7 @@ export default async function BrandsPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
       />
 
-      <main className="max-w-[1320px] mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-16 sm:pb-[72px]">
+      <div className="max-w-[1320px] mx-auto px-4 sm:px-8 pt-6 sm:pt-10 pb-16 sm:pb-[72px]">
 
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="flex flex-wrap gap-2 font-mono text-xs tracking-[1px] uppercase text-muted">
@@ -103,7 +104,7 @@ export default async function BrandsPage() {
 
         <BrandList brands={brandGroups.map((b) => ({ brandName: b.brandName!, photoCount: b.photoCount }))} />
 
-      </main>
+      </div>
     </>
   )
 }

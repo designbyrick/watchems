@@ -3,7 +3,7 @@ import { SignUp } from '@clerk/nextjs'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Sign Up | Watchems',
+  title: 'Sign Up',
   robots: { index: false, follow: true },
 }
 

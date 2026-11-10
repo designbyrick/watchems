@@ -1,4 +1,10 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: 'Page Not Found',
+  description: 'This page does not exist on Watchems. Browse real wrist shots of watches from real owners by brand, model or style.',
+}
 
 export default function NotFound() {
   return (

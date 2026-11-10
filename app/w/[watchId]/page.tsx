@@ -10,6 +10,7 @@ import { photos } from '@/lib/db/schema'
 import { eq, and, asc, desc } from 'drizzle-orm'
 import { buildPhotoAltText } from '@/lib/photoAlt'
 import { isValidSlug } from '@/lib/validation'
+import { brandPath } from '@/lib/brandSlug'
 
 // Hub pages only earn their own URL when there are enough photos to be useful.
 // Below this threshold we redirect to the gallery filter instead.
@@ -20,7 +21,7 @@ interface WatchPageProps {
 }
 
 export async function generateMetadata({ params }: WatchPageProps): Promise<Metadata> {
-  if (!isValidSlug(params.watchId)) return { title: 'Watch Photos | Watchems' }
+  if (!isValidSlug(params.watchId)) return { title: 'Watch Photos' }
 
   const rows = await db
     .select({
@@ -35,7 +36,7 @@ export async function generateMetadata({ params }: WatchPageProps): Promise<Meta
     .orderBy(asc(photos.sortOrder), asc(photos.createdAt))
     .limit(1)
 
-  if (rows.length === 0) return { title: 'Watch Photos | Watchems' }
+  if (rows.length === 0) return { title: 'Watch Photos' }
 
   const rep = rows[0]
   const brand = rep.brandName || 'Watch'
@@ -44,13 +45,12 @@ export async function generateMetadata({ params }: WatchPageProps): Promise<Meta
   const ref = rep.referenceNumber ? ` (ref. ${rep.referenceNumber})` : ''
   const imageUrl = rep.thumbnailUrl || rep.url
 
-  const title = `${watchName} Wrist Photos | Watchems`
+  const title = `${watchName} Wrist Photos`
   const description = `Browse real owner wrist photos of the ${watchName}${ref}. Community-submitted photos on Watchems — no affiliate links, just real watches on real wrists.`
 
   return {
     title,
     description,
-    robots: { index: false, follow: false },
     alternates: {
       canonical: `https://watchems.com/w/${params.watchId}`,
     },
@@ -100,6 +100,8 @@ export default async function WatchHubPage({ params }: WatchPageProps) {
 
   // Too few photos — send to gallery filter instead of showing a thin page
   if (allPhotos.length < MIN_PHOTOS_FOR_HUB) {
+    // Temporary (307) on purpose: the hub becomes valid once more photos are approved,
+    // and a permanent redirect would stay cached by browsers and search engines.
     redirect(`/?watch=${encodeURIComponent(params.watchId)}`)
   }
 
@@ -115,7 +117,7 @@ export default async function WatchHubPage({ params }: WatchPageProps) {
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://watchems.com' },
-      { '@type': 'ListItem', position: 2, name: brand, item: `https://watchems.com/brand/${encodeURIComponent(brand.toLowerCase())}` },
+      { '@type': 'ListItem', position: 2, name: brand, item: `https://watchems.com${brandPath(brand)}` },
       { '@type': 'ListItem', position: 3, name: watchName, item: `https://watchems.com/w/${params.watchId}` },
     ],
   }
@@ -141,14 +143,14 @@ export default async function WatchHubPage({ params }: WatchPageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageJsonLd) }}
       />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
 
         {/* Breadcrumb */}
         <nav className="text-xs text-gray-400 mb-6 flex items-center gap-1.5">
           <Link href="/" className="hover:text-gray-600 transition-colors">Home</Link>
           <span>/</span>
           <Link
-            href={`/brand/${encodeURIComponent(brand.toLowerCase())}`}
+            href={brandPath(brand)}
             className="hover:text-gray-600 transition-colors"
           >
             {brand}
@@ -226,7 +228,7 @@ export default async function WatchHubPage({ params }: WatchPageProps) {
         {/* CTA */}
         <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <Link
-            href={`/brand/${encodeURIComponent(brand.toLowerCase())}`}
+            href={brandPath(brand)}
             className="text-sm text-gray-500 hover:text-gray-800 underline underline-offset-2 transition-colors"
           >
             More {brand} photos →
@@ -239,7 +241,7 @@ export default async function WatchHubPage({ params }: WatchPageProps) {
           </Link>
         </div>
 
-      </main>
+      </div>
     </>
   )
 }

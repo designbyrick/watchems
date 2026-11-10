@@ -1,6 +1,7 @@
 import { clerkMiddleware } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { brandSlug } from '@/lib/brandSlug'
 
 /**
  * Redirect legacy root-level comparison URLs to /compare/ equivalents.
@@ -54,6 +55,29 @@ function compareCanonicalRedirect(req: NextRequest): NextResponse | null {
   return NextResponse.redirect(url, { status: 301 })
 }
 
+/**
+ * Canonicalize /brand/ URLs to the lowercase hyphenated slug.
+ * e.g. /brand/Grand%20Seiko → 301 → /brand/grand-seiko
+ * Keeps one indexable URL per brand regardless of how links were cased/encoded.
+ */
+function brandCanonicalRedirect(req: NextRequest): NextResponse | null {
+  const match = req.nextUrl.pathname.match(/^\/brand\/([^/]+)\/?$/)
+  if (!match) return null
+
+  let raw: string
+  try {
+    raw = decodeURIComponent(match[1])
+  } catch {
+    return null
+  }
+  const slug = brandSlug(raw)
+  if (!slug || slug === match[1]) return null
+
+  const url = req.nextUrl.clone()
+  url.pathname = `/brand/${slug}`
+  return NextResponse.redirect(url, { status: 301 })
+}
+
 export default clerkMiddleware((_auth, req) => {
   // Only activate Clerk middleware when the keys are present (e.g. in production).
   // Without this guard, every request fails with MIDDLEWARE_INVOCATION_FAILED when
@@ -70,7 +94,11 @@ export default clerkMiddleware((_auth, req) => {
   const canonicalRedirect = compareCanonicalRedirect(req)
   if (canonicalRedirect) return canonicalRedirect
 
-  // 3. Proceed to next middleware/route
+  // 3. Brand slug canonicalization (case/space variants → lowercase hyphenated slug)
+  const brandRedirect = brandCanonicalRedirect(req)
+  if (brandRedirect) return brandRedirect
+
+  // 4. Proceed to next middleware/route
   if (!hasClerk) return NextResponse.next()
   return NextResponse.next()
 })

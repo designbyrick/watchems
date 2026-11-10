@@ -6,7 +6,7 @@ import LikedClient from './LikedClient'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Liked Watches | Watchems',
+  title: 'Liked Watches',
   description: 'Your liked watch photos.',
   robots: { index: false, follow: false },
 }

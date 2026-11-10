@@ -6,7 +6,7 @@ import BoardsClient from './BoardsClient'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Collections | Watchems',
+  title: 'Collections',
   description: 'Manage your saved watch photo collections.',
   robots: { index: false, follow: false },
 }

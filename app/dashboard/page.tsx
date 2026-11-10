@@ -9,7 +9,7 @@ import MyWatchesView from './MyWatchesView'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'My Watches | Watchems',
+  title: 'My Watches',
   description: 'Manage your watch photo uploads.',
   robots: {
     index: false,

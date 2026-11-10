@@ -6,7 +6,7 @@ import ProfileClient from './ProfileClient'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'My Profile | Watchems',
+  title: 'My Profile',
   description: 'Manage your profile and avatar.',
   robots: { index: false, follow: false },
 }
