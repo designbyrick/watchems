@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getIsrDb } from '@/lib/db/isr'
 import { photos } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { desc } from 'drizzle-orm'
 import { buildPhotoAltText } from '@/lib/photoAlt'
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 3600 // 1 hour cache
+export const revalidate = 3600 // ISR: regenerate at most once an hour
 
 /**
  * Escape XML special characters for safe inclusion in XML text content.
@@ -21,9 +20,10 @@ function escapeXml(str: string | null | undefined): string {
     .replace(/'/g, '&apos;')
 }
 
-export async function GET() {
-  // Query approved photos, ordered by createdAt DESC, limited to 50,000
-  const allPhotos = await db
+// Uses the ISR client: the default db client fetches with cache: 'no-store',
+// which would make this route dynamic.
+const getApprovedPhotos = () =>
+  getIsrDb(revalidate)
     .select({
       id: photos.id,
       slug: photos.slug,
@@ -39,6 +39,25 @@ export async function GET() {
     .where(eq(photos.status, 'approved'))
     .orderBy(desc(photos.createdAt))
     .limit(50000)
+
+async function fetchApprovedPhotos() {
+  try {
+    return await getApprovedPhotos()
+  } catch (err) {
+    // CI builds (and local dev without Neon) use a stub DATABASE_URL and this
+    // route is prerendered at build time (ISR). Emit an empty sitemap there; in
+    // production rethrow so ISR keeps serving the last good version.
+    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'development') {
+      console.warn('[image-sitemap] DB unavailable, emitting empty sitemap')
+      return []
+    }
+    throw err
+  }
+}
+
+export async function GET() {
+  // Query approved photos, ordered by createdAt DESC, limited to 50,000
+  const allPhotos = await fetchApprovedPhotos()
 
   const baseUrl = 'https://watchems.com'
 
