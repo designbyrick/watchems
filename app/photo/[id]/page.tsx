@@ -1,8 +1,8 @@
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-import { notFound, redirect } from 'next/navigation'
-import { NextResponse } from 'next/server'
+import { cache } from 'react'
+import { notFound, permanentRedirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { buildPhotoAltText } from '@/lib/photoAlt'
@@ -97,64 +97,67 @@ function unslugify(slug: string) {
   return slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
-// Generate dynamic metadata
-export async function generateMetadata({ params }: PhotoPageProps): Promise<Metadata> {
-  const param = params.id
-  const isUUID = UUID_REGEX.test(param)
+/** Brand URL segment: lowercase, hyphen-separated (matches the /brand canonical) */
+function brandSlug(brandName: string) {
+  return brandName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+}
 
-  const photoRecord = await db
+// Shared by generateMetadata and the page — React cache() dedupes per request
+const getPhoto = cache(async (param: string) => {
+  const isUUID = UUID_REGEX.test(param)
+  const rows = await db
     .select()
     .from(photos)
     .where(isUUID ? eq(photos.id, param) : or(eq(photos.slug, param), eq(photos.id, param))!)
     .limit(1)
+  return rows[0] ?? null
+})
 
-  if (photoRecord.length === 0 || !['approved'].includes(photoRecord[0].status)) {
-    return { title: 'Photo Not Found | Watchems' }
+// The uploader's carousel for this watch (same order as the gallery). Its first
+// photo is the primary one — secondary carousel photos canonicalize to it.
+const getCarousel = cache(async (watchId: string, userId: string) =>
+  db
+    .select({ id: photos.id, slug: photos.slug, url: photos.url, thumbnailUrl: photos.thumbnailUrl })
+    .from(photos)
+    .where(and(eq(photos.watchId, watchId), eq(photos.userId, userId), eq(photos.status, 'approved')))
+    .orderBy(asc(photos.sortOrder), asc(photos.createdAt))
+)
+
+// Generate dynamic metadata
+export async function generateMetadata({ params }: PhotoPageProps): Promise<Metadata> {
+  const p = await getPhoto(params.id)
+
+  if (!p || p.status !== 'approved') {
+    return { title: 'Photo Not Found' }
   }
 
-  const p = photoRecord[0]
   const slug = p.slug ?? p.id
   const brandName = p.brandName || 'Watch'
   const modelName = p.modelName || 'on the wrist'
-  const title = `${brandName} ${modelName} Wrist Photo by ${p.userName} | Watchems`
+  // Layout template appends " | Watchems"
+  const title = `${brandName} ${modelName} Wrist Photo by ${p.userName}`
   const description = `Real owner photo of the ${brandName} ${modelName}${p.referenceNumber ? ` (ref. ${p.referenceNumber})` : ''} submitted by ${p.userName} on Watchems.${p.caseSize ? ` Case size: ${p.caseSize}.` : ''}${p.movement ? ` Movement: ${p.movement}.` : ''}`
   const imageUrl = p.thumbnailUrl || p.url
 
-  // Find the primary photo in this user's carousel (lowest sortOrder, then earliest createdAt)
-  // Secondary carousel photos point their canonical to the primary
-  let canonicalSlug = slug
-  if (p.userId) {
-    const primaryPhoto = await db
-      .select({ id: photos.id, slug: photos.slug })
-      .from(photos)
-      .where(and(eq(photos.watchId, p.watchId), eq(photos.userId, p.userId), eq(photos.status, 'approved')))
-      .orderBy(asc(photos.sortOrder), asc(photos.createdAt))
-      .limit(1)
-    if (primaryPhoto.length > 0 && primaryPhoto[0].id !== p.id) {
-      canonicalSlug = primaryPhoto[0].slug ?? primaryPhoto[0].id
-    }
-  }
+  const carousel = await getCarousel(p.watchId, p.userId)
+  const primary = carousel[0]
+  const canonicalSlug = primary && primary.id !== p.id ? primary.slug ?? primary.id : slug
+  const canonicalUrl = `https://watchems.com/photo/${canonicalSlug}`
 
   return {
     title,
     description,
     alternates: {
-      canonical: `https://watchems.com/photo/${canonicalSlug}`,
+      canonical: canonicalUrl,
     },
     openGraph: {
       title,
       description,
-      url: `https://watchems.com/photo/${slug}`,
+      url: canonicalUrl,
       type: 'website',
       siteName: 'Watchems',
-      images: [
-        {
-          url: imageUrl,
-          width: 1200,
-          height: 630,
-          alt: buildPhotoAltText(p),
-        },
-      ],
+      // No width/height: thumbnails keep the upload's aspect ratio, not 1200×630
+      images: [{ url: imageUrl, alt: buildPhotoAltText(p) }],
     },
     twitter: {
       card: 'summary_large_image',
@@ -167,39 +170,26 @@ export async function generateMetadata({ params }: PhotoPageProps): Promise<Meta
 
 export default async function PhotoPage({ params }: PhotoPageProps) {
   const param = params.id
-  const isUUID = UUID_REGEX.test(param)
+  const p = await getPhoto(param)
 
-  const photoRecord = await db
-    .select()
-    .from(photos)
-    .where(isUUID ? eq(photos.id, param) : or(eq(photos.slug, param), eq(photos.id, param))!)
-    .limit(1)
-
-  if (photoRecord.length === 0) {
+  // Soft-deleted photos are answered with 410 Gone by middleware.ts before
+  // reaching here; anything else that isn't approved is a 404.
+  if (!p || p.status !== 'approved') {
     notFound()
   }
 
-  const p = photoRecord[0]
-
-  // Soft-deleted photos get 410 Gone — tells Google to drop from index immediately
-  if (p.status === 'deleted') {
-    return NextResponse.json(null, { status: 410 }) as never
-  }
-
-  if (p.status !== 'approved') {
-    notFound()
-  }
-
-  // UUID accessed directly — 301 redirect to slug URL
-  if (isUUID && p.slug) {
-    redirect(`/photo/${p.slug}`)
+  // UUID accessed directly — permanent (308) redirect to the slug URL
+  if (UUID_REGEX.test(param) && p.slug) {
+    permanentRedirect(`/photo/${p.slug}`)
   }
 
   const slug = p.slug ?? p.id
   const brandName = p.brandName || 'Watch'
   const modelName = p.modelName || 'on the wrist'
   const imageUrl = p.thumbnailUrl || p.url
-  const brandHref = `/brand/${encodeURIComponent(brandName.toLowerCase())}`
+  const brandHref = `/brand/${brandSlug(brandName)}`
+  const watchHref = `/w/${p.watchId}`
+  const watchName = [p.brandName, p.modelName].filter(Boolean).join(' ') || unslugify(p.watchId)
   const displayModel = p.modelName || p.referenceNumber || unslugify(p.watchId)
   const dialKey = p.dialColor?.trim().toLowerCase() || null
 
@@ -208,12 +198,7 @@ export default async function PhotoPage({ params }: PhotoPageProps) {
   const approvedOthers = and(eq(photos.status, 'approved'), ne(photos.userId, p.userId))
 
   const [carousel, shotCountRows, byDial] = await Promise.all([
-    // The uploader's carousel for this watch (same order as the gallery)
-    db
-      .select({ id: photos.id, url: photos.url, thumbnailUrl: photos.thumbnailUrl })
-      .from(photos)
-      .where(and(eq(photos.watchId, p.watchId), eq(photos.userId, p.userId), eq(photos.status, 'approved')))
-      .orderBy(asc(photos.sortOrder), asc(photos.createdAt)),
+    getCarousel(p.watchId, p.userId),
     db
       .select({ n: count() })
       .from(photos)
@@ -240,8 +225,8 @@ export default async function PhotoPage({ params }: PhotoPageProps) {
       .orderBy(asc(photos.sortOrder), desc(photos.createdAt))
       .limit(RELATED_POOL)
     related = onePerUpload(sameWatch, p, RELATED_LIMIT)
-    relatedTitle = `More ${[p.brandName, p.modelName].filter(Boolean).join(' ') || unslugify(p.watchId)}`
-    relatedHref = `/w/${p.watchId}`
+    relatedTitle = `More ${watchName}`
+    relatedHref = watchHref
   }
   if (related.length === 0 && p.brandName) {
     const sameBrand = await db
@@ -257,12 +242,16 @@ export default async function PhotoPage({ params }: PhotoPageProps) {
 
   const viewerPhotos = (carousel.length > 0 ? carousel : [{ id: p.id, url: p.url, thumbnailUrl: p.thumbnailUrl }]).map(
     (photo, i) => ({
-      ...photo,
+      id: photo.id,
+      url: photo.url,
+      thumbnailUrl: photo.thumbnailUrl,
       alt: `${buildPhotoAltText(p)}${carousel.length > 1 ? `, photo ${i + 1}` : ''}`,
     })
   )
   const initialIndex = Math.max(0, viewerPhotos.findIndex((photo) => photo.id === p.id))
   const shotCount = Number(shotCountRows[0]?.n ?? 0)
+  const primary = carousel[0]
+  const canonicalUrl = `https://watchems.com/photo/${primary && primary.id !== p.id ? primary.slug ?? primary.id : slug}`
 
   // Spec sheet — rows without a value are hidden
   const specs: { label: string; value: string; swatch?: string }[] = []
@@ -337,25 +326,17 @@ export default async function PhotoPage({ params }: PhotoPageProps) {
       }
     : null
 
-  // Structured data — BreadcrumbList
+  // Structured data — BreadcrumbList (Gallery → Brand → Watch → Photo), mirrors the visual breadcrumb
+  const breadcrumbItems = [
+    { name: 'Gallery', item: 'https://watchems.com' },
+    ...(p.brandName ? [{ name: p.brandName, item: `https://watchems.com${brandHref}` }] : []),
+    { name: watchName, item: `https://watchems.com${watchHref}` },
+    { name: `Photo by ${p.userName}`, item: canonicalUrl },
+  ]
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://watchems.com' },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: brandName,
-        item: `https://watchems.com/brand/${encodeURIComponent(brandName.toLowerCase())}`,
-      },
-      {
-        '@type': 'ListItem',
-        position: 3,
-        name: `${brandName} ${modelName}`,
-        item: `https://watchems.com/photo/${slug}`,
-      },
-    ],
+    itemListElement: breadcrumbItems.map((crumb, i) => ({ '@type': 'ListItem', position: i + 1, ...crumb })),
   }
 
   return (
@@ -384,7 +365,11 @@ export default async function PhotoPage({ params }: PhotoPageProps) {
               <span aria-hidden="true">/</span>
             </>
           )}
-          <span className="text-ink truncate">{[displayModel, p.modelName && p.referenceNumber].filter(Boolean).join(' ')}</span>
+          <Link href={watchHref} className="hover:text-ink transition-colors truncate">
+            {[displayModel, p.modelName && p.referenceNumber].filter(Boolean).join(' ')}
+          </Link>
+          <span aria-hidden="true">/</span>
+          <span className="text-ink truncate" aria-current="page">Photo by {p.userName}</span>
         </nav>
 
         <div className="flex flex-wrap items-start gap-8 lg:gap-10">
@@ -409,6 +394,12 @@ export default async function PhotoPage({ params }: PhotoPageProps) {
               {p.referenceNumber && (
                 <p className="mt-3 font-mono text-sm text-muted">Ref. {p.referenceNumber}</p>
               )}
+              <Link
+                href={watchHref}
+                className="mt-4 inline-block text-[15px] font-semibold text-ink shadow-[inset_0_-1px_0_currentColor] hover:text-ink-hover"
+              >
+                See all photos of the {watchName} →
+              </Link>
             </div>
 
             <div className="flex flex-wrap gap-2.5">
@@ -483,6 +474,16 @@ export default async function PhotoPage({ params }: PhotoPageProps) {
                 ))}
               </ul>
             )}
+
+            <div className="rounded-[10px] border border-line bg-surface px-[18px] py-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[15px] text-ink">Own a {watchName}? Share your wrist shot.</p>
+              <Link
+                href="/upload"
+                className="h-9 rounded-full border border-line-strong flex items-center px-3.5 text-sm font-semibold text-ink hover:border-ink transition-colors shrink-0"
+              >
+                Upload yours
+              </Link>
+            </div>
           </aside>
         </div>
 
